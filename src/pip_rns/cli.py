@@ -18,17 +18,24 @@ def _add_common_install_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--pipx", action="store_true", help="Use pipx instead of pip")
     p.add_argument("--uv", action="store_true", help="Use uv instead of pip")
     p.add_argument(
-        "--poetry", action="store_true", help="Use poetry add instead of pip",
+        "--poetry",
+        action="store_true",
+        help="Use poetry add instead of pip",
     )
     p.add_argument(
-        "--ref", metavar="TAG", help="Git tag, branch or commit to checkout",
+        "--ref",
+        metavar="TAG",
+        help="Git tag, branch or commit to checkout",
     )
     p.add_argument(
-        "--editable", "-e", action="store_true",
+        "--editable",
+        "-e",
+        action="store_true",
         help="Install in editable mode (persistent clone)",
     )
     p.add_argument(
-        "--use-cache", action="store_true",
+        "--use-cache",
+        action="store_true",
         help="Cache clone locally; reuse cache when offline",
     )
 
@@ -47,23 +54,30 @@ def main() -> None:
         prog="pip-rns",
         description="Install Python packages from Reticulum (rns://) remotes",
     )
-    parser.add_argument("--no-color", action="store_true", help="Disable colored output")
     parser.add_argument(
-        "--config", metavar="DIR", help="Config directory for aliases + indexes",
+        "--no-color", action="store_true", help="Disable colored output"
+    )
+    parser.add_argument(
+        "--config",
+        metavar="DIR",
+        help="Config directory for aliases + indexes",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # --- install ---
     p = sub.add_parser("install", help="Install a package from a remote")
     p.add_argument(
-        "remote", help="Remote path, rns:// URL, alias name, or index package",
+        "remote",
+        help="Remote path, rns:// URL, alias name, or index package",
     )
     _add_common_install_args(p)
     p.add_argument("--venv", metavar="PATH", help="Install into a virtualenv at PATH")
     p.add_argument("extra", nargs="*", help="Extra arguments passed to the installer")
 
     # --- update ---
-    p = sub.add_parser("update", help="Reinstall a package from a remote (force latest)")
+    p = sub.add_parser(
+        "update", help="Reinstall a package from a remote (force latest)"
+    )
     p.add_argument("remote")
     _add_common_install_args(p)
     p.add_argument("--venv", metavar="PATH")
@@ -124,9 +138,12 @@ def main() -> None:
     ui_init(no_color=args.no_color)
 
     inst = (
-        "poetry" if getattr(args, "poetry", False)
-        else "pipx" if getattr(args, "pipx", False)
-        else "uv" if getattr(args, "uv", False)
+        "poetry"
+        if getattr(args, "poetry", False)
+        else "pipx"
+        if getattr(args, "pipx", False)
+        else "uv"
+        if getattr(args, "uv", False)
         else "pip"
     )
 
@@ -180,14 +197,22 @@ def main() -> None:
 
     if args.command == "install":
         install(
-            args.remote, installer=inst, editable=args.editable,
-            extra_args=args.extra or None, venv=venv, ref=ref,
+            args.remote,
+            installer=inst,
+            editable=args.editable,
+            extra_args=args.extra or None,
+            venv=venv,
+            ref=ref,
             use_cache=use_cache,
         )
     elif args.command == "update":
         update_fn(
-            args.remote, installer=inst, editable=args.editable,
-            extra_args=args.extra or None, venv=venv, ref=ref,
+            args.remote,
+            installer=inst,
+            editable=args.editable,
+            extra_args=args.extra or None,
+            venv=venv,
+            ref=ref,
             use_cache=use_cache,
         )
     elif args.command == "list":

@@ -17,9 +17,13 @@ def main() -> None:
         prog="pipx-rns",
         description="Install Python packages from Reticulum (rns://) via pipx",
     )
-    parser.add_argument("--no-color", action="store_true", help="Disable colored output")
     parser.add_argument(
-        "--config", metavar="DIR", help="Config directory for aliases",
+        "--no-color", action="store_true", help="Disable colored output"
+    )
+    parser.add_argument(
+        "--config",
+        metavar="DIR",
+        help="Config directory for aliases",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -28,7 +32,8 @@ def main() -> None:
     p.add_argument("--ref", metavar="TAG", help="Git tag, branch or commit to checkout")
     p.add_argument("--editable", "-e", action="store_true")
     p.add_argument(
-        "--use-cache", action="store_true",
+        "--use-cache",
+        action="store_true",
         help="Cache clone locally; reuse cache when offline",
     )
     p.add_argument("extra", nargs="*")
@@ -41,7 +46,8 @@ def main() -> None:
     p.add_argument("extra", nargs="*")
 
     p = sub.add_parser(
-        "update", help="Force-reinstall a package from a remote via pipx",
+        "update",
+        help="Force-reinstall a package from a remote via pipx",
     )
     p.add_argument("remote")
     p.add_argument("--ref", metavar="TAG")
@@ -65,18 +71,28 @@ def main() -> None:
 
     if args.command == "install":
         install(
-            args.remote, installer="pipx", editable=args.editable,
-            extra_args=args.extra or None, ref=ref, use_cache=use_cache,
+            args.remote,
+            installer="pipx",
+            editable=args.editable,
+            extra_args=args.extra or None,
+            ref=ref,
+            use_cache=use_cache,
         )
     elif args.command == "inject":
         inject(
-            args.remote, args.venv, extra_args=args.extra or None,
-            ref=ref, use_cache=use_cache,
+            args.remote,
+            args.venv,
+            extra_args=args.extra or None,
+            ref=ref,
+            use_cache=use_cache,
         )
     elif args.command == "update":
         update_fn(
-            args.remote, installer="pipx",
-            extra_args=args.extra or None, ref=ref, use_cache=use_cache,
+            args.remote,
+            installer="pipx",
+            extra_args=args.extra or None,
+            ref=ref,
+            use_cache=use_cache,
         )
     elif args.command == "list":
         list_packages(installer="pipx")

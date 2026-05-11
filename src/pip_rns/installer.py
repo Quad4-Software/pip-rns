@@ -162,8 +162,10 @@ class PipxInstaller(BaseInstaller):
         args = [*self._cmd(), "upgrade", pkg_name]
         try:
             subprocess.run(
-                args, check=True,
-                capture_output=True, text=True,
+                args,
+                check=True,
+                capture_output=True,
+                text=True,
             )
             return
         except Exception:

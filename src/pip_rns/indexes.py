@@ -127,7 +127,8 @@ class IndexManager:
             if dest.exists():
                 try:
                     subprocess.run(
-                        ["git", "-C", str(dest), "pull"], check=True,
+                        ["git", "-C", str(dest), "pull"],
+                        check=True,
                         capture_output=True,
                     )
                 except Exception:
@@ -146,9 +147,10 @@ class IndexManager:
                     for k in data:
                         if k in merged:
                             import sys
+
                             print(
-                                f"  warning: {k} already defined, "
-                                f"using {url}", file=sys.stderr,
+                                f"  warning: {k} already defined, using {url}",
+                                file=sys.stderr,
                             )
                     merged.update(data)
                 except Exception:
