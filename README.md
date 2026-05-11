@@ -2,6 +2,8 @@
 
 Install Python packages over [Reticulum](https://reticulum.network/) from rngit remotes. Supports pip, pipx, uv and poetry.
 
+rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+
 ## Features
 
 - **Multi-backend** - install with pip, pipx, uv, or poetry (`--pipx` / `--uv` / `--poetry`)
@@ -14,19 +16,19 @@ Install Python packages over [Reticulum](https://reticulum.network/) from rngit 
 
 ## Install
 
-PyPI:
+**PyPI:**
 
 ```bash
 pip install pip-rns
 ```
 
-Install from local wheel:
+**Install from local wheel:**
 
 ```bash
 pip install pip_rns-*.whl
 ```
 
-Install from official git sources over internet:
+**Install from official git sources over internet:**
 
 ```bash
 pip install git+https://git.quad4.io/RNS-Things/pip-rns
