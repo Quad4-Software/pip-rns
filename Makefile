@@ -16,11 +16,11 @@ build:
 
 sign: build
 	for f in dist/*.tar.gz dist/*.whl; do \
-		rnid -i $(RNID_KEY) -s "$$f" -w "$$f.rsg"; \
+		rnid -f -i $(RNID_KEY) -s "$$f" -w "$$f.rsg"; \
 	done
 
 upload: sign
-	twine upload dist/*
+	twine upload dist/*.whl dist/*.tar.gz
 
 release: tag sign
 	mkdir -p dist
