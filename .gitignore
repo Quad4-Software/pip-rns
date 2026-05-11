@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+dist
+build
+*.egg-info
+*.egg
+.venv
+venv
+env
+*.env
+.ruff_cache
+__pypackages__
+*.whl
+*.tar.gz

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pip-rns"
+version = "0.1.0"
+description = "Install Python packages from Reticulum rngit remotes via pip/pipx/poetry/uv"
+requires-python = ">=3.7"
+license = {text = "BSD-2-Clause"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Build Tools",
+]
+
+[project.scripts]
+pip-rns = "pip_rns.cli:main"
+pipx-rns = "pip_rns.cli_pipx:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pip_rns"]
