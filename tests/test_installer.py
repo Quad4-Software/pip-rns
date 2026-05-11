@@ -1,4 +1,4 @@
-"""Tests for installer.py — registry and factory functions."""
+"""Tests for installer.py - registry and factory functions."""
 
 from __future__ import annotations
 

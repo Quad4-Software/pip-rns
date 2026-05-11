@@ -1,4 +1,4 @@
-"""Tests for resolver.py — URL normalization, ref parsing, hashing."""
+"""Tests for resolver.py - URL normalization, ref parsing, hashing."""
 
 from __future__ import annotations
 

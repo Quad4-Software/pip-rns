@@ -1,4 +1,4 @@
-"""Minimal test runner — no pytest dependency.
+"""Minimal test runner - no pytest dependency.
 
 Usage:
     python -m tests.test_runner          # run all

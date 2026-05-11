@@ -1,4 +1,4 @@
-"""Tests for core.py — orchestrator and retry helpers."""
+"""Tests for core.py - orchestrator and retry helpers."""
 
 from __future__ import annotations
 

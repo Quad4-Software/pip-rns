@@ -4,13 +4,13 @@ Install Python packages directly from [Reticulum](https://reticulum.network/) `r
 
 ## Features
 
-- **Multi-backend** — install with pip, pipx, uv, or poetry (`--pipx` / `--uv` / `--poetry`)
-- **Version pinning** — `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
-- **Offline cache** — `--use-cache` / `PIP_RNS_USE_CACHE=1` keeps a local copy for repeat or air-gapped installs
-- **Editable mode** — `--editable` / `-e` for persistent checkouts
-- **pipx inject** — `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
-- **Aliases** — short names for long remote paths
-- **Indexes** — sync package listings from remote RNS repos (`packages`)
+- **Multi-backend** - install with pip, pipx, uv, or poetry (`--pipx` / `--uv` / `--poetry`)
+- **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
+- **Offline cache** - `--use-cache` / `PIP_RNS_USE_CACHE=1` keeps a local copy for repeat or air-gapped installs
+- **Editable mode** - `--editable` / `-e` for persistent checkouts
+- **pipx inject** - `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
+- **Aliases** - short names for long remote paths
+- **Indexes** - sync package listings from remote RNS repos (`packages`)
 
 ## Install and Usage
 
@@ -25,6 +25,13 @@ Install from wheel:
 pip install pip_rns-*.whl
 ```
 
+Install from git:
+
+```bash
+pip install git+https://git.quad4.io/RNS-Things/pip-rns
+pip install git+https://github.com/Quad4-Software/pip-rns
+```
+
 ## Commands
 
 ### `pip-rns` (generic)
@@ -35,7 +42,7 @@ pip-rns update <remote> [options]
 pip-rns list [--pipx] [--uv] [--poetry]
 pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
 pip-rns alias add|set|rm|ls
-pip-rns index add|rm|ls|sync|packages
+pip-rns index add|rm|ls|sync|list|search
 ```
 
 ### `pipx-rns` (pipx-specific)
@@ -104,10 +111,10 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_PIPX` | `pipx` | pipx command |
 | `PIP_RNS_UV` | `uv` | uv command |
 | `PIP_RNS_POETRY` | `poetry` | poetry command |
-| `PIP_RNS_CONFIG` | — | config directory for aliases |
-| `PIP_RNS_USE_CACHE` | — | enable cache (`1`) |
+| `PIP_RNS_CONFIG` | - | config directory for aliases |
+| `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
 | `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
-| `NO_COLOR` | — | disable colors (standard) |
+| `NO_COLOR` | - | disable colors (standard) |
 
 ## Tests
 

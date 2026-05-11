@@ -1,4 +1,4 @@
-"""Tests for indexes.py — plain-text parsing and resolution."""
+"""Tests for indexes.py - plain-text parsing and resolution."""
 
 from __future__ import annotations
 
