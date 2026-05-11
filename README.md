@@ -8,7 +8,7 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 - **Multi-backend** - install with pip, pipx, uv, or poetry (`--pipx` / `--uv` / `--poetry`)
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
-- **Offline cache** - `--use-cache` / `PIP_RNS_USE_CACHE=1` keeps a local copy for repeat or air-gapped installs
+- **Offline cache** - `--use-cache` / `PIP_RNS_USE_CACHE=1` keeps a local copy for repeat or offline installs
 - **Editable mode** - `--editable` / `-e` for persistent checkouts
 - **pipx inject** - `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
 - **Aliases** - short names for long remote paths
@@ -42,6 +42,12 @@ pip install pip_rns-*.whl
 ```bash
 pip install git+https://git.quad4.io/RNS-Things/pip-rns
 pip install git+https://github.com/Quad4-Software/pip-rns
+```
+
+## Verify Releases (from rngit)
+
+```bash
+rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 ```
 
 ## Usage
@@ -82,7 +88,7 @@ Save long remote paths under a short name and install by alias:
 ```bash
 pip-rns alias add lxmfy 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 pip-rns alias ls
-pip-rns install lxmfy
+pip-rns install lxmfy -- --break-system-packges
 ```
 
 Aliases are stored in `~/.config/pip-rns/aliases` (`%APPDATA%/pip-rns/aliases` on Windows), one per line:
@@ -135,6 +141,25 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
 | `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
 | `NO_COLOR` | - | disable colors (standard) |
+
+## Shell Completions
+
+```bash	
+# Bash
+mkdir -p ~/.local/share/bash-completion/completions && cp completions/pip-rns.bash ~/.local/share/bash-completion/completions/
+# ZSH
+mkdir -p ~/.local/share/zsh/site-functions && cp completions/_pip-rns ~/.local/share/zsh/site-functions/
+# Fish
+mkdir -p ~/.local/share/fish/vendor_completions.d && cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
+```
+
+## Man Pages 
+
+```bash
+mkdir -p ~/.local/share/man/man1
+cp man/man1/pip-rns.1 ~/.local/share/man/man1/
+cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
+```
 
 ## Tests
 
