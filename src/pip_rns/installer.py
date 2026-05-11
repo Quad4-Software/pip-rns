@@ -158,6 +158,16 @@ class PipxInstaller(BaseInstaller):
         editable: bool = False,
         extra_args: list[str] | None = None,
     ) -> None:
+        pkg_name = package_path.name
+        args = [*self._cmd(), "upgrade", pkg_name]
+        try:
+            subprocess.run(
+                args, check=True,
+                capture_output=True, text=True,
+            )
+            return
+        except Exception:
+            pass
         args = [*self._cmd(), "install", "--force", str(package_path)]
         if extra_args:
             args.extend(extra_args)
