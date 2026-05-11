@@ -6,13 +6,13 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 ## Features
 
-- **Multi-backend** - install with pip, pipx, uv, or poetry (`--pipx` / `--uv` / `--poetry`)
+- **Multi-backend** - install with pip, pipx, uv, or poetry
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
-- **Offline cache** - `--use-cache` / `PIP_RNS_USE_CACHE=1` keeps a local copy for repeat or offline installs
-- **Editable mode** - `--editable` / `-e` for persistent checkouts
-- **pipx inject** - `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
+- **Offline cache** - `--use-cache` for repeat or offline installs
+- **Editable mode** - `--editable` for persistent checkouts
+- **pipx inject** - install into existing pipx venvs
 - **Aliases** - short names for long remote paths
-- **Indexes** - sync package listings from remote RNS repos (`packages`)
+- **Indexes** - sync package listings from remote RNS repos
 
 ## Requirements
 
@@ -25,10 +25,8 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 ```bash
 pip install pip-rns
-# pass --break-system-packages if needed or use pipx:
+# or
 pipx install pip-rns
-# uv
-uv pip install pip-rns
 ```
 
 **Install from local wheel:**
@@ -37,14 +35,14 @@ uv pip install pip-rns
 pip install pip_rns-*.whl
 ```
 
-**Install from official git sources over internet:**
+**Install from git:**
 
 ```bash
 pip install git+https://git.quad4.io/RNS-Things/pip-rns
 pip install git+https://github.com/Quad4-Software/pip-rns
 ```
 
-## Verify Releases (from rngit)
+## Verify Releases
 
 ```bash
 rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
@@ -53,8 +51,6 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 ## Usage
 
 ```bash
-pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy --break-system-packages
-# or
 pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 ```
 
@@ -83,21 +79,22 @@ pipx-rns uninstall <package>
 
 ### Aliases
 
-Save long remote paths under a short name and install by alias:
+Save long remote paths under a short name:
 
 ```bash
 pip-rns alias add lxmfy 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 pip-rns alias ls
-pip-rns install lxmfy -- --break-system-packges
+pip-rns install lxmfy
 ```
 
-Aliases are stored in `~/.config/pip-rns/aliases` (`%APPDATA%/pip-rns/aliases` on Windows), one per line:
+Aliases are stored in `~/.config/pip-rns/aliases` (`%APPDATA%/pip-rns/aliases` on Windows):
 
 ```
 lxmfy=926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 ```
 
-Use a custom config directory:
+Custom config directory:
+
 ```bash
 pip-rns --config /path/to/dir alias add lxmfy <remote>
 PIP_RNS_CONFIG=/path/to/dir pip-rns install lxmfy
@@ -105,27 +102,24 @@ PIP_RNS_CONFIG=/path/to/dir pip-rns install lxmfy
 
 ### Indexes
 
-Register a remote index (an rngit repo with a `packages` file) and install by package name:
+Register an index (an rngit repo with a `packages` file) and install by name:
 
 ```bash
-pip-rns index add rns://926baefe13daf5178c174f158dae1b45/quad4/index
+pip-rns index add rns://identity/group/index
 pip-rns index sync
-pip-rns index packages
-pip-rns install lxmfy   # resolves from synced index
+pip-rns index list
+pip-rns install lxmfy
 ```
 
 Indexes chain with aliases: local aliases take priority, then synced indexes, then raw path.
 
-### Passthrough examples
+### Passthrough
+
+Flags after `--` are forwarded to the underlying tool:
 
 ```bash
-# pass --break-system-packages to pip
 pip-rns install identity/group/repo -- --break-system-packages
-
-# pass --dev to poetry
 pip-rns install --poetry identity/group/repo -- --dev
-
-# pass --force to pipx
 pipx-rns install identity/group/repo -- --force
 ```
 
@@ -144,19 +138,18 @@ pipx-rns install identity/group/repo -- --force
 
 ## Shell Completions
 
-```bash	
+```bash
 # Bash
-mkdir -p ~/.local/share/bash-completion/completions && cp completions/pip-rns.bash ~/.local/share/bash-completion/completions/
+cp completions/pip-rns.bash ~/.local/share/bash-completion/completions/
 # ZSH
-mkdir -p ~/.local/share/zsh/site-functions && cp completions/_pip-rns ~/.local/share/zsh/site-functions/
+cp completions/_pip-rns ~/.local/share/zsh/site-functions/
 # Fish
-mkdir -p ~/.local/share/fish/vendor_completions.d && cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
+cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
 ```
 
-## Man Pages 
+## Man Pages
 
 ```bash
-mkdir -p ~/.local/share/man/man1
 cp man/man1/pip-rns.1 ~/.local/share/man/man1/
 cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
 ```
@@ -165,8 +158,8 @@ cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
 
 ```bash
 python -m tests.test_runner
-python -m tests.test_runner -v       # verbose
-python -m tests.test_runner -f retry # filter
+python -m tests.test_runner -v
+python -m tests.test_runner -f search
 ```
 
 ## License

@@ -2,7 +2,7 @@
 # rngit release notes editor script
 # $1 = path to temp file with release notes template
 cat > "$1" <<EOF
-pip-rns v0.1.0
+pip-rns v1.0.0
 
 Install Python packages directly from Reticulum rns:// git remotes
 via pip, pipx, uv, or poetry.
