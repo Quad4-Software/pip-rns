@@ -36,10 +36,7 @@ test:
 	python -m tests.test_runner
 
 install:
-	pip install --user .
-
-install-user:
-	pip install --user .
+	pip install --break-system-packages .
 	mkdir -p ~/.local/share/man/man1
 	cp man/man1/pip-rns.1 ~/.local/share/man/man1/
 	cp man/man1/pipx-rns.1 ~/.local/share/man/man1/

@@ -21,18 +21,27 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 ## Install
 
+**Install from local wheel:**
+
+```bash
+pip install pip_rns-*.whl
+```
+
+**From Source (rngit)**
+
+```bash
+git clone rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+cd pip-rns
+make
+make install
+```
+
 **PyPI:**
 
 ```bash
 pip install pip-rns
 # or
 pipx install pip-rns
-```
-
-**Install from local wheel:**
-
-```bash
-pip install pip_rns-*.whl
 ```
 
 **Install from git:**
@@ -52,6 +61,8 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 
 ```bash
 pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+# or 
+pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy@v1.6.3
 ```
 
 ## Commands

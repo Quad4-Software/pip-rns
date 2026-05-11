@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -141,6 +142,9 @@ class PipxInstaller(BaseInstaller):
     def _cmd(self) -> list[str]:
         return _ENV_PIPX
 
+    def _pkg_name(self, package_path: Path) -> str:
+        return _detect_pkg_name(package_path) or package_path.name
+
     def install(
         self,
         package_path: Path,
@@ -150,7 +154,20 @@ class PipxInstaller(BaseInstaller):
         args = [*self._cmd(), "install", str(package_path)]
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        try:
+            subprocess.run(args, check=True)
+        except Exception:
+            pkg = self._pkg_name(package_path)
+            runpip_args = [
+                *self._cmd(), "runpip", pkg,
+                "install", "--force-reinstall", str(package_path),
+            ]
+            try:
+                subprocess.run(runpip_args, check=True)
+                return
+            except Exception:
+                pass
+            raise
 
     def update(
         self,
@@ -158,21 +175,18 @@ class PipxInstaller(BaseInstaller):
         editable: bool = False,
         extra_args: list[str] | None = None,
     ) -> None:
-        pkg_name = package_path.name
-        args = [*self._cmd(), "upgrade", pkg_name]
+        pkg = self._pkg_name(package_path)
+        runpip_args = [
+            *self._cmd(), "runpip", pkg,
+            "install", "--force-reinstall", str(package_path),
+        ]
         try:
-            subprocess.run(
-                args,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            subprocess.run(runpip_args, check=True)
             return
         except Exception:
             pass
-        args = [*self._cmd(), "install", "--force", str(package_path)]
-        if extra_args:
-            args.extend(extra_args)
+        extra_args = extra_args or []
+        args = [*self._cmd(), "install", "--force", str(package_path), *extra_args]
         subprocess.run(args, check=True)
 
     def inject(
@@ -300,3 +314,25 @@ register_installer("pip", PipInstaller)
 register_installer("pipx", PipxInstaller)
 register_installer("uv", UvInstaller)
 register_installer("poetry", PoetryInstaller)
+
+
+def _detect_pkg_name(repo_path: Path) -> str | None:
+    pyproject = repo_path / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            text = pyproject.read_text()
+            m = re.search(r'^name\s*=\s*"([^"]+)"', text, re.M)
+            if m:
+                return m.group(1)
+        except Exception:
+            pass
+    setup = repo_path / "setup.py"
+    if setup.exists():
+        try:
+            text = setup.read_text()
+            m = re.search(r'name\s*=\s*["\']([^"\']+)["\']', text)
+            if m:
+                return m.group(1)
+        except Exception:
+            pass
+    return None
