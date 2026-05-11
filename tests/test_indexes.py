@@ -1,78 +1,66 @@
-"""Tests for indexes.py — plain-text parsing, JSON parsing, and resolution."""
+"""Tests for indexes.py — plain-text parsing and resolution."""
 
 from __future__ import annotations
 
-from pip_rns.indexes import IndexManager
+from pip_rns.indexes import _parse_plain
 
-
-def _make_mgr() -> IndexManager:
-    return IndexManager()
+# -- _parse_plain --
 
 
 def test_parse_plain_basic():
-    mgr = _make_mgr()
-    text = "pkg-a=111/aaa/pkg-a\npkg-b=222/bbb/pkg-b"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("pkg-a=111/aaa/pkg-a\npkg-b=222/bbb/pkg-b")
     assert result == {"pkg-a": "111/aaa/pkg-a", "pkg-b": "222/bbb/pkg-b"}
 
 
 def test_parse_plain_skips_comments():
-    mgr = _make_mgr()
-    text = "# this is a comment\npkg-a=111/aaa/pkg-a\n"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("# comment\npkg-a=111/aaa/pkg-a\n")
     assert result == {"pkg-a": "111/aaa/pkg-a"}
 
 
 def test_parse_plain_skips_empty_lines():
-    mgr = _make_mgr()
-    text = "pkg-a=111/aaa/pkg-a\n\n\npkg-b=222/bbb/pkg-b"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("pkg-a=111/aaa/pkg-a\n\n\npkg-b=222/bbb/pkg-b")
     assert result == {"pkg-a": "111/aaa/pkg-a", "pkg-b": "222/bbb/pkg-b"}
 
 
 def test_parse_plain_skips_lines_without_equals():
-    mgr = _make_mgr()
-    text = "pkg-a=111/aaa/pkg-a\ncorrupt-line\npkg-b=222/bbb/pkg-b"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("pkg-a=111/aaa/pkg-a\ncorrupt\npkg-b=222/bbb/pkg-b")
     assert result == {"pkg-a": "111/aaa/pkg-a", "pkg-b": "222/bbb/pkg-b"}
 
 
 def test_parse_plain_strips_whitespace():
-    mgr = _make_mgr()
-    text = "  pkg-a  =  111/aaa/pkg-a  \n"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("  pkg-a  =  111/aaa/pkg-a  \n")
     assert result == {"pkg-a": "111/aaa/pkg-a"}
 
 
 def test_parse_plain_empty_input():
-    mgr = _make_mgr()
-    assert mgr._parse_plain("") == {}
-    assert mgr._parse_plain("   ") == {}
+    assert _parse_plain("") == {}
+    assert _parse_plain("   ") == {}
 
 
 def test_parse_plain_handles_empty_value():
-    mgr = _make_mgr()
-    text = "pkg-a=\n"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("pkg-a=\n")
     assert result == {}
 
 
 def test_parse_plain_handles_empty_key():
-    mgr = _make_mgr()
-    text = "=111/aaa/pkg-a\n"
-    result = mgr._parse_plain(text)
+    result = _parse_plain("=111/aaa/pkg-a\n")
     assert result == {}
 
 
+# -- resolve --
+
+
 def test_resolve_unknown_returns_original():
-    mgr = _make_mgr()
-    mgr._packages = {"known-pkg": "abc/def/known"}
-    result = mgr.resolve("unknown-pkg")
-    assert result == "unknown-pkg"
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"known": "abc/def/known"}
+    assert mgr.resolve("unknown") == "unknown"
 
 
 def test_resolve_known_returns_mapped():
-    mgr = _make_mgr()
-    mgr._packages = {"known-pkg": "abc/def/known"}
-    result = mgr.resolve("known-pkg")
-    assert result == "abc/def/known"
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"known": "abc/def/known"}
+    assert mgr.resolve("known") == "abc/def/known"

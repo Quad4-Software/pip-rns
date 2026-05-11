@@ -10,7 +10,7 @@ Install Python packages directly from [Reticulum](https://reticulum.network/) `r
 - **Editable mode** — `--editable` / `-e` for persistent checkouts
 - **pipx inject** — `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
 - **Aliases** — short names for long remote paths
-- **Indexes** — sync package listings from remote RNS repos (`packages.json`)
+- **Indexes** — sync package listings from remote RNS repos (`packages`)
 
 ## Install and Usage
 
@@ -72,7 +72,7 @@ PIP_RNS_CONFIG=/path/to/dir pip-rns install lxmfy
 
 ### Indexes
 
-Register a remote index (an rngit repo with a `packages.json`) and install by package name:
+Register a remote index (an rngit repo with a `packages` file) and install by package name:
 
 ```bash
 pip-rns index add rns://926baefe13daf5178c174f158dae1b45/quad4/index
