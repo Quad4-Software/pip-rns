@@ -8,15 +8,13 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 - **Multi-backend** - install with pip, pipx, uv, or poetry
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
+- **Releases** - install pre-built `.whl` files from rngit releases (`--from-release`)
+- **Signature verification** - verify `.rsg` signatures before installing (`--verify <identity>`)
 - **Offline cache** - `--use-cache` for repeat or offline installs
 - **Editable mode** - `--editable` for persistent checkouts
 - **pipx inject** - install into existing pipx venvs
 - **Aliases** - short names for long remote paths
 - **Indexes** - sync package listings from remote RNS repos
-
-## TODO
-
-- Install from releases
 
 ## Requirements
 
@@ -81,23 +79,47 @@ pip-rns index list
 ### `pip-rns` (generic)
 
 ```
-pip-rns install <identity/group/repo> [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [-- <tool flags>]
+pip-rns install <identity/group/repo> [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--from-release] [--verify IDENTITY] [-- <tool flags>]
 pip-rns update <remote> [options]
 pip-rns list [--pipx] [--uv] [--poetry]
 pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
 pip-rns alias add|set|rm|ls
 pip-rns index add|rm|ls|sync|list|search
+pip-rns release list|view
 ```
 
 ### `pipx-rns` (pipx-specific)
 
 ```
-pipx-rns install <remote> [--ref TAG] [--editable]
+pipx-rns install <remote> [--ref TAG] [--editable] [--from-release] [--verify IDENTITY]
 pipx-rns inject <venv> <remote>
 pipx-rns update <remote>
 pipx-rns list
 pipx-rns uninstall <package>
 ```
+
+### Releases
+
+Install pre-built `.whl` from an rngit release (faster, no build step):
+
+```bash
+pip-rns install --from-release rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns --ref v1.0.0
+```
+
+Verify the artifact's `.rsg` signature before installing:
+
+```bash
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify <identity>
+```
+
+List and view releases:
+
+```bash
+pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+pip-rns release view rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns v1.0.0
+```
+
+**Note:** The NomadNet page node is required for artifact downloads. If it differs from the rngit node, set `PIP_RNS_NOMADNET_NODE`.
 
 ### Aliases
 
@@ -156,6 +178,7 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_CONFIG` | - | config directory for aliases |
 | `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
 | `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
+| `PIP_RNS_NOMADNET_NODE` | - | page node hash for artifact downloads |
 | `NO_COLOR` | - | disable colors (standard) |
 
 ## Shell Completions
@@ -182,6 +205,9 @@ cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
 python -m tests.test_runner
 python -m tests.test_runner -v
 python -m tests.test_runner -f search
+
+# Optional live tests (requires RNS, 60+ seconds):
+PIP_RNS_NOMADNET_NODE=5399f5a0212477618821e91e88ce053b PIP_RNS_TEST_LIVE=1 python -m tests.test_runner -f live
 ```
 
 ## License
