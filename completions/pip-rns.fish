@@ -15,6 +15,7 @@ complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a list -d "List
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a uninstall -d "Uninstall a package"
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a alias -d "Manage local aliases"
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a index -d "Manage remote package indexes"
+complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a release -d "List and view releases"
 
 # global flags
 complete -c pip-rns -l no-color -d "Disable colored output"
@@ -27,6 +28,8 @@ complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l poetry -
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l ref -r -d "Git tag, branch or commit"
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -s e -l editable -d "Install in editable mode"
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l use-cache -d "Cache clone locally"
+complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l from-release -d "Install from release .whl"
+complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Verify .rsg signature with rnid"
 complete -c pip-rns -n "__fish_pip_rns_using_command install" -l venv -r -d "Install into a virtualenv at PATH"
 
 # alias subcommands
@@ -43,6 +46,10 @@ complete -c pip-rns -n "__fish_pip_rns_using_command index" -f -a sync -d "Clone
 complete -c pip-rns -n "__fish_pip_rns_using_command index" -f -a list -d "List all available packages from synced indexes"
 complete -c pip-rns -n "__fish_pip_rns_using_command index" -f -a search -d "Search packages by name across synced indexes"
 
+# release subcommands
+complete -c pip-rns -n "__fish_pip_rns_using_command release" -f -a list -d "List releases on a remote repo"
+complete -c pip-rns -n "__fish_pip_rns_using_command release" -f -a view -d "View release details"
+
 # pipx-rns completions
 complete -c pipx-rns -f -n "test (count (commandline -opc)) = 1" -a install -d "Install a package from a remote via pipx"
 complete -c pipx-rns -f -n "test (count (commandline -opc)) = 1" -a inject -d "Inject a package into an existing pipx venv"
@@ -55,3 +62,5 @@ complete -c pipx-rns -l config -r -d "Config directory"
 complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l ref -r -d "Git tag, branch or commit"
 complete -c pipx-rns -n "__fish_pip_rns_using_command install" -s e -l editable -d "Install in editable mode"
 complete -c pipx-rns -n "__fish_pip_rns_using_command install update inject" -l use-cache -d "Cache clone locally"
+complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l from-release -d "Install from release .whl"
+complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Verify .rsg signature with rnid"

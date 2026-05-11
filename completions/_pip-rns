@@ -9,6 +9,7 @@ _pip_rns() {
         'uninstall:Uninstall a package'
         'alias:Manage local aliases'
         'index:Manage remote package indexes'
+        'release:List and view releases'
     )
 
     local -a install_opts
@@ -19,6 +20,8 @@ _pip_rns() {
         '--ref[Git tag, branch or commit to checkout]:tag'
         '--editable[Install in editable mode]'
         '--use-cache[Cache clone locally]'
+        '--from-release[Download .whl from release instead of cloning]'
+        '--verify[Verify .rsg signature]:identity'
         '--venv[Install into a virtualenv at PATH]:path:_directories'
         '--no-color[Disable colored output]'
         '--config[Config directory]:dir:_directories'
@@ -43,6 +46,10 @@ _pip_rns() {
                 index)
                     local index_cmds=('add:Register an index URL' 'rm:Remove and re-sync an index' 'ls:List registered indexes' 'sync:Clone/pull all indexes' 'list:List all available packages' 'search:Search packages by name')
                     _alternative "index-command:index command:(( ${index_cmds[@]} ))"
+                    ;;
+                release)
+                    local release_cmds=('list:List releases on a remote repo' 'view:View release details')
+                    _alternative "release-command:release command:(( ${release_cmds[@]} ))"
                     ;;
             esac
             ;;
@@ -72,7 +79,9 @@ _pipx_rns() {
                     _arguments \
                         '--ref[Git tag, branch or commit]:tag' \
                         '--editable[Install in editable mode]' \
-                        '--use-cache[Cache clone locally]'
+                        '--use-cache[Cache clone locally]' \
+                        '--from-release[Download .whl from release]' \
+                        '--verify[Verify .rsg signature]:identity'
                     ;;
                 inject)
                     _arguments \

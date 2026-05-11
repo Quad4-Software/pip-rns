@@ -29,6 +29,13 @@ Uninstall a package via the chosen backend.
 Manage local aliases: add, set, rm, ls.
 .SS index
 Manage remote package indexes: add, rm, ls, sync, list, search.
+.SS release
+List or view releases on remote repos.
+.B pip-rns release list \fIremote\fR
+.B pip-rns release view \fIremote\fR \fItag\fR
+.SS install (from release)
+Download and install a .whl from a release instead of cloning source.
+.B pip-rns install --from-release [\fB--ref\fR \fITAG\fR] [\fB--verify\fR \fIIDENTITY\fR] \fIremote\fR
 .SH EXAMPLES
 .B Install from RNS remote:
 .RS
@@ -41,6 +48,18 @@ pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 .B Pin a version:
 .RS
 pip-rns install repo@v1.0.0
+.RE
+.B Install from a release (no build):
+.RS
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0
+.RE
+.B Install and verify signature:
+.RS
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d4...
+.RE
+.B List releases:
+.RS
+pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
 .RE
 .B Use a local alias:
 .RS
@@ -57,6 +76,19 @@ pip-rns install lxmfy
 .B Pass flags to the underlying tool:
 .RS
 pip-rns install identity/group/repo -- --break-system-packages
+.RE
+.B Install from a release (faster, no build):
+.RS
+pip-rns install --from-release rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns --ref v1.0.0
+.RE
+.B Install and verify signature:
+.RS
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d4...
+.RE
+.B List and view releases:
+.RS
+pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+pip-rns release view rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns v1.0.0
 .RE
 .SH ENVIRONMENT
 .TP

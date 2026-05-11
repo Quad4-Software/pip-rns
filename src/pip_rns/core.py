@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
+from pathlib import Path
 
 from .installer import BaseInstaller, get_installer
 from .resolver import Resolver, parse_ref
-from .ui import bold, dim, header, success
+from .ui import bold, dim, green, header, success
 
 
 def _cleanup(path: str, editable: bool, use_cache: bool = False) -> None:
@@ -115,8 +117,13 @@ def install(
     venv: str | None = None,
     ref: str | None = None,
     use_cache: bool = False,
+    from_release: bool = False,
+    verify_identity: str | None = None,
 ) -> None:
     """Clone a remote repository and install it as a Python package."""
+    if from_release:
+        install_from_release(remote, installer=installer, ref=ref, extra_args=extra_args, venv=venv, verify_identity=verify_identity)
+        return
     _run(
         remote,
         "install",
@@ -138,8 +145,13 @@ def update(
     venv: str | None = None,
     ref: str | None = None,
     use_cache: bool = False,
+    from_release: bool = False,
+    verify_identity: str | None = None,
 ) -> None:
     """Reinstall a package from a remote, forcing a fresh install."""
+    if from_release:
+        install_from_release(remote, installer=installer, ref=ref, extra_args=extra_args, venv=venv, verify_identity=verify_identity)
+        return
     _run(
         remote,
         "update",
@@ -150,6 +162,70 @@ def update(
         ref=ref,
         use_cache=use_cache,
     )
+
+
+def install_from_release(
+    remote: str,
+    *,
+    installer: str = "pip",
+    extra_args: list[str] | None = None,
+    venv: str | None = None,
+    ref: str | None = None,
+    verify_identity: str | None = None,
+) -> None:
+    from .releases import (
+        _parse_rns_url,
+        _pick_whl,
+        download_artifact,
+        release_info,
+    )
+
+    dest_hash, group, repo = _parse_rns_url(remote)
+    tag = ref or "latest"
+
+    print(f"{header('⤵ Release')} {bold(tag)} {dim(f'{group}/{repo}')}")
+    info = release_info(remote, tag)
+    artifacts = info.get("artifacts", [])
+    if not artifacts:
+        print(f"  {dim('no artifacts found')}")
+        return
+
+    whl = _pick_whl(artifacts)
+    if not whl:
+        print(f"  {dim('no .whl found in release artifacts')}")
+        return
+
+    print(f"  {dim('artifact:')} {whl}")
+
+    page_hash_s = os.environ.get("PIP_RNS_NOMADNET_NODE")
+    page_hash = bytes.fromhex(page_hash_s) if page_hash_s else None
+
+    whl_path = download_artifact(dest_hash, group, repo, tag, whl, page_node_hash=page_hash)
+    print(f"  {dim(f'downloaded {whl}')}")
+
+    if verify_identity:
+        rsg_name = whl + ".rsg"
+        has_rsg = any(a["name"] == rsg_name for a in artifacts)
+        if not has_rsg:
+            print(f"  {dim(f'no signature file {rsg_name} in release')}")
+            return
+
+        rsg_path = download_artifact(dest_hash, group, repo, tag, rsg_name, page_node_hash=page_hash)
+        result = subprocess.run(
+            ["rnid", "-i", verify_identity, "-V", rsg_path],
+            capture_output=True, text=True,
+        )
+        os.unlink(rsg_path)
+
+        if result.returncode != 0:
+            msg = f"Signature invalid for {whl}: {result.stderr.strip() or 'verification failed'}"
+            raise RuntimeError(msg)
+        print(f"  {green('signature valid')}")
+
+    inst = get_installer(installer, venv=venv)
+    inst.install(Path(whl_path), extra_args=extra_args)
+    os.unlink(whl_path)
+    print(f"{success('✓ Done')}")
 
 
 def inject(

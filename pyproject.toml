@@ -31,4 +31,4 @@ pip-rns = "pip_rns.cli:main"
 pipx-rns = "pip_rns.cli_pipx:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pip_rns"]
+packages = ["src/pip_rns", "scripts"]
