@@ -25,6 +25,10 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 
 ```bash
 pip install pip-rns
+# pass --break-system-packages if needed or use pipx:
+pipx install pip-rns
+# uv
+uv pip install pip-rns
 ```
 
 **Install from local wheel:**
