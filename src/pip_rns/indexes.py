@@ -114,6 +114,10 @@ class IndexManager:
     def _clone(self, url: str, dest: Path) -> None:
         subprocess.run(["git", "clone", "--depth", "1", url, str(dest)], check=True)
 
+    def search(self, query: str) -> dict[str, str]:
+        query = query.lower()
+        return {k: v for k, v in self._packages.items() if query in k.lower()}
+
     def sync(self) -> dict[str, str]:
         merged: dict[str, str] = {}
         for url in self._urls:
@@ -138,7 +142,15 @@ class IndexManager:
             pkg = dest / "packages"
             if pkg.exists():
                 try:
-                    merged.update(_parse_plain(pkg.read_text()))
+                    data = _parse_plain(pkg.read_text())
+                    for k in data:
+                        if k in merged:
+                            import sys
+                            print(
+                                f"  warning: {k} already defined, "
+                                f"using {url}", file=sys.stderr,
+                            )
+                    merged.update(data)
                 except Exception:
                     pass
 

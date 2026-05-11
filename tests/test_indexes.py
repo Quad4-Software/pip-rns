@@ -64,3 +64,48 @@ def test_resolve_known_returns_mapped():
     mgr = IndexManager()
     mgr._packages = {"known": "abc/def/known"}
     assert mgr.resolve("known") == "abc/def/known"
+
+
+# -- search --
+
+
+def test_search_exact_match():
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"foobar": "a/b/c", "baz": "d/e/f"}
+    assert mgr.search("foobar") == {"foobar": "a/b/c"}
+
+
+def test_search_substring():
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"foobar": "a/b/c", "foobaz": "d/e/f", "other": "g/h/i"}
+    result = mgr.search("foo")
+    assert result == {"foobar": "a/b/c", "foobaz": "d/e/f"}
+
+
+def test_search_case_insensitive():
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"FooBar": "a/b/c"}
+    assert mgr.search("foobar") == {"FooBar": "a/b/c"}
+    assert mgr.search("FOO") == {"FooBar": "a/b/c"}
+
+
+def test_search_no_match():
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"foobar": "a/b/c"}
+    assert mgr.search("xyz") == {}
+
+
+def test_search_empty_query():
+    from pip_rns.indexes import IndexManager
+
+    mgr = IndexManager()
+    mgr._packages = {"foobar": "a/b/c", "baz": "d/e/f"}
+    assert mgr.search("") == mgr._packages

@@ -113,7 +113,12 @@ def main() -> None:
 
     ip.add_parser("sync", help="Clone/pull all indexes and cache package names")
 
-    ip.add_parser("packages", help="List all available packages from synced indexes")
+    a = ip.add_parser("list", help="List all available packages from synced indexes")
+
+    a = ip.add_parser("search", help="Search packages by name across synced indexes")
+    a.add_argument("query")
+
+    ip.add_parser("packages", help=argparse.SUPPRESS)  # alias for list
 
     args = parser.parse_args()
     ui_init(no_color=args.no_color)
@@ -156,9 +161,16 @@ def main() -> None:
             mgr.sync()
             count = len(mgr.packages())
             print(f"{green('✔')} {count} package{'s' if count != 1 else ''} synced")
-        elif args.index_command == "packages":
+        elif args.index_command in ("list", "packages"):
             for name, remote in sorted(mgr.packages().items()):
                 print(f"{name}={remote}")
+        elif args.index_command == "search":
+            results = mgr.search(args.query)
+            if results:
+                for name, remote in sorted(results.items()):
+                    print(f"{name}={remote}")
+            else:
+                print(f"  no packages match {bold(repr(args.query))}")
         return
 
     _boot(args)
