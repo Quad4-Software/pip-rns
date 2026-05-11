@@ -1,0 +1,91 @@
+#compdef pip-rns
+
+_pip_rns() {
+    local -a commands
+    commands=(
+        'install:Install a package from a remote'
+        'update:Reinstall a package from a remote (force latest)'
+        'list:List installed packages'
+        'uninstall:Uninstall a package'
+        'alias:Manage local aliases'
+        'index:Manage remote package indexes'
+    )
+
+    local -a install_opts
+    install_opts=(
+        '--pipx[Use pipx instead of pip]'
+        '--uv[Use uv instead of pip]'
+        '--poetry[Use poetry add instead of pip]'
+        '--ref[Git tag, branch or commit to checkout]:tag'
+        '--editable[Install in editable mode]'
+        '--use-cache[Cache clone locally]'
+        '--venv[Install into a virtualenv at PATH]:path:_directories'
+        '--no-color[Disable colored output]'
+        '--config[Config directory]:dir:_directories'
+    )
+
+    _arguments -C \
+        '--no-color[Disable colored output]' \
+        '--config[Config directory]:dir:_directories' \
+        "1:command:(( ${commands[@]} ))" \
+        "*::arg:->args"
+
+    case $state in
+        args)
+            case $words[1] in
+                install|update)
+                    _arguments $install_opts
+                    ;;
+                alias)
+                    local alias_cmds=('add:Create an alias' 'set:Create or update an alias' 'rm:Remove an alias' 'ls:List all aliases')
+                    _alternative "alias-command:alias command:(( ${alias_cmds[@]} ))"
+                    ;;
+                index)
+                    local index_cmds=('add:Register an index URL' 'rm:Remove and re-sync an index' 'ls:List registered indexes' 'sync:Clone/pull all indexes' 'list:List all available packages' 'search:Search packages by name')
+                    _alternative "index-command:index command:(( ${index_cmds[@]} ))"
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_pipx_rns() {
+    local -a commands
+    commands=(
+        'install:Install a package from a remote via pipx'
+        'inject:Inject a package into an existing pipx venv'
+        'update:Force-reinstall a package via pipx'
+        'list:List pipx-installed packages'
+        'uninstall:Uninstall a pipx-installed package'
+    )
+
+    _arguments -C \
+        '--no-color[Disable colored output]' \
+        '--config[Config directory]:dir:_directories' \
+        "1:command:(( ${commands[@]} ))" \
+        "*::arg:->args"
+
+    case $state in
+        args)
+            case $words[1] in
+                install|update)
+                    _arguments \
+                        '--ref[Git tag, branch or commit]:tag' \
+                        '--editable[Install in editable mode]' \
+                        '--use-cache[Cache clone locally]'
+                    ;;
+                inject)
+                    _arguments \
+                        '--ref[Git tag, branch or commit]:tag' \
+                        '--use-cache[Cache clone locally]'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_zsh_comp_pip_rns() { _pip_rns; }
+_zsh_comp_pipx_rns() { _pipx_rns; }
+
+compdef _zsh_comp_pip_rns pip-rns
+compdef _zsh_comp_pipx_rns pipx-rns

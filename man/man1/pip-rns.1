@@ -1,0 +1,101 @@
+.\" Man page for pip-rns
+.\" vim: ft=man
+.TH PIP-RNS 1 "2026-05-10" "0.1.0" "User Commands"
+.SH NAME
+pip-rns \- Install Python packages from Reticulum rns:// git remotes
+.SH SYNOPSIS
+.B pip-rns
+[\fB--no-color\fR] [\fB--config\fR \fIDIR\fR]
+.I command
+[\fIoptions\fR]
+.SH DESCRIPTION
+Install Python packages directly from Reticulum rns:// git remotes
+via pip, pipx, uv, or poetry. Supports version pinning, offline
+caching, editable installs, local aliases, and remote package indexes.
+.SH COMMANDS
+.SS install
+Install a package from a remote.
+.B pip-rns install
+[\fB--pipx\fR] [\fB--uv\fR] [\fB--poetry\fR] [\fB--ref\fR \fITAG\fR]
+[\fB--editable\fR] [\fB--use-cache\fR] [\fB--venv\fR \fIPATH\fR]
+\fIremote\fR [\fB--\fR \fItool-flags\fR]
+.SS update
+Reinstall a package from a remote, forcing a fresh install.
+.SS list
+List installed packages (uses pip by default; add --pipx, --uv, or --poetry).
+.SS uninstall
+Uninstall a package via the chosen backend.
+.SS alias
+Manage local aliases: add, set, rm, ls.
+.SS index
+Manage remote package indexes: add, rm, ls, sync, list, search.
+.SH EXAMPLES
+.B Install from RNS remote:
+.RS
+pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy --break-system-packages
+.RE
+.B Install via pipx:
+.RS
+pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+.RE
+.B Pin a version:
+.RS
+pip-rns install repo@v1.0.0
+.RE
+.B Use a local alias:
+.RS
+pip-rns alias add lxmfy 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pip-rns install lxmfy
+.RE
+.B Sync an index and install:
+.RS
+pip-rns index add rns://identity/group/index
+pip-rns index sync
+pip-rns index search lxmf
+pip-rns install lxmfy
+.RE
+.B Pass flags to the underlying tool:
+.RS
+pip-rns install identity/group/repo -- --break-system-packages
+.RE
+.SH ENVIRONMENT
+.TP
+.B PIP_RNS_PIP
+pip command (default: pip)
+.TP
+.B PIP_RNS_PIPX
+pipx command (default: pipx)
+.TP
+.B PIP_RNS_UV
+uv command (default: uv)
+.TP
+.B PIP_RNS_POETRY
+poetry command (default: poetry)
+.TP
+.B PIP_RNS_CONFIG
+config directory for aliases and indexes
+.TP
+.B PIP_RNS_USE_CACHE
+enable offline cache (1)
+.TP
+.B PIP_RNS_COLOR
+disable colors (0)
+.TP
+.B NO_COLOR
+disable colors (standard)
+.SH FILES
+.TP
+.I ~/.config/pip-rns/aliases
+Local alias definitions (one per line: name=remote)
+.TP
+.I ~/.config/pip-rns/indexes
+Registered index URLs (one per line)
+.TP
+.I ~/.local/share/pip-rns/
+Cached clones, synced index data, and editable checkouts
+.SH SEE ALSO
+.BR pipx-rns (1),
+.BR rngit (1),
+.BR git-remote-rns (1)
+.SH LICENSE
+BSD 2-Clause

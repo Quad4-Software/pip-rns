@@ -14,6 +14,11 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 - **Aliases** - short names for long remote paths
 - **Indexes** - sync package listings from remote RNS repos (`packages`)
 
+## Requirements
+
+- rns `1.2.0` or higher
+- python 3.7 or higher
+
 ## Install
 
 **PyPI:**

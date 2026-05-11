@@ -53,6 +53,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="pip-rns",
         description="Install Python packages from Reticulum (rns://) remotes",
+        epilog=(
+            "Examples:\n"
+            "  pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy\n"
+            "  pip-rns install --pipx repo@v1.0.0\n"
+            "  pip-rns alias add myapp 926baefe.../quad4/MyApp\n"
+            "  pip-rns install myapp -- --break-system-packages\n"
+            "  pip-rns index add rns://identity/group/index\n"
+            "  pip-rns index sync && pip-rns index search lxmf"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"

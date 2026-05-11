@@ -16,6 +16,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="pipx-rns",
         description="Install Python packages from Reticulum (rns://) via pipx",
+        epilog=(
+            "Examples:\n"
+            "  pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy\n"
+            "  pipx-rns install repo@v1.0.0\n"
+            "  pipx-rns inject myvenv 926baefe.../quad4/MyApp\n"
+            "  pipx-rns update 926baefe13daf5178c174f158dae1b45/quad4/LXMFy"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"
