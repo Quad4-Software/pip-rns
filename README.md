@@ -14,6 +14,10 @@ rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
 - **Aliases** - short names for long remote paths
 - **Indexes** - sync package listings from remote RNS repos
 
+## TODO
+
+- Install from releases
+
 ## Requirements
 
 - rns `1.2.0` or higher
@@ -63,6 +67,13 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 # or 
 pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy@v1.6.3
+```
+
+### Adding Quad4 Index
+
+```bash
+pip-rns index add rns://926baefe13daf5178c174f158dae1b45/quad4/index
+pip-rns index list
 ```
 
 ## Commands
