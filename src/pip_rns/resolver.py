@@ -132,11 +132,15 @@ class Resolver:
         ref: str | None = None,
         use_cache: bool = False,
     ) -> Path:
-        from .aliases import get_manager
+        from .aliases import get_manager as get_alias_mgr
+        from .indexes import get_manager as get_index_mgr
 
-        mgr = get_manager()
-        if mgr:
-            remote = mgr.resolve(remote)
+        amgr = get_alias_mgr()
+        if amgr:
+            remote = amgr.resolve(remote)
+        imgr = get_index_mgr()
+        if imgr:
+            remote = imgr.resolve(remote)
         url = normalize_url(remote)
         resolver = get_resolver(url)
 

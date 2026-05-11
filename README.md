@@ -10,6 +10,7 @@ Install Python packages directly from [Reticulum](https://reticulum.network/) `r
 - **Editable mode** — `--editable` / `-e` for persistent checkouts
 - **pipx inject** — `pipx-rns inject <venv> <remote>` installs into an existing pipx venv
 - **Aliases** — short names for long remote paths
+- **Indexes** — sync package listings from remote RNS repos (`packages.json`)
 
 ## Install and Usage
 
@@ -34,6 +35,7 @@ pip-rns update <remote> [options]
 pip-rns list [--pipx] [--uv] [--poetry]
 pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
 pip-rns alias add|set|rm|ls
+pip-rns index add|rm|ls|sync|packages
 ```
 
 ### `pipx-rns` (pipx-specific)
@@ -67,6 +69,19 @@ Use a custom config directory:
 pip-rns --config /path/to/dir alias add lxmfy <remote>
 PIP_RNS_CONFIG=/path/to/dir pip-rns install lxmfy
 ```
+
+### Indexes
+
+Register a remote index (an rngit repo with a `packages.json`) and install by package name:
+
+```bash
+pip-rns index add rns://926baefe13daf5178c174f158dae1b45/quad4/index
+pip-rns index sync
+pip-rns index packages
+pip-rns install lxmfy   # resolves from synced index
+```
+
+Indexes chain with aliases: local aliases take priority, then synced indexes, then raw path.
 
 ### Passthrough examples
 

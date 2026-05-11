@@ -5,10 +5,13 @@ from __future__ import annotations
 import argparse
 import os
 
-from .aliases import get_manager, init as alias_init
+from .aliases import get_manager as get_alias_mgr
+from .aliases import init as alias_init
 from .core import install, list_packages, uninstall
 from .core import update as update_fn
-from .ui import bold, green, init as ui_init
+from .indexes import get_manager as get_index_mgr
+from .indexes import init as index_init
+from .ui import bold, green, header, init as ui_init
 
 
 def _add_common_install_args(p: argparse.ArgumentParser) -> None:
@@ -34,6 +37,11 @@ def _config(args) -> str | None:
     return getattr(args, "config", None) or os.environ.get("PIP_RNS_CONFIG")
 
 
+def _boot(args) -> None:
+    alias_init(_config(args))
+    index_init()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="pip-rns",
@@ -41,14 +49,14 @@ def main() -> None:
     )
     parser.add_argument("--no-color", action="store_true", help="Disable colored output")
     parser.add_argument(
-        "--config", metavar="DIR", help="Config directory for aliases",
+        "--config", metavar="DIR", help="Config directory for aliases + indexes",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # --- install ---
     p = sub.add_parser("install", help="Install a package from a remote")
     p.add_argument(
-        "remote", help="Remote path, rns:// URL, or alias name",
+        "remote", help="Remote path, rns:// URL, alias name, or index package",
     )
     _add_common_install_args(p)
     p.add_argument("--venv", metavar="PATH", help="Install into a virtualenv at PATH")
@@ -75,7 +83,7 @@ def main() -> None:
     p.add_argument("--poetry", action="store_true")
 
     # --- alias ---
-    p = sub.add_parser("alias", help="Manage remote aliases")
+    p = sub.add_parser("alias", help="Manage local aliases")
     asp = p.add_subparsers(dest="alias_command", required=True)
 
     a = asp.add_parser("add", help="Create an alias")
@@ -91,6 +99,22 @@ def main() -> None:
 
     a = asp.add_parser("ls", help="List all aliases")
 
+    # --- index ---
+    p = sub.add_parser("index", help="Manage remote package indexes")
+    ip = p.add_subparsers(dest="index_command", required=True)
+
+    a = ip.add_parser("add", help="Register an index URL")
+    a.add_argument("url")
+
+    a = ip.add_parser("rm", help="Remove and re-sync an index")
+    a.add_argument("url")
+
+    ip.add_parser("ls", help="List registered indexes")
+
+    ip.add_parser("sync", help="Clone/pull all indexes and cache package names")
+
+    ip.add_parser("packages", help="List all available packages from synced indexes")
+
     args = parser.parse_args()
     ui_init(no_color=args.no_color)
 
@@ -103,7 +127,7 @@ def main() -> None:
 
     if args.command == "alias":
         alias_init(_config(args))
-        mgr = get_manager()
+        mgr = get_alias_mgr()
         if args.alias_command in ("add", "set"):
             mgr.set(args.name, args.remote)
             print(f"{green('✔')} alias {bold(args.name)} \u2192 {args.remote}")
@@ -115,7 +139,29 @@ def main() -> None:
                 print(f"{name}={remote}")
         return
 
-    alias_init(_config(args))
+    if args.command == "index":
+        index_init()
+        mgr = get_index_mgr()
+        if args.index_command == "add":
+            mgr.add(args.url)
+            print(f"{green('✔')} index added: {args.url}")
+        elif args.index_command == "rm":
+            mgr.remove(args.url)
+            print(f"{green('✔')} index removed: {args.url}")
+        elif args.index_command == "ls":
+            for url in mgr.list():
+                print(url)
+        elif args.index_command == "sync":
+            print(f"{header('⤵ Syncing indexes')}")
+            mgr.sync()
+            count = len(mgr.packages())
+            print(f"{green('✔')} {count} package{'s' if count != 1 else ''} synced")
+        elif args.index_command == "packages":
+            for name, remote in sorted(mgr.packages().items()):
+                print(f"{name}={remote}")
+        return
+
+    _boot(args)
     venv = getattr(args, "venv", None)
     ref = getattr(args, "ref", None)
     use_cache = getattr(args, "use_cache", False)

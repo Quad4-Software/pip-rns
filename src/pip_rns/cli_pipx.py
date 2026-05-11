@@ -8,6 +8,7 @@ import os
 from .aliases import init as alias_init
 from .core import inject, install, list_packages, uninstall
 from .core import update as update_fn
+from .indexes import init as index_init
 from .ui import init as ui_init
 
 
@@ -57,6 +58,7 @@ def main() -> None:
 
     cfg = getattr(args, "config", None) or os.environ.get("PIP_RNS_CONFIG")
     alias_init(cfg)
+    index_init()
 
     ref = getattr(args, "ref", None)
     use_cache = getattr(args, "use_cache", False)
