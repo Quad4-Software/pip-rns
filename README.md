@@ -1,6 +1,6 @@
 # pip-rns
 
-Install Python packages directly from [Reticulum](https://reticulum.network/) `rns://` git remotes via pip, pipx, uv, or poetry.
+Install Python packages over [Reticulum](https://reticulum.network/) from rngit remotes. Supports pip, pipx, uv and poetry.
 
 ## Features
 
@@ -12,24 +12,33 @@ Install Python packages directly from [Reticulum](https://reticulum.network/) `r
 - **Aliases** - short names for long remote paths
 - **Indexes** - sync package listings from remote RNS repos (`packages`)
 
-## Install and Usage
+## Install
+
+PyPI:
 
 ```bash
 pip install pip-rns
-pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy --break-system-packages
 ```
 
-Install from wheel:
+Install from local wheel:
 
 ```bash
 pip install pip_rns-*.whl
 ```
 
-Install from git:
+Install from official git sources over internet:
 
 ```bash
 pip install git+https://git.quad4.io/RNS-Things/pip-rns
 pip install git+https://github.com/Quad4-Software/pip-rns
+```
+
+## Usage
+
+```bash
+pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy --break-system-packages
+# or
+pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
 ```
 
 ## Commands
