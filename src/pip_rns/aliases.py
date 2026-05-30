@@ -7,8 +7,8 @@ File location (no extension):
 Custom location via --config DIR or PIP_RNS_CONFIG env var.
 
 Format (one alias per line, skips bad lines silently):
-  myapp=926baefe13daf5178c174f158dae1b45/quad4/MyApp
-  lxmfy=926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+  myapp=06a54b505bb67b25ef3f8097e8001edc/public/MyApp
+  lxmfy=06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 """
 
 from __future__ import annotations

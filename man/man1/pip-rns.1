@@ -1,6 +1,6 @@
 .\" Man page for pip-rns
 .\" vim: ft=man
-.TH PIP-RNS 1 "2026-05-11" "1.0.0" "User Commands"
+.TH PIP-RNS 1 "2026-05-30" "1.0.0" "User Commands"
 .SH NAME
 pip-rns \- Install Python packages from Reticulum rns:// git remotes
 .SH SYNOPSIS
@@ -11,13 +11,15 @@ pip-rns \- Install Python packages from Reticulum rns:// git remotes
 .SH DESCRIPTION
 Install Python packages directly from Reticulum rns:// git remotes
 via pip, pipx, uv, or poetry. Supports version pinning, offline
-caching, editable installs, local aliases, and remote package indexes.
+caching, editable installs, local aliases, remote package indexes,
+and rngit release installs.
 .SH COMMANDS
 .SS install
 Install a package from a remote.
 .B pip-rns install
 [\fB--pipx\fR] [\fB--uv\fR] [\fB--poetry\fR] [\fB--ref\fR \fITAG\fR]
 [\fB--editable\fR] [\fB--use-cache\fR] [\fB--venv\fR \fIPATH\fR]
+[\fB--from-release\fR] [\fB--verify\fR \fIIDENTITY\fR]
 \fIremote\fR [\fB--\fR \fItool-flags\fR]
 .SS update
 Reinstall a package from a remote, forcing a fresh install.
@@ -30,20 +32,17 @@ Manage local aliases: add, set, rm, ls.
 .SS index
 Manage remote package indexes: add, rm, ls, sync, list, search.
 .SS release
-List or view releases on remote repos.
+List or view releases on remote repos (via rngit).
 .B pip-rns release list \fIremote\fR
 .B pip-rns release view \fIremote\fR \fItag\fR
-.SS install (from release)
-Download and install a .whl from a release instead of cloning source.
-.B pip-rns install --from-release [\fB--ref\fR \fITAG\fR] [\fB--verify\fR \fIIDENTITY\fR] \fIremote\fR
 .SH EXAMPLES
 .B Install from RNS remote:
 .RS
-pip-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy --break-system-packages
+pip-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy --break-system-packages
 .RE
 .B Install via pipx:
 .RS
-pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 .RE
 .B Pin a version:
 .RS
@@ -51,24 +50,25 @@ pip-rns install repo@v1.0.0
 .RE
 .B Install from a release (no build):
 .RS
-pip-rns install --from-release rns://id/group/repo --ref v1.0.0
+pip-rns install --from-release rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0
 .RE
-.B Install and verify signature:
+.B Install and verify release signer:
 .RS
-pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d4...
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d44649266d71fe2193e00a4710
 .RE
 .B List releases:
 .RS
-pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+pip-rns release list rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node
+pip-rns release view rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node v1.6.0
 .RE
 .B Use a local alias:
 .RS
-pip-rns alias add lxmfy 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pip-rns alias add lxmfy 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 pip-rns install lxmfy
 .RE
 .B Sync an index and install:
 .RS
-pip-rns index add rns://identity/group/index
+pip-rns index add rns://06a54b505bb67b25ef3f8097e8001edc/public/index
 pip-rns index sync
 pip-rns index search lxmf
 pip-rns install lxmfy
@@ -76,19 +76,6 @@ pip-rns install lxmfy
 .B Pass flags to the underlying tool:
 .RS
 pip-rns install identity/group/repo -- --break-system-packages
-.RE
-.B Install from a release (faster, no build):
-.RS
-pip-rns install --from-release rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns --ref v1.0.0
-.RE
-.B Install and verify signature:
-.RS
-pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d4...
-.RE
-.B List and view releases:
-.RS
-pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
-pip-rns release view rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns v1.0.0
 .RE
 .SH ENVIRONMENT
 .TP

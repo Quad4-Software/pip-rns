@@ -2,14 +2,14 @@
 
 Install Python packages over [Reticulum](https://reticulum.network/) from rngit remotes. Supports pip, pipx, uv and poetry.
 
-rngit: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+rngit: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
 ## Features
 
 - **Multi-backend** - install with pip, pipx, uv, or poetry
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
 - **Releases** - install pre-built `.whl` files from rngit releases (`--from-release`)
-- **Signature verification** - verify `.rsg` signatures before installing (`--verify <identity>`)
+- **Signature verification** - require rngit release signatures (`--verify <identity>`)
 - **Offline cache** - `--use-cache` for repeat or offline installs
 - **Editable mode** - `--editable` for persistent checkouts
 - **pipx inject** - install into existing pipx venvs
@@ -32,7 +32,7 @@ pip install pip_rns-*.whl
 **From Source (rngit)**
 
 ```bash
-git clone rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
 cd pip-rns
 make
 make install
@@ -49,7 +49,6 @@ pipx install pip-rns
 **Install from git:**
 
 ```bash
-pip install git+https://git.quad4.io/RNS-Things/pip-rns
 pip install git+https://github.com/Quad4-Software/pip-rns
 ```
 
@@ -62,15 +61,15 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 ## Usage
 
 ```bash
-pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 # or 
-pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy@v1.6.3
+pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy@v1.6.3
 ```
 
 ### Adding Quad4 Index
 
 ```bash
-pip-rns index add rns://926baefe13daf5178c174f158dae1b45/quad4/index
+pip-rns index add rns://06a54b505bb67b25ef3f8097e8001edc/public/index
 pip-rns index list
 ```
 
@@ -103,30 +102,30 @@ pipx-rns uninstall <package>
 Install pre-built `.whl` from an rngit release (faster, no build step):
 
 ```bash
-pip-rns install --from-release rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns --ref v1.0.0
+pip-rns install --from-release rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0
 ```
 
-Verify the artifact's `.rsg` signature before installing:
+Require the release manifest signer when installing:
 
 ```bash
-pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify <identity>
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d44649266d71fe2193e00a4710
 ```
 
 List and view releases:
 
 ```bash
-pip-rns release list rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
-pip-rns release view rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns v1.0.0
+pip-rns release list rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node
+pip-rns release view rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node v1.6.0
 ```
 
-**Note:** The NomadNet page node is required for artifact downloads. If it differs from the rngit node, set `PIP_RNS_NOMADNET_NODE`.
+**Note:** Release artifacts are downloaded via `rngit release fetch` on the rngit node hosting the repository.
 
 ### Aliases
 
 Save long remote paths under a short name:
 
 ```bash
-pip-rns alias add lxmfy 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pip-rns alias add lxmfy 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 pip-rns alias ls
 pip-rns install lxmfy
 ```
@@ -134,7 +133,7 @@ pip-rns install lxmfy
 Aliases are stored in `~/.config/pip-rns/aliases` (`%APPDATA%/pip-rns/aliases` on Windows):
 
 ```
-lxmfy=926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+lxmfy=06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 ```
 
 Custom config directory:
@@ -178,7 +177,6 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_CONFIG` | - | config directory for aliases |
 | `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
 | `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
-| `PIP_RNS_NOMADNET_NODE` | - | page node hash for artifact downloads |
 | `NO_COLOR` | - | disable colors (standard) |
 
 ## Shell Completions
@@ -207,7 +205,7 @@ python -m tests.test_runner -v
 python -m tests.test_runner -f search
 
 # Optional live tests (requires RNS, 60+ seconds):
-PIP_RNS_NOMADNET_NODE=5399f5a0212477618821e91e88ce053b PIP_RNS_TEST_LIVE=1 python -m tests.test_runner -f live
+PIP_RNS_TEST_LIVE=1 python -m tests.test_runner -f live
 ```
 
 ## License

@@ -113,7 +113,7 @@ def test_parse_release_list():
 
 
 def test_live_release_list():
-    """Optional: list releases for pip-rns repo (requires RNS + pip-rns installed)."""
+    """Optional: list releases for rns-page-node (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
@@ -122,13 +122,13 @@ def test_live_release_list():
     except ImportError:
         raise Exception("skip (pip-rns not installed in current Python)")
 
-    releases = list_releases("rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns")
+    releases = list_releases("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node")
     assert len(releases) >= 1
-    assert any(r["tag"] == "v1.0.0" for r in releases)
+    assert any(r["tag"] == "v1.6.0" for r in releases)
 
 
 def test_live_release_view():
-    """Optional: view v1.0.0 release (requires RNS + pip-rns installed)."""
+    """Optional: view v1.6.0 release (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
@@ -137,45 +137,31 @@ def test_live_release_view():
     except ImportError:
         raise Exception("skip (pip-rns not installed in current Python)")
 
-    info = release_info("rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns", "v1.0.0")
+    info = release_info("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node", "v1.6.0")
     assert info["status"] == "published"
     whls = [a for a in info["artifacts"] if a["name"].endswith(".whl") and not a["name"].endswith(".rsg")]
     assert len(whls) >= 1
 
 
 def test_live_download_and_verify():
-    """Optional: download and verify .whl from v1.0.0 (requires RNS + pip-rns)."""
+    """Optional: fetch and verify .whl from v1.6.0 (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
     try:
-        from pip_rns.releases import release_info, download_artifact, _pick_whl, _parse_rns_url
+        from pip_rns.releases import release_info, fetch_release_artifact, _pick_whl
     except ImportError:
         raise Exception("skip (pip-rns not installed in current Python)")
 
-    import subprocess
-    remote = "rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns"
-    tag = "v1.0.0"
+    remote = "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node"
+    tag = "v1.6.0"
     verify_id = "e46112d44649266d71fe2193e00a4710"
-    page_hash_s = os.environ.get("PIP_RNS_NOMADNET_NODE")
-    page_hash = bytes.fromhex(page_hash_s) if page_hash_s else None
 
-    dest_hash, group, repo = _parse_rns_url(remote)
     info = release_info(remote, tag)
     whl = _pick_whl(info.get("artifacts", []))
     assert whl is not None
 
-    whl_path = download_artifact(dest_hash, group, repo, tag, whl, page_node_hash=page_hash)
+    whl_path = fetch_release_artifact(remote, tag, whl, verify_identity=verify_id)
     assert os.path.isfile(whl_path)
 
-    rsg = whl + ".rsg"
-    rsg_path = download_artifact(dest_hash, group, repo, tag, rsg, page_node_hash=page_hash)
-
-    result = subprocess.run(
-        ["rnid", "-i", verify_id, "-V", rsg_path],
-        capture_output=True, text=True,
-    )
-    assert result.returncode == 0, f"Signature invalid: {result.stderr}"
-
     os.unlink(whl_path)
-    os.unlink(rsg_path)

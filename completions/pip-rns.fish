@@ -29,7 +29,7 @@ complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l ref -r -
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -s e -l editable -d "Install in editable mode"
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l use-cache -d "Cache clone locally"
 complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l from-release -d "Install from release .whl"
-complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Verify .rsg signature with rnid"
+complete -c pip-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Require release signed by identity"
 complete -c pip-rns -n "__fish_pip_rns_using_command install" -l venv -r -d "Install into a virtualenv at PATH"
 
 # alias subcommands
@@ -63,4 +63,4 @@ complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l ref -r 
 complete -c pipx-rns -n "__fish_pip_rns_using_command install" -s e -l editable -d "Install in editable mode"
 complete -c pipx-rns -n "__fish_pip_rns_using_command install update inject" -l use-cache -d "Cache clone locally"
 complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l from-release -d "Install from release .whl"
-complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Verify .rsg signature with rnid"
+complete -c pipx-rns -n "__fish_pip_rns_using_command install update" -l verify -r -d "Require release signed by identity"

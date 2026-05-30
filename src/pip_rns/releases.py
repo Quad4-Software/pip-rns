@@ -1,53 +1,15 @@
-"""Release artifact downloader via RNS page node.
-
-Downloads artifacts by shelling out to scripts/download_artifact.py
-with a system Python (outside any virtualenv), avoiding pipx/RNS issues.
-"""
+"""Release metadata and artifact downloads via rngit."""
 
 from __future__ import annotations
 
+import fnmatch
 import os
 import re
+import shutil
 import subprocess
-import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
-
-
-def _find_system_python() -> str:
-    """Find a Python executable outside any virtualenv/venv."""
-    if hasattr(sys, "base_exec_prefix") and sys.prefix != sys.base_exec_prefix:
-        base = sys.base_exec_prefix
-        for name in ("python3", "python"):
-            candidate = Path(base) / "bin" / name
-            if candidate.exists():
-                return str(candidate)
-
-    for name in ("python3", "python"):
-        try:
-            result = subprocess.run(
-                [name, "-c", "import RNS; print('ok')"],
-                capture_output=True, text=True, timeout=5,
-            )
-            if result.returncode == 0 and "ok" in result.stdout:
-                return name
-        except Exception:
-            continue
-
-    return sys.executable
-
-
-def _script_path() -> Path:
-    """Locate download_artifact.py relative to this file."""
-    here = Path(__file__).resolve().parent
-    candidates = [
-        here.parent.parent / "scripts" / "download_artifact.py",
-        here.parent / "scripts" / "download_artifact.py",
-    ]
-    for c in candidates:
-        if c.exists():
-            return c
-    return candidates[0]
 
 
 def _parse_rns_url(url: str) -> tuple[bytes, str, str]:
@@ -79,7 +41,7 @@ def release_info(remote: str, tag: str) -> dict:
     cmd = ["rngit", "release", remote, "view", tag]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        msg = f"rngit release view failed: {result.stderr.strip()}"
+        msg = f"rngit release view failed: {result.stderr.strip() or result.stdout.strip()}"
         raise RuntimeError(msg)
     return _parse_release_view(result.stdout)
 
@@ -112,7 +74,7 @@ def list_releases(remote: str) -> list[dict]:
     cmd = ["rngit", "release", remote, "list"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        msg = f"rngit release list failed: {result.stderr.strip()}"
+        msg = f"rngit release list failed: {result.stderr.strip() or result.stdout.strip()}"
         raise RuntimeError(msg)
     return _parse_release_list(result.stdout)
 
@@ -142,40 +104,55 @@ def _pick_whl(artifacts: list[dict]) -> Optional[str]:
     return whls[0]
 
 
-def download_artifact(
-    dest_hash: bytes,
-    group: str,
-    repo: str,
+def _fetch_pattern(artifact: str) -> str:
+    if any(c in artifact for c in "*?[]"):
+        return artifact
+    return artifact
+
+
+def fetch_release_artifact(
+    remote: str,
     tag: str,
     artifact: str,
-    page_node_hash: bytes | None = None,
+    *,
+    verify_identity: str | None = None,
 ) -> str:
-    """Download a release artifact via the standalone download_artifact.py script."""
-    out_path = f"/tmp/{artifact}"
-    script = _script_path()
+    """Download a release artifact via rngit release fetch; returns a file path."""
+    remote = _normalize_remote(remote)
+    pattern = _fetch_pattern(artifact)
+    target = f"{tag}:{pattern}"
 
-    args = [
-        _find_system_python(),
-        str(script),
-        dest_hash.hex(),
-        group,
-        repo,
-        tag,
-        artifact,
-    ]
-    if page_node_hash:
-        args.append(page_node_hash.hex())
-    args.append(out_path)
+    cmd = ["rngit", "release"]
+    if verify_identity:
+        cmd.extend(["-s", verify_identity])
+    cmd.extend([remote, "fetch", target])
 
-    result = subprocess.run(args, capture_output=True, text=True, timeout=120)
+    workdir = tempfile.mkdtemp(prefix="pip-rns-fetch-")
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=workdir, timeout=7200)
+        if result.returncode != 0:
+            err = result.stderr.strip() or result.stdout.strip()
+            msg = f"rngit release fetch failed: {err[:300]}"
+            raise RuntimeError(msg)
 
-    if result.returncode != 0:
-        err = result.stderr.strip() or result.stdout.strip()
-        msg = f"Download failed: {err[:200]}"
-        raise RuntimeError(msg)
+        matches = [
+            p for p in Path(workdir).iterdir()
+            if p.is_file() and fnmatch.fnmatch(p.name, pattern) and not p.name.endswith(".rsm")
+        ]
+        if not matches and not any(c in pattern for c in "*?[]"):
+            exact = Path(workdir) / artifact
+            if exact.is_file():
+                matches = [exact]
 
-    if not os.path.isfile(out_path):
-        msg = "Download failed: output file not created"
-        raise RuntimeError(msg)
+        if not matches:
+            msg = f"rngit release fetch did not produce {artifact}"
+            raise RuntimeError(msg)
 
-    return out_path
+        src = matches[0]
+        out_path = Path(tempfile.gettempdir()) / src.name
+        if out_path.exists():
+            out_path.unlink()
+        shutil.move(str(src), str(out_path))
+        return str(out_path)
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)

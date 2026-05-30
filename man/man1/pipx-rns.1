@@ -1,6 +1,6 @@
 .\" Man page for pipx-rns
 .\" vim: ft=man
-.TH PIPX-RNS 1 "2026-05-11" "1.0.0" "User Commands"
+.TH PIPX-RNS 1 "2026-05-30" "1.0.0" "User Commands"
 .SH NAME
 pipx-rns \- Install Python packages from Reticulum rns:// git remotes via pipx
 .SH SYNOPSIS
@@ -11,12 +11,14 @@ pipx-rns \- Install Python packages from Reticulum rns:// git remotes via pipx
 .SH DESCRIPTION
 A pipx-specific variant of pip-rns. Installs packages into isolated
 per-package environments using pipx. Supports all core pip-rns
-features: version pinning, offline caching, aliases, and indexes.
+features: version pinning, offline caching, aliases, indexes, and
+rngit release installs.
 .SH COMMANDS
 .SS install
 Install a package from a remote via pipx.
 .B pipx-rns install
-[\fB--ref\fR \fITAG\fR] [\fB--editable\fR] [\fB--use-cache\fR] [\fB--from-release\fR] [\fB--verify\fR \fIIDENTITY\fR]
+[\fB--ref\fR \fITAG\fR] [\fB--editable\fR] [\fB--use-cache\fR]
+[\fB--from-release\fR] [\fB--verify\fR \fIIDENTITY\fR]
 \fIremote\fR
 .SS inject
 Inject a package into an existing pipx-managed venv.
@@ -31,19 +33,23 @@ Uninstall a pipx-installed package.
 .SH EXAMPLES
 .B Install from RNS remote:
 .RS
-pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 .RE
 .B Install a specific tag:
 .RS
 pipx-rns install repo@v1.0.0
 .RE
+.B Install from a release:
+.RS
+pipx-rns install --from-release rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0
+.RE
 .B Inject into an existing venv:
 .RS
-pipx-rns inject myvenv 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pipx-rns inject myvenv 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 .RE
 .B Force-update:
 .RS
-pipx-rns update 926baefe13daf5178c174f158dae1b45/quad4/LXMFy
+pipx-rns update 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 .RE
 .SH SEE ALSO
 .BR pip-rns (1),

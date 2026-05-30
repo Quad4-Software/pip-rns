@@ -18,10 +18,10 @@ def main() -> None:
         description="Install Python packages from Reticulum (rns://) via pipx",
         epilog=(
             "Examples:\n"
-            "  pipx-rns install 926baefe13daf5178c174f158dae1b45/quad4/LXMFy\n"
+            "  pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy\n"
             "  pipx-rns install repo@v1.0.0\n"
-            "  pipx-rns inject myvenv 926baefe.../quad4/MyApp\n"
-            "  pipx-rns update 926baefe13daf5178c174f158dae1b45/quad4/LXMFy"
+            "  pipx-rns inject myvenv 06a54b50.../public/MyApp\n"
+            "  pipx-rns update 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -45,7 +45,7 @@ def main() -> None:
     )
     p.add_argument(
         "--verify", metavar="IDENTITY",
-        help="Verify .rsg signature with rnid before installing (requires --from-release)",
+        help="Require release signed by IDENTITY via rngit (requires --from-release)",
     )
     p.add_argument("extra", nargs="*")
 
@@ -65,7 +65,7 @@ def main() -> None:
     p.add_argument("--from-release", action="store_true")
     p.add_argument(
         "--verify", metavar="IDENTITY",
-        help="Verify .rsg signature with rnid before installing (requires --from-release)",
+        help="Require release signed by IDENTITY via rngit (requires --from-release)",
     )
     p.add_argument("extra", nargs="*")
 

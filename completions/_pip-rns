@@ -21,7 +21,7 @@ _pip_rns() {
         '--editable[Install in editable mode]'
         '--use-cache[Cache clone locally]'
         '--from-release[Download .whl from release instead of cloning]'
-        '--verify[Verify .rsg signature]:identity'
+        '--verify[Require release signed by identity]:identity'
         '--venv[Install into a virtualenv at PATH]:path:_directories'
         '--no-color[Disable colored output]'
         '--config[Config directory]:dir:_directories'
@@ -81,7 +81,7 @@ _pipx_rns() {
                         '--editable[Install in editable mode]' \
                         '--use-cache[Cache clone locally]' \
                         '--from-release[Download .whl from release]' \
-                        '--verify[Verify .rsg signature]:identity'
+                        '--verify[Require release signed by identity]:identity'
                     ;;
                 inject)
                     _arguments \

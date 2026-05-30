@@ -1,7 +1,7 @@
 """Remote package index manager: register, sync, and resolve short names from RNS-hosted indexes.
 
 An index is an rngit repository containing a plain-text packages file:
-  lxmfy=926baefe.../quad4/LXMFy
+  lxmfy=06a54b50.../public/LXMFy
 
 Indexes are registered by URL, cloned on sync, and merged into a local mapping.
 Resolution order: local aliases -> indexes -> raw path.

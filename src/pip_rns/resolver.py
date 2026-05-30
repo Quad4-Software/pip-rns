@@ -142,6 +142,11 @@ class Resolver:
         if imgr:
             remote = imgr.resolve(remote)
         url = normalize_url(remote)
+
+        # Local paths: return directly, no clone needed
+        if url.startswith(("/", "~", ".")):
+            return Path(url).resolve()
+
         resolver = get_resolver(url)
 
         if editable:

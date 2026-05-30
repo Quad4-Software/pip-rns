@@ -174,13 +174,15 @@ def install_from_release(
     verify_identity: str | None = None,
 ) -> None:
     from .releases import (
+        _normalize_remote,
         _parse_rns_url,
         _pick_whl,
-        download_artifact,
+        fetch_release_artifact,
         release_info,
     )
 
-    dest_hash, group, repo = _parse_rns_url(remote)
+    remote = _normalize_remote(remote)
+    _, group, repo = _parse_rns_url(remote)
     tag = ref or "latest"
 
     print(f"{header('⤵ Release')} {bold(tag)} {dim(f'{group}/{repo}')}")
@@ -197,29 +199,9 @@ def install_from_release(
 
     print(f"  {dim('artifact:')} {whl}")
 
-    page_hash_s = os.environ.get("PIP_RNS_NOMADNET_NODE")
-    page_hash = bytes.fromhex(page_hash_s) if page_hash_s else None
-
-    whl_path = download_artifact(dest_hash, group, repo, tag, whl, page_node_hash=page_hash)
+    whl_path = fetch_release_artifact(remote, tag, whl, verify_identity=verify_identity)
     print(f"  {dim(f'downloaded {whl}')}")
-
     if verify_identity:
-        rsg_name = whl + ".rsg"
-        has_rsg = any(a["name"] == rsg_name for a in artifacts)
-        if not has_rsg:
-            print(f"  {dim(f'no signature file {rsg_name} in release')}")
-            return
-
-        rsg_path = download_artifact(dest_hash, group, repo, tag, rsg_name, page_node_hash=page_hash)
-        result = subprocess.run(
-            ["rnid", "-i", verify_identity, "-V", rsg_path],
-            capture_output=True, text=True,
-        )
-        os.unlink(rsg_path)
-
-        if result.returncode != 0:
-            msg = f"Signature invalid for {whl}: {result.stderr.strip() or 'verification failed'}"
-            raise RuntimeError(msg)
         print(f"  {green('signature valid')}")
 
     inst = get_installer(installer, venv=venv)

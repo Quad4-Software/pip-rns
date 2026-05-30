@@ -1,7 +1,7 @@
 EDITOR ?= nano
 RNID_ID ?= e46112d44649266d71fe2193e00a4710
 RNID_KEY ?= $(HOME)/.rngit/client_identity
-RNS_REMOTE ?= rns://926baefe13daf5178c174f158dae1b45/quad4/pip-rns
+RNS_REMOTE ?= rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
 TAG ?= v1.0.0
 PREFIX ?= /usr/local
 
