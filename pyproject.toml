@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pip-rns"
-version = "1.0.0"
+version = "1.1.0"
 description = "Install Python packages from Reticulum rngit remotes via pip/pipx/poetry/uv"
 requires-python = ">=3.7"
 license = {text = "BSD-2-Clause"}
