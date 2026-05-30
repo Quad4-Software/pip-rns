@@ -2,10 +2,10 @@ EDITOR ?= nano
 RNID_ID ?= e46112d44649266d71fe2193e00a4710
 RNID_KEY ?= $(HOME)/.rngit/client_identity
 RNS_REMOTE ?= rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
-TAG ?= v1.0.0
+TAG ?= v1.1.0
 PREFIX ?= /usr/local
 
-.PHONY: all clean build sign upload release tag test install install-user
+.PHONY: all clean build sign upload release release-rns tag retag test install install-user
 
 all: build
 
@@ -23,12 +23,25 @@ sign: build
 upload: sign
 	twine upload dist/*.whl dist/*.tar.gz
 
-release: tag sign
+release: tag release-rns
+
+release-rns: sign
 	mkdir -p dist
-	EDITOR="$(PWD)/scripts/release-notes.sh" \
+	RELEASE_TAG=$(TAG) EDITOR="$(PWD)/scripts/release-notes.sh" \
 		rngit release -i $(RNID_KEY) $(RNS_REMOTE) create $(TAG):./dist
 
 tag:
+	@if git rev-parse -q --verify "refs/tags/$(TAG)" >/dev/null 2>&1; then \
+		echo "Tag $(TAG) already exists. Use: make retag TAG=$(TAG)"; \
+		echo "Or republish rngit only: make release-rns TAG=$(TAG)"; \
+		exit 1; \
+	fi
+	git tag -s $(TAG) -m "$(TAG)"
+	git push origin $(TAG)
+
+retag:
+	git tag -d $(TAG) 2>/dev/null || true
+	-git push origin :refs/tags/$(TAG) 2>/dev/null || true
 	git tag -s $(TAG) -m "$(TAG)"
 	git push origin $(TAG)
 
