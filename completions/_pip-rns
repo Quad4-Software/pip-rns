@@ -10,6 +10,7 @@ _pip_rns() {
         'alias:Manage local aliases'
         'index:Manage remote package indexes'
         'release:List and view releases'
+        'bundle:Install or verify offline .opip bundles'
     )
 
     local -a install_opts
@@ -50,6 +51,10 @@ _pip_rns() {
                 release)
                     local release_cmds=('list:List releases on a remote repo' 'view:View release details')
                     _alternative "release-command:release command:(( ${release_cmds[@]} ))"
+                    ;;
+                bundle)
+                    local bundle_cmds=('install:Install a .opip bundle' 'verify:Verify a .opip bundle')
+                    _alternative "bundle-command:bundle command:(( ${bundle_cmds[@]} ))"
                     ;;
             esac
             ;;

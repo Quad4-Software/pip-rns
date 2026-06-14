@@ -3,7 +3,7 @@ _pip_rns() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="install update list uninstall alias index release"
+    local commands="install update list uninstall alias index release bundle"
     local install_opts="--pipx --uv --poetry --ref --editable --use-cache --venv --from-release --verify --no-color --config"
     local alias_commands="add set rm ls"
     local index_commands="add rm ls sync list search"
@@ -33,6 +33,11 @@ _pip_rns() {
             release)
                 if [[ $cword -eq 2 ]]; then
                     COMPREPLY=($(compgen -W "$release_commands" -- "$cur"))
+                fi
+                ;;
+            bundle)
+                if [[ $cword -eq 2 ]]; then
+                    COMPREPLY=($(compgen -W "install verify" -- "$cur"))
                 fi
                 ;;
     esac

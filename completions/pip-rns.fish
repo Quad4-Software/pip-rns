@@ -16,6 +16,7 @@ complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a uninstall -d 
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a alias -d "Manage local aliases"
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a index -d "Manage remote package indexes"
 complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a release -d "List and view releases"
+complete -c pip-rns -f -n "test (count (commandline -opc)) = 1" -a bundle -d "Install or verify offline .opip bundles"
 
 # global flags
 complete -c pip-rns -l no-color -d "Disable colored output"
@@ -49,6 +50,14 @@ complete -c pip-rns -n "__fish_pip_rns_using_command index" -f -a search -d "Sea
 # release subcommands
 complete -c pip-rns -n "__fish_pip_rns_using_command release" -f -a list -d "List releases on a remote repo"
 complete -c pip-rns -n "__fish_pip_rns_using_command release" -f -a view -d "View release details"
+
+# bundle subcommands
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle" -f -a install -d "Install a .opip bundle"
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle" -f -a verify -d "Verify a .opip bundle"
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle install" -l signer -r -d "Required signer identity"
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle install" -l require-signature -d "Fail if unsigned"
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle install" -l user -d "User install"
+complete -c pip-rns -n "__fish_pip_rns_using_command bundle install" -l replace -d "Force reinstall"
 
 # pipx-rns completions
 complete -c pipx-rns -f -n "test (count (commandline -opc)) = 1" -a install -d "Install a package from a remote via pipx"

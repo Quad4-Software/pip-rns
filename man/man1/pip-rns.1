@@ -35,6 +35,10 @@ Manage remote package indexes: add, rm, ls, sync, list, search.
 List or view releases on remote repos (via rngit).
 .B pip-rns release list \fIremote\fR
 .B pip-rns release view \fIremote\fR \fItag\fR
+.SS bundle
+Install or verify offline .opip bundles (via opip).
+.B pip-rns bundle install \fISOURCE\fR [\fB--signer\fR \fIIDENTITY\fR]
+.B pip-rns bundle verify \fIBUNDLE\fR
 .SH EXAMPLES
 .B Install from RNS remote:
 .RS

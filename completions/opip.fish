@@ -1,0 +1,22 @@
+# opip fish completion
+complete -c opip -n "__fish_use_subcommand" -a create -d "Build an offline bundle"
+complete -c opip -n "__fish_use_subcommand" -a install -d "Install a bundle"
+complete -c opip -n "__fish_use_subcommand" -a verify -d "Verify a bundle"
+complete -c opip -n "__fish_use_subcommand" -a export -d "Export a bundle"
+complete -c opip -n "__fish_use_subcommand" -a uninstall -d "Uninstall a bundle"
+complete -c opip -n "__fish_use_subcommand" -a update -d "Rebuild a bundle"
+complete -c opip -n "__fish_use_subcommand" -a keygen -d "Generate signing identity"
+complete -c opip -n "__fish_use_subcommand" -a info -d "Show bundle metadata"
+complete -c opip -n "__fish_use_subcommand" -a list -d "List bundles or installs"
+complete -c opip -n "__fish_use_subcommand" -a help -d "Show help"
+
+complete -c opip -n "__fish_seen_subcommand_from install" -l signer -d "Required signer identity"
+complete -c opip -n "__fish_seen_subcommand_from install" -l require-signature -d "Fail if unsigned"
+complete -c opip -n "__fish_seen_subcommand_from install" -l user -d "User install"
+complete -c opip -n "__fish_seen_subcommand_from install" -l replace -d "Force reinstall"
+
+complete -c opip -n "__fish_seen_subcommand_from create" -s o -l output -d "Output bundle path"
+complete -c opip -n "__fish_seen_subcommand_from create" -s C -l directory -d "Project directory"
+complete -c opip -n "__fish_seen_subcommand_from create" -s r -l requirements -d "Requirements file"
+complete -c opip -n "__fish_seen_subcommand_from create" -l platform -d "Platform tag or universal"
+complete -c opip -n "__fish_seen_subcommand_from create" -l identity -d "Signing identity file"

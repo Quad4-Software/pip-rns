@@ -1,0 +1,52 @@
+#compdef opip
+
+_opip() {
+    local -a commands
+    commands=(
+        'create:Build an offline .opip bundle'
+        'install:Install a bundle from any source'
+        'verify:Verify bundle integrity and authenticity'
+        'export:Copy a verified bundle for sharing'
+        'uninstall:Uninstall a registered bundle'
+        'update:Rebuild a registered bundle'
+        'keygen:Generate a Reticulum signing identity'
+        'info:Show bundle metadata'
+        'list:List bundles or installs'
+        'help:Show help'
+        'register-windows:Register .opip file association (Windows)'
+        'unregister-windows:Remove .opip file association (Windows)'
+    )
+
+    _arguments -C \
+        '--data-dir[State directory]:dir:_directories' \
+        '--no-color[Disable colored output]' \
+        "1:command:(( ${commands[@]} ))" \
+        "*::arg:->args"
+
+    case $state in
+        args)
+            case $words[1] in
+                install)
+                    _arguments \
+                        '--target[Install directory]:path:_directories' \
+                        '--user[Install to user site-packages]' \
+                        '--replace[Force reinstall]' \
+                        '--no-verify[Skip verification]' \
+                        '--signer[Required signer identity]:identity' \
+                        '--require-signature[Fail if unsigned]'
+                    ;;
+                create)
+                    _arguments \
+                        '-o[Output bundle path]:file:_files' \
+                        '-C[Project directory]:dir:_directories' \
+                        '-r[Requirements file]:file:_files' \
+                        '--python[Target Python version]:version' \
+                        '--platform[Platform tag]:tag' \
+                        '--identity[Signing identity file]:file:_files'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+compdef _opip opip

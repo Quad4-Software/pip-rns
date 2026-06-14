@@ -1,0 +1,70 @@
+.\" Man page for opip
+.\" vim: ft=man
+.TH OPIP 1 "2026-06-14" "1.2.0" "User Commands"
+.SH NAME
+opip \- Create and install integrity-backed offline Python wheel bundles
+.SH SYNOPSIS
+.B opip
+[\fB--data-dir\fR \fIDIR\fR] [\fB--no-color\fR]
+.I command
+[\fIoptions\fR]
+.SH DESCRIPTION
+Build, verify, and install offline Python wheel bundles (\.opip) for
+sneakernet and air-gapped targets. Bundles include integrity manifests,
+lock files, SBOM metadata, and optional Reticulum RSG signatures.
+.SH COMMANDS
+.SS create
+Fetch wheels from PyPI and pack them into a bundle.
+.B opip create
+[\fB-o\fR \fIFILE\fR] [\fB-C\fR \fIDIR\fR] [\fB-r\fR \fIREQ.txt\fR]
+[\fB--python\fR \fIVERSION\fR] [\fB--platform\fR \fITAG\fR]
+[\fB--publisher\fR \fINAME\fR] [\fB--identity\fR \fIFILE\fR]
+[\fIpackages\fR...]
+.SS install
+Install a bundle from a local file, rns:// remote, URL, or git source.
+.B opip install
+\fISOURCE\fR
+[\fB--signer\fR \fIIDENTITY\fR] [\fB--require-signature\fR]
+[\fB--user\fR] [\fB--replace\fR]
+.SS verify
+Verify bundle integrity, authenticity, and provenance.
+.SS export
+Copy a verified bundle for offline sharing (includes .rsg sidecar when present).
+.SS list
+List registered bundles or installed bundle records.
+.SS uninstall
+Uninstall packages installed from a registered bundle.
+.SS update
+Rebuild a registered bundle from stored requirements.
+.SS keygen
+Generate a Reticulum identity for bundle signing.
+.SS register-windows
+Register .opip file association and Explorer context menus (Windows).
+.SH EXAMPLES
+.B Bundle a project:
+.RS
+opip create
+.RE
+.B Install on an air-gapped machine:
+.RS
+opip verify my-bundle.opip
+.br
+opip install my-bundle.opip
+.RE
+.B Install from Reticulum:
+.RS
+opip install rns://identity/group/repo@v1.0.0
+.RE
+.SH ENVIRONMENT
+.TP
+.B OPIP_DATA_DIR
+State directory for bundle registry and install records.
+.TP
+.B OPIP_SIGNER
+Default signer identity for verify and install.
+.TP
+.B PIP_RNS_CONFIG
+Config directory for pip-rns aliases resolved during rns:// installs.
+.SH SEE ALSO
+.BR pip-rns (1),
+.BR pipx-rns (1)
