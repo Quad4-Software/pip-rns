@@ -6,7 +6,9 @@ import tempfile
 
 from opip.fetch import FetchError, fetch_file, fetch_git
 from opip.manifest import BUNDLE_EXTENSION
+from opip.remote_resolve import resolve_remote_source
 from opip.rns_fetch import fetch_rns_bundle
+from opip.sidecar import copy_sidecar_from_dir, fetch_sidecar_if_available
 
 
 def is_rns_source(source):
@@ -75,6 +77,8 @@ def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
     if source.endswith(BUNDLE_EXTENSION) and os.path.isfile(source):
         return os.path.abspath(source)
 
+    source = resolve_remote_source(source)
+
     git_cleanup = None
     try:
         if is_rns_source(source):
@@ -84,9 +88,11 @@ def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
             url, ref, subpath = parse_git_source(source)
             target, git_cleanup = fetch_git(url, dest_dir, ref=ref, subpath=subpath)
             if os.path.isfile(target) and target.endswith(BUNDLE_EXTENSION):
+                copy_sidecar_from_dir(target, os.path.dirname(target))
                 return os.path.abspath(target)
             bundle = find_bundle_in_dir(target)
             if bundle:
+                copy_sidecar_from_dir(bundle, os.path.dirname(bundle))
                 return bundle
             raise FetchError("No {0} bundle found in git repository".format(BUNDLE_EXTENSION))
 
@@ -95,6 +101,7 @@ def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
             basename = "bundle{0}".format(BUNDLE_EXTENSION)
         dest = os.path.join(dest_dir, basename)
         fetch_file(source, dest, timeout=timeout)
+        fetch_sidecar_if_available(dest, source_url=source, timeout=timeout)
         return os.path.abspath(dest)
 
     except FetchError:

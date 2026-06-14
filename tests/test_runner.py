@@ -14,6 +14,13 @@ import time
 import traceback
 from pathlib import Path
 
+ROOT = Path(__file__).parent.parent
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from tests.support import SkipTest
+
 TESTS_DIR = Path(__file__).parent
 
 
@@ -40,9 +47,11 @@ def main() -> int:
         tests = [t for t in tests if filt in t[1]]
 
     passed = 0
+    skipped = 0
     failed: list[tuple[str, str, str]] = []
 
     G = "\033[32m"
+    Y = "\033[33m"
     R = "\033[31m"
     D = "\033[2m"
     X = "\033[0m"
@@ -58,6 +67,11 @@ def main() -> int:
             dt = time.time() - t0
             print(f"  {G}\u2713{X} {label}  {D}({dt * 1000:.0f}ms){X}")
             passed += 1
+        except SkipTest as exc:
+            dt = time.time() - t0
+            reason = str(exc).strip() or "skipped"
+            print(f"  {Y}\u25cb{X} {label}  {D}({dt * 1000:.0f}ms){X}  {D}{reason}{X}")
+            skipped += 1
         except Exception:
             dt = time.time() - t0
             tb = traceback.format_exc()
@@ -70,12 +84,20 @@ def main() -> int:
     print()
     total = len(tests)
     green = "\033[32m"
+    yellow = "\033[33m"
     red = "\033[31m"
     reset = "\033[0m"
-    color = green if failed == 0 else red
-    summary = f"{color}{passed}/{total} passed{reset}"
     if failed:
+        color = red
+        summary = f"{color}{passed}/{total} passed{reset}"
         summary += f"  {red}{len(failed)} failed{reset}"
+    else:
+        color = green
+        summary = f"{color}{passed} passed{reset}"
+        if skipped:
+            summary += f"  {yellow}{skipped} skipped{reset}"
+        if passed + skipped < total:
+            summary += f"  {dim}{total} total{reset}"
     print(summary)
 
     if failed and not verbose:

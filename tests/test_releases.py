@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from pip_rns.releases import _parse_rns_url, _pick_whl, _parse_release_view, _parse_release_list
+from pip_rns.releases import (
+    _parse_rns_url,
+    _pick_opip,
+    _pick_whl,
+    _parse_release_view,
+    _parse_release_list,
+    _rsg_name_for_artifact,
+)
+from tests.support import SkipTest
 
 
 def test_parse_rns_url_valid():
@@ -66,6 +74,23 @@ def test_pick_whl_none():
     assert _pick_whl([{"name": "pkg.tar.gz", "size": "1 MB"}]) is None
 
 
+def test_pick_opip_single():
+    artifacts = [{"name": "my-bundle.opip", "size": "5 MB"}]
+    assert _pick_opip(artifacts) == "my-bundle.opip"
+
+
+def test_pick_opip_pattern():
+    artifacts = [
+        {"name": "linux.opip", "size": "5 MB"},
+        {"name": "win.opip", "size": "6 MB"},
+    ]
+    assert _pick_opip(artifacts, "win.opip") == "win.opip"
+
+
+def test_rsg_name_for_artifact():
+    assert _rsg_name_for_artifact("bundle.opip") == "bundle.opip.rsg"
+
+
 SAMPLE_RELEASE_VIEW = """Release : v1.0.0
 Status  : published
 Created : 2026-05-11 01:18:58
@@ -116,11 +141,11 @@ def test_live_release_list():
     """Optional: list releases for rns-page-node (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
-        raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
+        raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
         from pip_rns.releases import list_releases
     except ImportError:
-        raise Exception("skip (pip-rns not installed in current Python)")
+        raise SkipTest("pip-rns not installed in current Python")
 
     releases = list_releases("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node")
     assert len(releases) >= 1
@@ -131,11 +156,11 @@ def test_live_release_view():
     """Optional: view v1.6.0 release (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
-        raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
+        raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
         from pip_rns.releases import release_info
     except ImportError:
-        raise Exception("skip (pip-rns not installed in current Python)")
+        raise SkipTest("pip-rns not installed in current Python")
 
     info = release_info("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node", "v1.6.0")
     assert info["status"] == "published"
@@ -147,11 +172,11 @@ def test_live_download_and_verify():
     """Optional: fetch and verify .whl from v1.6.0 (requires RNS + rngit)."""
     import os
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
-        raise Exception("skip (set PIP_RNS_TEST_LIVE=1 to run)")
+        raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
         from pip_rns.releases import release_info, fetch_release_artifact, _pick_whl
     except ImportError:
-        raise Exception("skip (pip-rns not installed in current Python)")
+        raise SkipTest("pip-rns not installed in current Python")
 
     remote = "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node"
     tag = "v1.6.0"

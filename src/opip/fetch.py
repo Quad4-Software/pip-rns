@@ -14,7 +14,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from opip.integrity import file_hash
 from opip.wheel_cache import lookup_wheel, store_wheel
 
-USER_AGENT = "opip/0.1.0 (+https://github.com/opip/opip)"
+USER_AGENT = "opip/{0} (+https://github.com/Quad4-Software/pip-rns)".format(
+    __import__("opip").__version__
+)
 CHUNK_SIZE = 65536
 
 

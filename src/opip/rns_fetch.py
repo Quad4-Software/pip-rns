@@ -2,20 +2,19 @@
 
 import fnmatch
 import os
-import re
 import shutil
 import subprocess
 import tempfile
-from pathlib import Path
 
 from opip.fetch import FetchError
-
-
-def _normalize_remote(remote):
-    remote = remote.strip()
-    if not remote.lower().startswith("rns://"):
-        return "rns://" + remote
-    return remote
+from opip.remote_resolve import resolve_remote_source
+from opip.sidecar import copy_sidecar_from_dir
+from pip_rns.releases import (
+    _normalize_remote,
+    _pick_opip,
+    fetch_release_bundle,
+    release_info,
+)
 
 
 def _parse_ref(remote):
@@ -57,79 +56,6 @@ def _clone_repo(remote, dest_dir, ref=None):
         raise FetchError("RNS clone failed for {0}: {1}".format(remote, err))
 
 
-def _parse_release_view(text):
-    info = {}
-    artifacts = []
-    in_artifacts = False
-    for line in text.splitlines():
-        if line.startswith("Release :"):
-            info["tag"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Artifacts"):
-            in_artifacts = True
-            continue
-        elif in_artifacts and line.startswith(" - "):
-            match = re.match(r" - (.+) \(([0-9.]+) (B|KB|MB|GB)\)", line)
-            if match:
-                artifacts.append({"name": match.group(1).strip()})
-        elif in_artifacts and line.startswith("="):
-            continue
-    info["artifacts"] = artifacts
-    return info
-
-
-def _pick_opip_artifact(artifacts, pattern=None):
-    names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
-    if not names:
-        return None
-    if pattern:
-        matches = [n for n in names if fnmatch.fnmatch(n, pattern)]
-        if matches:
-            return matches[0]
-        if pattern in names:
-            return pattern
-        raise FetchError("No .opip artifact matching {0} in release".format(pattern))
-    if len(names) == 1:
-        return names[0]
-    return sorted(names)[0]
-
-
-def _fetch_release_artifact(remote, tag, artifact, verify_identity=None):
-    remote = _normalize_remote(remote)
-    pattern = artifact if any(c in artifact for c in "*?[]") else artifact
-    target = "{0}:{1}".format(tag, pattern)
-    cmd = ["rngit", "release"]
-    if verify_identity:
-        cmd.extend(["-s", verify_identity])
-    cmd.extend([remote, "fetch", target])
-    workdir = tempfile.mkdtemp(prefix="opip-rns-fetch-")
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=workdir, timeout=7200)
-        if result.returncode != 0:
-            err = (result.stderr or result.stdout or "").strip()
-            raise FetchError("rngit release fetch failed: {0}".format(err[:300]))
-
-        matches = [
-            path for path in Path(workdir).iterdir()
-            if path.is_file()
-            and fnmatch.fnmatch(path.name, pattern)
-            and not path.name.endswith(".rsm")
-        ]
-        if not matches and not any(c in pattern for c in "*?[]"):
-            exact = Path(workdir) / artifact
-            if exact.is_file():
-                matches = [exact]
-        if not matches:
-            raise FetchError("rngit release fetch did not produce {0}".format(artifact))
-
-        dest = os.path.join(tempfile.gettempdir(), matches[0].name)
-        if os.path.exists(dest):
-            os.remove(dest)
-        shutil.move(str(matches[0]), dest)
-        return dest
-    finally:
-        shutil.rmtree(workdir, ignore_errors=True)
-
-
 def fetch_rns_bundle(source, dest_dir, verify_identity=None):
     """
     Fetch a .opip bundle from an rns:// remote.
@@ -139,20 +65,26 @@ def fetch_rns_bundle(source, dest_dir, verify_identity=None):
       rns://id/group/repo@tag
       rns://id/group/repo@tag:bundle.opip
       identity/group/repo (normalized to rns://)
+      pip-rns alias names (resolved via PIP_RNS_CONFIG)
     """
+    source = resolve_remote_source(source)
     remote, ref, artifact = _parse_ref(source)
     os.makedirs(dest_dir, exist_ok=True)
 
     if ref and shutil.which("rngit"):
-        cmd = ["rngit", "release", remote, "view", ref]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        if result.returncode == 0:
-            info = _parse_release_view(result.stdout)
-            picked = _pick_opip_artifact(info.get("artifacts", []), artifact)
+        try:
+            info = release_info(remote, ref)
+            picked = _pick_opip(info.get("artifacts", []), artifact)
             if picked:
-                return _fetch_release_artifact(
-                    remote, ref, picked, verify_identity=verify_identity
+                bundle_path = fetch_release_bundle(
+                    remote,
+                    ref,
+                    picked,
+                    verify_identity=verify_identity,
                 )
+                return bundle_path
+        except (RuntimeError, ValueError) as exc:
+            raise FetchError(str(exc)) from exc
 
     clone_dir = os.path.join(dest_dir, "rns-clone")
     _clone_repo(remote, clone_dir, ref=ref if ref and not shutil.which("rngit") else None)
@@ -161,6 +93,8 @@ def fetch_rns_bundle(source, dest_dir, verify_identity=None):
             if name.endswith(".opip"):
                 if artifact and name != artifact and not fnmatch.fnmatch(name, artifact):
                     continue
-                return os.path.join(root, name)
+                bundle_path = os.path.join(root, name)
+                copy_sidecar_from_dir(bundle_path, root)
+                return bundle_path
 
     raise FetchError("No .opip bundle found at {0}".format(remote))

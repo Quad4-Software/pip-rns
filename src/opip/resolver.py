@@ -13,7 +13,9 @@ from opip.wheel import parse_wheel_filename, pick_best_wheel, wheel_matches_plat
 
 PYPI_URL = "https://pypi.org/pypi/{package}/json"
 PYPI_RELEASE_URL = "https://pypi.org/pypi/{package}/{version}/json"
-USER_AGENT = "opip/0.1.0 (+https://github.com/opip/opip)"
+USER_AGENT = "opip/{0} (+https://github.com/Quad4-Software/pip-rns)".format(
+    __import__("opip").__version__
+)
 
 UNIVERSAL_PLATFORMS = (
     "win_amd64",

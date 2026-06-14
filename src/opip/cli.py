@@ -179,7 +179,7 @@ def build_parser():
     )
     p_install.add_argument(
         "source",
-        help="Bundle path, URL (http/https/ftp), or git source.",
+        help="Bundle path, rns:// remote, URL (http/https/ftp), or git source.",
     )
     p_install.add_argument(
         "--target",

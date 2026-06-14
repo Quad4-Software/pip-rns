@@ -104,6 +104,75 @@ def _pick_whl(artifacts: list[dict]) -> Optional[str]:
     return whls[0]
 
 
+def _pick_opip(artifacts: list[dict], pattern: str | None = None) -> Optional[str]:
+    names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
+    if not names:
+        return None
+    if pattern:
+        matches = [n for n in names if fnmatch.fnmatch(n, pattern)]
+        if matches:
+            return matches[0]
+        if pattern in names:
+            return pattern
+        msg = f"No .opip artifact matching {pattern} in release"
+        raise ValueError(msg)
+    if len(names) == 1:
+        return names[0]
+    return sorted(names)[0]
+
+
+def _rsg_name_for_artifact(artifact: str) -> str:
+    return f"{artifact}.rsg"
+
+
+def _copy_sidecar_if_present(
+    remote: str,
+    tag: str,
+    artifact: str,
+    bundle_path: str,
+    *,
+    verify_identity: str | None = None,
+) -> None:
+    rsg_dest = f"{bundle_path}.rsg"
+    if os.path.isfile(rsg_dest):
+        return
+    rsg_artifact = _rsg_name_for_artifact(os.path.basename(artifact))
+    try:
+        info = release_info(remote, tag)
+    except RuntimeError:
+        return
+    names = {a["name"] for a in info.get("artifacts", [])}
+    if rsg_artifact not in names:
+        return
+    fetched = fetch_release_artifact(
+        remote, tag, rsg_artifact, verify_identity=verify_identity,
+    )
+    if fetched != rsg_dest:
+        shutil.copy2(fetched, rsg_dest)
+    if fetched != bundle_path and os.path.isfile(fetched):
+        try:
+            os.unlink(fetched)
+        except OSError:
+            pass
+
+
+def fetch_release_bundle(
+    remote: str,
+    tag: str,
+    artifact: str,
+    *,
+    verify_identity: str | None = None,
+) -> str:
+    """Download a .opip bundle and its .rsg sidecar when published."""
+    bundle_path = fetch_release_artifact(
+        remote, tag, artifact, verify_identity=verify_identity,
+    )
+    _copy_sidecar_if_present(
+        remote, tag, artifact, bundle_path, verify_identity=verify_identity,
+    )
+    return bundle_path
+
+
 def _fetch_pattern(artifact: str) -> str:
     if any(c in artifact for c in "*?[]"):
         return artifact

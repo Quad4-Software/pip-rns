@@ -37,7 +37,9 @@ def apply_defaults(args):
         if getattr(args, "identity", None) is None:
             args.identity = env_str("OPIP_IDENTITY")
 
-    if getattr(args, "command", None) in ("verify", "install"):
+    if getattr(args, "command", None) in ("verify", "install") or getattr(
+        args, "bundle_command", None
+    ) in ("verify", "install"):
         if getattr(args, "signer", None) is None:
             args.signer = env_str("OPIP_SIGNER")
 
@@ -57,11 +59,12 @@ ENV_HELP = [
     ("OPIP_FORCE_COLOR", "Force color when set (non-empty)"),
     ("NO_COLOR", "Standard; disables color when set"),
     ("FORCE_COLOR", "Standard; enables color when set"),
+    ("PIP_RNS_CONFIG", "pip-rns config directory; aliases resolve for rns:// installs"),
 ]
 
 COMMAND_SUMMARY = [
     ("create", "Build an offline .opip bundle from PyPI wheels"),
-    ("install", "Install a bundle from file, URL, FTP, or git"),
+    ("install", "Install a bundle from file, rns://, URL, FTP, or git"),
     ("export", "Copy a verified bundle for sneakernet sharing"),
     ("verify", "Check integrity, authenticity, and provenance"),
     ("info", "Show bundle metadata"),

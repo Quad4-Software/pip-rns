@@ -7,6 +7,8 @@ import os
 
 from .aliases import get_manager as get_alias_mgr
 from .aliases import init as alias_init
+from .bundle_cmd import dispatch as bundle_dispatch
+from .bundle_cmd import register_parsers as register_bundle_parsers
 from .core import install, list_packages, uninstall
 from .core import update as update_fn
 from .indexes import get_manager as get_index_mgr
@@ -137,6 +139,8 @@ def main() -> None:
     a.add_argument("remote")
     a.add_argument("tag")
 
+    register_bundle_parsers(sub)
+
     args = parser.parse_args()
     ui_init(no_color=args.no_color)
 
@@ -207,6 +211,10 @@ def main() -> None:
             print("  artifacts:")
             for a in info.get("artifacts", []):
                 print(f"    - {a['name']} ({a['size']})")
+        return
+
+    if args.command == "bundle":
+        bundle_dispatch(args, _config(args))
         return
 
     _boot(args)
