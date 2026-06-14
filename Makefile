@@ -2,7 +2,7 @@ EDITOR ?= nano
 RNID_ID ?= e46112d44649266d71fe2193e00a4710
 RNID_KEY ?= $(HOME)/.rngit/client_identity
 RNS_REMOTE ?= rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
-TAG ?= v1.1.0
+TAG ?= v1.2.0
 PREFIX ?= /usr/local
 
 .PHONY: all clean build sign upload release release-rns tag retag test install install-user
@@ -53,9 +53,13 @@ install:
 	mkdir -p ~/.local/share/man/man1
 	cp man/man1/pip-rns.1 ~/.local/share/man/man1/
 	cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
+	cp man/man1/opip.1 ~/.local/share/man/man1/
 	mkdir -p ~/.local/share/bash-completion/completions
 	cp completions/pip-rns.bash ~/.local/share/bash-completion/completions/
+	cp completions/opip.bash ~/.local/share/bash-completion/completions/
 	mkdir -p ~/.local/share/zsh/site-functions
 	cp completions/_pip-rns ~/.local/share/zsh/site-functions/
+	cp completions/_opip ~/.local/share/zsh/site-functions/
 	mkdir -p ~/.local/share/fish/vendor_completions.d
 	cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
+	cp completions/opip.fish ~/.local/share/fish/vendor_completions.d/
