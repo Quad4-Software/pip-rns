@@ -205,7 +205,7 @@ Create and install integrity-backed offline Python wheel bundles (`.opip`).
 - **verify**: Check integrity, authenticity, and PyPI provenance
 - **Windows integration**: File association and Explorer context menus (`register-windows`)
 
-Each bundle contains `manifest.json`, `integrity.json`, `lock.json`, `sbom.json`, optional `publisher.json` and `authenticity.json`, plus a `wheels/` directory and pinned `requirements.txt`.
+Each bundle contains `manifest.json`, `integrity.json`, `lock.json`, `sbom.json`, optional `publisher.json`, plus a `wheels/` directory and pinned `requirements.txt`. Signed bundles also have a Reticulum `.rsg` sidecar (and optionally an `.rsm` release manifest when published via `rngit release`).
 
 ### Quick start
 
@@ -239,12 +239,18 @@ opip create -r requirements.txt --python 3.12 --platform win_amd64
 opip create -r requirements.txt --python 3.12 --platform universal
 ```
 
-Signed bundles:
+Signed bundles (Reticulum RSG):
 
 ```bash
-opip keygen -o signing-key.json
-opip create -r requirements.txt --publisher "My Team" --sign-key signing-key.json --require-pypi-hash
-opip verify shared-bundle.opip --trust-key signing-key.json --require-signature
+opip keygen -o publisher.rns
+opip create -r requirements.txt --publisher "My Team" --identity publisher.rns --require-pypi-hash
+opip verify shared-bundle.opip --signer e46112d44649266d71fe2193e00a4710 --require-signature
+```
+
+Publish a signed bundle as an rngit release (creates `.rsm` manifest automatically):
+
+```bash
+rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 ```
 
 ### opip Commands
@@ -252,12 +258,12 @@ opip verify shared-bundle.opip --trust-key signing-key.json --require-signature
 | Command | Description |
 |---------|-------------|
 | `create [-o FILE] [-C DIR] [-r REQ.txt] [packages...]` | Build a bundle |
-| `install SOURCE [--target DIR] [--user\|--system] [--replace]` | Install a bundle |
+| `install SOURCE [--signer IDENTITY] [--require-signature]` | Install a bundle |
 | `uninstall BUNDLE [--user]` | Uninstall by registered bundle name |
 | `update BUNDLE [-o FILE]` | Rebuild a registered bundle |
 | `export SOURCE -o FILE` | Copy a verified bundle for sharing |
-| `verify BUNDLE [--trust-key FILE] [--require-signature]` | Verify integrity and authenticity |
-| `keygen -o FILE` | Generate HMAC signing key |
+| `verify BUNDLE [--signer IDENTITY] [--require-signature]` | Verify integrity and authenticity |
+| `keygen -o FILE` | Generate Reticulum identity for signing |
 | `info BUNDLE` | Show bundle metadata |
 | `list [bundles\|installed]` | List registry |
 | `help [COMMAND] [-i]` | Interactive or per-command help |
@@ -272,8 +278,8 @@ opip verify shared-bundle.opip --trust-key signing-key.json --require-signature
 | `OPIP_PYTHON` | Default `--python` for `create` |
 | `OPIP_PLATFORM` | Default `--platform` for `create` |
 | `OPIP_PUBLISHER` | Default `--publisher` for `create` |
-| `OPIP_SIGN_KEY` | Default `--sign-key` path for `create` |
-| `OPIP_TRUST_KEY` | Default `--trust-key` path for `verify` |
+| `OPIP_IDENTITY` | Default `--identity` path for `create` |
+| `OPIP_SIGNER` | Default `--signer` for `verify` and `install` |
 | `OPIP_COLOR` | `auto`, `always`, or `never` |
 | `NO_COLOR` | Standard; disables colors when set |
 
