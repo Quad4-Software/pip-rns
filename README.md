@@ -96,6 +96,7 @@ pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
 pip-rns alias add|set|rm|ls
 pip-rns index add|rm|ls|sync|list|search
 pip-rns release list|view
+pip-rns bundle install|verify
 ```
 
 #### `pipx-rns` (pipx-specific)
@@ -166,6 +167,15 @@ pip-rns install lxmfy
 ```
 
 Indexes chain with aliases: local aliases take priority, then synced indexes, then raw path.
+
+#### Bundles (opip integration)
+
+Install or verify offline `.opip` bundles using pip-rns aliases and config:
+
+```bash
+pip-rns bundle install lxmfy-bundle@v1.0.0 --signer e46112d44649266d71fe2193e00a4710
+pip-rns bundle verify ./my-bundle.opip --require-signature
+```
 
 #### Passthrough
 
@@ -282,16 +292,20 @@ rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 | `OPIP_SIGNER` | Default `--signer` for `verify` and `install` |
 | `OPIP_COLOR` | `auto`, `always`, or `never` |
 | `NO_COLOR` | Standard; disables colors when set |
+| `PIP_RNS_CONFIG` | pip-rns config directory; aliases are resolved for `rns://` installs |
 
 ## Shell Completions
 
 ```bash
 # Bash
 cp completions/pip-rns.bash ~/.local/share/bash-completion/completions/
+cp completions/opip.bash ~/.local/share/bash-completion/completions/
 # ZSH
 cp completions/_pip-rns ~/.local/share/zsh/site-functions/
+cp completions/_opip ~/.local/share/zsh/site-functions/
 # Fish
 cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
+cp completions/opip.fish ~/.local/share/fish/vendor_completions.d/
 ```
 
 ## Man Pages
@@ -299,6 +313,7 @@ cp completions/pip-rns.fish ~/.local/share/fish/vendor_completions.d/
 ```bash
 cp man/man1/pip-rns.1 ~/.local/share/man/man1/
 cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
+cp man/man1/opip.1 ~/.local/share/man/man1/
 ```
 
 ## Tests
@@ -306,11 +321,13 @@ cp man/man1/pipx-rns.1 ~/.local/share/man/man1/
 ```bash
 python -m tests.test_runner
 python -m tests.test_runner -v
-python -m tests.test_runner -f search
+python -m tests.test_runner -f opip
 
 # Optional live tests (requires RNS, 60+ seconds):
 PIP_RNS_TEST_LIVE=1 python -m tests.test_runner -f live
 ```
+
+The test runner adds `src/` to `PYTHONPATH` automatically. Optional live tests are skipped unless `PIP_RNS_TEST_LIVE=1` is set.
 
 ## License
 
