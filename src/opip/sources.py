@@ -60,7 +60,7 @@ def parse_git_source(source):
     return url, ref, subpath
 
 
-def acquire_bundle(source, dest_dir=None, timeout=300):
+def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
     """
     Download or locate a bundle file from any supported source.
 
@@ -78,7 +78,7 @@ def acquire_bundle(source, dest_dir=None, timeout=300):
     git_cleanup = None
     try:
         if is_rns_source(source):
-            return fetch_rns_bundle(source, dest_dir)
+            return fetch_rns_bundle(source, dest_dir, verify_identity=verify_identity)
 
         if is_git_source(source) or source.startswith("git+"):
             url, ref, subpath = parse_git_source(source)

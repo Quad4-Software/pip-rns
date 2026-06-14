@@ -3,7 +3,8 @@
 import os
 import shutil
 
-from opip.bundle import BundleError, bundle_info, verify_bundle
+from opip.bundle import verify_bundle
+from opip.signing import has_signature, signature_path
 from opip.storage import Store
 
 
@@ -31,6 +32,8 @@ def export_bundle(source, output_path, store=None):
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
     shutil.copy2(bundle_path, output_path)
+    if has_signature(bundle_path):
+        shutil.copy2(signature_path(bundle_path), signature_path(output_path))
     return output_path, manifest
 
 

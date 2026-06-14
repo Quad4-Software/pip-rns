@@ -1,73 +1,80 @@
-"""Bundle authenticity signing and verification (HMAC-SHA256, stdlib only)."""
+"""Bundle authenticity signing and verification (Reticulum RSG via rnid)."""
 
-import hashlib
-import hmac
-import json
+import os
+import re
+import shutil
+import subprocess
 
-from opip.integrity import data_hash
-from opip.keys import key_fingerprint
+RSG_EXTENSION = ".rsg"
 
-AUTH_ALGORITHM = "hmac-sha256-v1"
-AUTH_FILE = "authenticity.json"
-
-
-def sign_integrity(integrity_bytes, key_material, publisher, key_id=None):
-    """Sign integrity.json bytes. Returns authenticity dict."""
-    digest = data_hash(integrity_bytes)
-    signature = hmac.new(key_material, digest.encode("ascii"), hashlib.sha256).hexdigest()
-    return {
-        "version": "1",
-        "algorithm": AUTH_ALGORITHM,
-        "publisher": publisher,
-        "key_id": key_id or key_fingerprint(key_material),
-        "integrity_sha256": digest,
-        "signature": signature,
-    }
+SIGNATURE_VALID_RE = re.compile(r"Signature is valid", re.IGNORECASE)
 
 
-def verify_authenticity(integrity_bytes, authenticity, trust_key=None):
-    """
-    Verify authenticity.json against integrity.json bytes.
+class SigningError(Exception):
+    pass
 
-    Returns list of error strings (empty if valid or not signed).
-    """
-    if not authenticity:
-        return []
 
-    errors = []
-    if authenticity.get("algorithm") != AUTH_ALGORITHM:
-        errors.append("Unsupported authenticity algorithm")
-        return errors
-
-    digest = data_hash(integrity_bytes)
-    if authenticity.get("integrity_sha256") != digest:
-        errors.append("Authenticity record does not match integrity.json digest")
-
-    if trust_key is None:
-        errors.append("No trust key provided")
-        return errors
-
-    expected_key_id = key_fingerprint(trust_key)
-    if authenticity.get("key_id") != expected_key_id:
-        errors.append(
-            "Signing key fingerprint mismatch (expected {0}, got {1})".format(
-                expected_key_id[:16], str(authenticity.get("key_id", ""))[:16]
-            )
+def _check_rnid():
+    if shutil.which("rnid") is None:
+        raise SigningError(
+            "rnid not found on PATH. Install via: pip install rns"
         )
 
-    signature = authenticity.get("signature", "")
-    expected = hmac.new(trust_key, digest.encode("ascii"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, expected):
-        errors.append("Authenticity signature verification failed")
 
-    return errors
+def signature_path(bundle_path):
+    """Return the RSG sidecar path for a bundle file."""
+    return bundle_path + RSG_EXTENSION
 
 
-def dump_authenticity(record):
-    return json.dumps(record, indent=2, sort_keys=True) + "\n"
+def has_signature(bundle_path):
+    """Return True if an RSG signature sidecar exists for the bundle."""
+    return os.path.isfile(signature_path(bundle_path))
 
 
-def load_authenticity(data):
-    if isinstance(data, str):
-        return json.loads(data)
-    return data
+def sign_bundle(bundle_path, identity_path):
+    """
+    Sign a bundle file with a Reticulum identity.
+
+    Writes a .rsg sidecar next to the bundle. Returns the signature path.
+    """
+    _check_rnid()
+    bundle_path = os.path.abspath(bundle_path)
+    sig_path = signature_path(bundle_path)
+    result = subprocess.run(
+        ["rnid", "-f", "-i", identity_path, "-s", bundle_path, "-w", sig_path],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        err = (result.stderr or result.stdout or "").strip()
+        raise SigningError("Bundle signing failed: {0}".format(err))
+    return sig_path
+
+
+def verify_bundle_signature(bundle_path, signer=None):
+    """
+    Verify the .rsg signature for a bundle file.
+
+    Returns list of error strings (empty if valid or unsigned).
+    """
+    bundle_path = os.path.abspath(bundle_path)
+    sig_path = signature_path(bundle_path)
+    if not os.path.isfile(sig_path):
+        return []
+
+    if signer is None:
+        return ["Bundle is signed but no signer identity provided (--signer)"]
+
+    _check_rnid()
+    result = subprocess.run(
+        ["rnid", "-i", signer, "-V", bundle_path, sig_path],
+        capture_output=True,
+        text=True,
+    )
+    output = (result.stdout or "") + (result.stderr or "")
+    if result.returncode != 0:
+        err = output.strip()
+        return ["Signature verification failed: {0}".format(err)]
+    if not SIGNATURE_VALID_RE.search(output):
+        return ["Signature verification failed"]
+    return []

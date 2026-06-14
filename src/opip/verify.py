@@ -5,14 +5,14 @@ from opip.bundle import verify_bundle
 
 def verify_bundle_file(
     bundle_path,
-    trust_key=None,
+    signer=None,
     require_signature=False,
     require_pypi_hash=False,
 ):
     """Verify a bundle file. Returns (ok, errors, manifest)."""
     errors, manifest = verify_bundle(
         bundle_path,
-        trust_key=trust_key,
+        signer=signer,
         require_signature=require_signature,
         require_pypi_hash=require_pypi_hash,
     )

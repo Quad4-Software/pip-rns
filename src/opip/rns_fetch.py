@@ -93,11 +93,14 @@ def _pick_opip_artifact(artifacts, pattern=None):
     return sorted(names)[0]
 
 
-def _fetch_release_artifact(remote, tag, artifact):
+def _fetch_release_artifact(remote, tag, artifact, verify_identity=None):
     remote = _normalize_remote(remote)
     pattern = artifact if any(c in artifact for c in "*?[]") else artifact
     target = "{0}:{1}".format(tag, pattern)
-    cmd = ["rngit", "release", remote, "fetch", target]
+    cmd = ["rngit", "release"]
+    if verify_identity:
+        cmd.extend(["-s", verify_identity])
+    cmd.extend([remote, "fetch", target])
     workdir = tempfile.mkdtemp(prefix="opip-rns-fetch-")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=workdir, timeout=7200)
@@ -127,7 +130,7 @@ def _fetch_release_artifact(remote, tag, artifact):
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def fetch_rns_bundle(source, dest_dir):
+def fetch_rns_bundle(source, dest_dir, verify_identity=None):
     """
     Fetch a .opip bundle from an rns:// remote.
 
@@ -147,7 +150,9 @@ def fetch_rns_bundle(source, dest_dir):
             info = _parse_release_view(result.stdout)
             picked = _pick_opip_artifact(info.get("artifacts", []), artifact)
             if picked:
-                return _fetch_release_artifact(remote, ref, picked)
+                return _fetch_release_artifact(
+                    remote, ref, picked, verify_identity=verify_identity
+                )
 
     clone_dir = os.path.join(dest_dir, "rns-clone")
     _clone_repo(remote, clone_dir, ref=ref if ref and not shutil.which("rngit") else None)

@@ -26,7 +26,7 @@ def make_manifest(name, requirements, wheels, python_version, platform_tag, extr
         "wheels": wheels,
         "security": {
             "integrity": "sha256",
-            "authenticity": "hmac-sha256-v1",
+            "authenticity": "reticulum-rsg",
             "provenance": "pypi-digest",
         },
     }

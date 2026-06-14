@@ -10,7 +10,7 @@ import zipfile
 
 from opip.fetch import download_wheels_parallel
 from opip.integrity import build_integrity, collect_files, dump_integrity, verify_integrity
-from opip.keys import export_public_record, key_fingerprint, load_signing_key
+from opip.keys import export_public_record, identity_hash
 from opip.lockfile import dump_json, make_lock, make_sbom
 from opip.manifest import BUNDLE_EXTENSION, dump_manifest, load_manifest, make_manifest
 from opip.provenance import ProvenanceError, build_wheel_record, verify_wheel_provenance
@@ -22,11 +22,8 @@ from opip.resolver import (
     is_universal_platform,
     resolve_requirements,
 )
-from opip.signing import AUTH_FILE, dump_authenticity, load_authenticity, sign_integrity
+from opip.signing import has_signature, sign_bundle, verify_bundle_signature
 from opip.wheel import read_wheel_metadata
-
-
-INTEGRITY_EXCLUDE = {AUTH_FILE}
 
 
 class BundleError(Exception):
@@ -89,7 +86,7 @@ def create_bundle(
     require_pypi_hash=False,
     publisher_name=None,
     publisher_contact=None,
-    sign_key_path=None,
+    identity_path=None,
 ):
     """Fetch wheels and pack them into an integrity-backed .opip bundle."""
     if requirements_file:
@@ -128,9 +125,9 @@ def create_bundle(
 
     wheel_entries = []
     install_reqs = list(requirements)
-    signing_key = None
-    if sign_key_path:
-        signing_key = load_signing_key(sign_key_path)
+    signer_identity = None
+    if identity_path:
+        signer_identity = identity_hash(identity_path)
 
     try:
         download_wheels_parallel(
@@ -192,17 +189,16 @@ def create_bundle(
             fh.write(dump_json(lock_data))
 
         publisher_record = None
-        if publisher_name or signing_key:
+        if publisher_name or signer_identity:
             pub_name = publisher_name or name
-            key_id = key_fingerprint(signing_key) if signing_key else None
             trust = None
-            if signing_key:
+            if identity_path:
                 trust = export_public_record(
-                    signing_key, pub_name, contact=publisher_contact
+                    identity_path, pub_name, contact=publisher_contact
                 )
             publisher_record = make_publisher(
                 pub_name,
-                key_id=key_id,
+                identity=signer_identity,
                 contact=publisher_contact,
                 public_record=trust,
             )
@@ -213,28 +209,18 @@ def create_bundle(
         with open(os.path.join(tmpdir, "sbom.json"), "w", encoding="utf-8") as fh:
             fh.write(dump_json(sbom_data))
 
-        all_files = [
-            f
-            for f in collect_files(tmpdir)
-            if os.path.relpath(f, tmpdir).replace("\\", "/") not in INTEGRITY_EXCLUDE
-        ]
+        all_files = collect_files(tmpdir)
         integrity = build_integrity(all_files, base_dir=tmpdir)
         integrity_path = os.path.join(tmpdir, "integrity.json")
         integrity_bytes = dump_integrity(integrity)
         with open(integrity_path, "w", encoding="utf-8") as fh:
             fh.write(integrity_bytes)
 
-        if signing_key:
-            pub_name = publisher_name or name
-            auth = sign_integrity(
-                integrity_bytes.encode("utf-8"),
-                signing_key,
-                pub_name,
-            )
-            with open(os.path.join(tmpdir, AUTH_FILE), "w", encoding="utf-8") as fh:
-                fh.write(dump_authenticity(auth))
-
         write_bundle_zip(output_path, tmpdir)
+
+        if identity_path:
+            sign_bundle(output_path, identity_path)
+
         return output_path
 
     except ProvenanceError as exc:
@@ -276,12 +262,6 @@ def extract_bundle(bundle_path, dest_dir=None):
     with open(integrity_path, "r", encoding="utf-8") as fh:
         integrity = json.load(fh)
 
-    authenticity = None
-    auth_path = os.path.join(dest_dir, AUTH_FILE)
-    if os.path.isfile(auth_path):
-        with open(auth_path, "r", encoding="utf-8") as fh:
-            authenticity = load_authenticity(fh.read())
-
     publisher = None
     pub_path = os.path.join(dest_dir, PUBLISHER_FILE)
     if os.path.isfile(pub_path):
@@ -292,14 +272,14 @@ def extract_bundle(bundle_path, dest_dir=None):
         "dest_dir": dest_dir,
         "manifest": manifest,
         "integrity": integrity,
-        "authenticity": authenticity,
         "publisher": publisher,
     }
 
 
 def verify_bundle_contents(
     bundle_ctx,
-    trust_key=None,
+    bundle_path=None,
+    signer=None,
     require_signature=False,
     require_pypi_hash=False,
 ):
@@ -307,33 +287,21 @@ def verify_bundle_contents(
     dest_dir = bundle_ctx["dest_dir"]
     manifest = bundle_ctx["manifest"]
     integrity = bundle_ctx["integrity"]
-    authenticity = bundle_ctx.get("authenticity")
     errors = []
 
-    all_files = [
-        f
-        for f in collect_files(dest_dir)
-        if os.path.relpath(f, dest_dir).replace("\\", "/") not in INTEGRITY_EXCLUDE
-    ]
+    all_files = collect_files(dest_dir)
     errors.extend(verify_integrity(dest_dir, integrity))
 
-    integrity_path = os.path.join(dest_dir, "integrity.json")
-    with open(integrity_path, "r", encoding="utf-8") as fh:
-        integrity_bytes = fh.read()
-
-    if authenticity:
-        if trust_key is not None:
-            from opip.signing import verify_authenticity
-
-            errors.extend(
-                verify_authenticity(integrity_bytes.encode("utf-8"), authenticity, trust_key)
-            )
+    if bundle_path:
+        if has_signature(bundle_path):
+            if signer is not None:
+                errors.extend(verify_bundle_signature(bundle_path, signer))
+            elif require_signature:
+                errors.append(
+                    "Bundle is signed but no signer identity provided (--signer)"
+                )
         elif require_signature:
-            errors.append(
-                "Bundle is signed but no trust key provided (--trust-key)"
-            )
-    elif require_signature:
-        errors.append("Bundle is not signed but --require-signature was specified")
+            errors.append("Bundle is not signed but --require-signature was specified")
 
     wheels_dir = os.path.join(dest_dir, "wheels")
     for record in manifest.get("wheels", []):
@@ -348,13 +316,14 @@ def verify_bundle_contents(
     return errors
 
 
-def verify_bundle(bundle_path, trust_key=None, require_signature=False, require_pypi_hash=False):
+def verify_bundle(bundle_path, signer=None, require_signature=False, require_pypi_hash=False):
     """Verify bundle. Returns (errors, manifest)."""
     ctx = extract_bundle(bundle_path)
     try:
         errors = verify_bundle_contents(
             ctx,
-            trust_key=trust_key,
+            bundle_path=os.path.abspath(bundle_path),
+            signer=signer,
             require_signature=require_signature,
             require_pypi_hash=require_pypi_hash,
         )

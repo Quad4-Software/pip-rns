@@ -5,12 +5,12 @@ import json
 PUBLISHER_FILE = "publisher.json"
 
 
-def make_publisher(name, key_id=None, contact=None, public_record=None):
+def make_publisher(name, identity=None, contact=None, public_record=None):
     record = {
         "name": name,
     }
-    if key_id:
-        record["key_id"] = key_id
+    if identity:
+        record["identity"] = identity
     if contact:
         record["contact"] = contact
     if public_record:

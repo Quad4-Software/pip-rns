@@ -1,6 +1,7 @@
 """List bundles and installed packages."""
 
 from opip.bundle import bundle_info
+from opip.signing import has_signature
 from opip.storage import Store
 
 
@@ -64,6 +65,8 @@ def show_bundle_info(bundle_path):
                 security.get("integrity"), security.get("authenticity")
             )
         )
+    if has_signature(bundle_path):
+        lines.append("Signature: RSG sidecar present")
     platforms = manifest.get("platforms")
     if platforms and manifest.get("platform") == "universal":
         lines.append("Includes: {0}".format(", ".join(platforms)))

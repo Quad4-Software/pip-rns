@@ -117,6 +117,8 @@ def install_bundle(
     replace=False,
     store=None,
     verify=True,
+    signer=None,
+    require_signature=False,
 ):
     """
     Install all wheels from a bundle.
@@ -129,7 +131,12 @@ def install_bundle(
 
     try:
         if verify:
-            errors = verify_bundle_contents(ctx)
+            errors = verify_bundle_contents(
+                ctx,
+                bundle_path=os.path.abspath(bundle_path),
+                signer=signer,
+                require_signature=require_signature,
+            )
             if errors:
                 raise InstallError(
                     "Bundle verification failed:\n" + "\n".join(errors)
@@ -197,6 +204,8 @@ def install_from_source(
     store=None,
     cache_dir=None,
     verify=True,
+    signer=None,
+    require_signature=False,
 ):
     """Acquire bundle from any source and install."""
     from opip.sources import acquire_bundle
@@ -205,7 +214,9 @@ def install_from_source(
 
     cache_dir = cache_dir or os.path.join(default_cache_dir(), "acquired")
     os.makedirs(cache_dir, exist_ok=True)
-    bundle_path = acquire_bundle(source, dest_dir=cache_dir)
+    bundle_path = acquire_bundle(
+        source, dest_dir=cache_dir, verify_identity=signer
+    )
     return install_bundle(
         bundle_path,
         target=target,
@@ -213,6 +224,8 @@ def install_from_source(
         replace=replace,
         store=store,
         verify=verify,
+        signer=signer,
+        require_signature=require_signature,
     )
 
 

@@ -34,12 +34,12 @@ def apply_defaults(args):
             args.jobs = env_int("OPIP_JOBS", 8)
         if getattr(args, "publisher", None) is None:
             args.publisher = env_str("OPIP_PUBLISHER")
-        if getattr(args, "sign_key", None) is None:
-            args.sign_key = env_str("OPIP_SIGN_KEY")
+        if getattr(args, "identity", None) is None:
+            args.identity = env_str("OPIP_IDENTITY")
 
-    if getattr(args, "command", None) == "verify":
-        if getattr(args, "trust_key", None) is None:
-            args.trust_key = env_str("OPIP_TRUST_KEY")
+    if getattr(args, "command", None) in ("verify", "install"):
+        if getattr(args, "signer", None) is None:
+            args.signer = env_str("OPIP_SIGNER")
 
     return args
 
@@ -50,8 +50,8 @@ ENV_HELP = [
     ("OPIP_PYTHON", "Default --python for create (e.g. 3.12)"),
     ("OPIP_PLATFORM", "Default --platform for create (e.g. win_amd64 or universal)"),
     ("OPIP_PUBLISHER", "Default --publisher for create"),
-    ("OPIP_SIGN_KEY", "Default --sign-key path for create"),
-    ("OPIP_TRUST_KEY", "Default --trust-key path for verify"),
+    ("OPIP_IDENTITY", "Default --identity path for create"),
+    ("OPIP_SIGNER", "Default --signer for verify and install"),
     ("OPIP_COLOR", "Color mode: auto, always, or never"),
     ("OPIP_NO_COLOR", "Disable color when set (non-empty)"),
     ("OPIP_FORCE_COLOR", "Force color when set (non-empty)"),
@@ -73,7 +73,7 @@ COMMAND_SUMMARY = [
     ("register-windows", "Explorer file association and context menus"),
     ("unregister-windows", "Remove Windows registration"),
     ("help", "Interactive help and per-command reference"),
-    ("keygen", "Generate an HMAC signing key for bundle authenticity"),
+    ("keygen", "Generate a Reticulum identity for bundle signing"),
 ]
 
 EXAMPLES = [

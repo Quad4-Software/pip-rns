@@ -1,57 +1,66 @@
-"""Signing key generation and loading."""
+"""Reticulum identity management for bundle signing."""
 
-import hashlib
-import json
 import os
+import re
+import shutil
+import subprocess
 
-KEY_VERSION = "opip-signing-key-v1"
-KEY_SIZE = 32
-
-
-def generate_signing_key():
-    """Return 32-byte signing key material."""
-    return os.urandom(KEY_SIZE)
+IDENTITY_HASH_RE = re.compile(r"<([0-9a-f]{32})>")
 
 
-def key_fingerprint(key_material):
-    """Return hex SHA-256 fingerprint for a signing key."""
-    return hashlib.sha256(key_material).hexdigest()
+class IdentityError(Exception):
+    pass
 
 
-def save_signing_key(path, key_material):
-    """Write signing key to disk (JSON wrapper, restrictive permissions)."""
-    payload = {
-        "version": KEY_VERSION,
-        "algorithm": "hmac-sha256",
-        "key": key_material.hex(),
-    }
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        json.dump(payload, fh, indent=2, sort_keys=True)
-        fh.write("\n")
+def _check_rnid():
+    if shutil.which("rnid") is None:
+        raise IdentityError(
+            "rnid not found on PATH. Install via: pip install rns"
+        )
+
+
+def generate_identity(path):
+    """Generate a new Reticulum identity and save to path."""
+    _check_rnid()
+    path = os.path.abspath(path)
+    result = subprocess.run(
+        ["rnid", "-g", path],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        err = (result.stderr or result.stdout or "").strip()
+        raise IdentityError("rnid identity generation failed: {0}".format(err))
     return path
 
 
-def load_signing_key(path):
-    """Load signing key bytes from file."""
-    with open(path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
-    if data.get("version") != KEY_VERSION:
-        raise ValueError("Unsupported signing key version")
-    if data.get("algorithm") != "hmac-sha256":
-        raise ValueError("Unsupported signing key algorithm")
-    try:
-        return bytes.fromhex(data["key"])
-    except (KeyError, ValueError) as exc:
-        raise ValueError("Invalid signing key file") from exc
+def identity_hash(identity):
+    """Return hex identity hash from a path or 32-char hash string."""
+    identity = identity.strip()
+    if len(identity) == 32 and all(c in "0123456789abcdef" for c in identity):
+        return identity
+    _check_rnid()
+    result = subprocess.run(
+        ["rnid", "-i", identity, "-p"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        err = (result.stderr or result.stdout or "").strip()
+        raise IdentityError("Failed to read identity: {0}".format(err))
+    for line in result.stdout.splitlines():
+        if "Identity Hash" in line:
+            match = IDENTITY_HASH_RE.search(line)
+            if match:
+                return match.group(1)
+    raise IdentityError("Could not parse identity hash from rnid output")
 
 
-def export_public_record(key_material, publisher_name, contact=None):
-    """Build publisher trust record (share key fingerprint + metadata)."""
+def export_public_record(identity, publisher_name, contact=None):
+    """Build publisher trust record (share identity hash + metadata)."""
     record = {
-        "version": KEY_VERSION,
-        "algorithm": "hmac-sha256",
-        "key_id": key_fingerprint(key_material),
+        "version": "reticulum-identity-v1",
+        "identity": identity_hash(identity),
         "publisher": publisher_name,
     }
     if contact:

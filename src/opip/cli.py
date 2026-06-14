@@ -24,7 +24,8 @@ from opip.storage import Store
 from opip import terminal
 from opip.uninstall import UninstallError, uninstall_bundle
 from opip.update import UpdateError, update_bundle
-from opip.keys import generate_signing_key, load_signing_key, save_signing_key
+from opip.keys import IdentityError, generate_identity, identity_hash
+from opip.signing import SigningError
 from opip.verify import verify_bundle_file
 
 
@@ -167,9 +168,9 @@ def build_parser():
         help="Publisher contact (email, URL) for publisher.json.",
     )
     p_create.add_argument(
-        "--sign-key",
+        "--identity",
         default=None,
-        help="Signing key file for authenticity.json (env: OPIP_SIGN_KEY).",
+        help="Reticulum identity file for RSG signing (env: OPIP_IDENTITY).",
     )
 
     p_install = sub.add_parser(
@@ -204,6 +205,17 @@ def build_parser():
         "--no-verify",
         action="store_true",
         help="Skip integrity verification before install.",
+    )
+    p_install.add_argument(
+        "--signer",
+        metavar="IDENTITY",
+        default=None,
+        help="Require bundle signed by IDENTITY (env: OPIP_SIGNER).",
+    )
+    p_install.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="Fail if bundle is not signed.",
     )
 
     p_uninstall = sub.add_parser(
@@ -270,9 +282,10 @@ def build_parser():
     )
     p_verify.add_argument("bundle", help="Path to .opip bundle file.")
     p_verify.add_argument(
-        "--trust-key",
+        "--signer",
+        metavar="IDENTITY",
         default=None,
-        help="Trust key file for signed bundles (env: OPIP_TRUST_KEY).",
+        help="Required signer identity hash or file (env: OPIP_SIGNER).",
     )
     p_verify.add_argument(
         "--require-signature",
@@ -287,13 +300,13 @@ def build_parser():
 
     p_keygen = sub.add_parser(
         "keygen",
-        help="Generate an HMAC signing key for bundle authenticity.",
+        help="Generate a Reticulum identity for bundle signing.",
     )
     p_keygen.add_argument(
         "-o",
         "--output",
         required=True,
-        help="Output path for signing key file.",
+        help="Output path for identity file (.rns).",
     )
 
     p_info = sub.add_parser(
@@ -349,7 +362,7 @@ def main(argv=None):
 
     try:
         return _dispatch(args, store)
-    except (BundleError, InstallError, UninstallError, UpdateError, ProjectError, ExportError, OpenError) as exc:
+    except (BundleError, InstallError, UninstallError, UpdateError, ProjectError, ExportError, OpenError, IdentityError, SigningError) as exc:
         terminal.error(str(exc))
         return 1
     except KeyboardInterrupt:
@@ -443,7 +456,7 @@ def _dispatch(args, store):
             require_pypi_hash=args.require_pypi_hash,
             publisher_name=args.publisher,
             publisher_contact=args.publisher_contact,
-            sign_key_path=args.sign_key,
+            identity_path=args.identity,
         )
         manifest = bundle_info(path)
         store.register_bundle(
@@ -472,6 +485,8 @@ def _dispatch(args, store):
             replace=args.replace,
             store=store,
             verify=not args.no_verify,
+            signer=args.signer,
+            require_signature=args.require_signature,
         )
         terminal.success(
             "Installed {0} packages from bundle.".format(len(packages))
@@ -564,12 +579,9 @@ def _dispatch(args, store):
         return 0
 
     if args.command == "verify":
-        trust_key = None
-        if args.trust_key:
-            trust_key = load_signing_key(args.trust_key)
         ok, errors, manifest = verify_bundle_file(
             args.bundle,
-            trust_key=trust_key,
+            signer=args.signer,
             require_signature=args.require_signature,
             require_pypi_hash=args.require_pypi_hash,
         )
@@ -591,11 +603,12 @@ def _dispatch(args, store):
         return 1
 
     if args.command == "keygen":
-        key = generate_signing_key()
-        save_signing_key(args.output, key)
-        terminal.success("Wrote signing key: {0}".format(args.output))
+        generate_identity(args.output)
+        signer = identity_hash(args.output)
+        terminal.success("Wrote identity: {0}".format(args.output))
+        terminal.write_out("  Identity hash: {0}".format(signer))
         terminal.write_out(
-            "  Share the key file out-of-band with recipients as --trust-key"
+            "  Sign bundles with --identity; verify with --signer {0}".format(signer)
         )
         return 0
 
