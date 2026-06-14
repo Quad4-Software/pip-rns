@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pip-rns"
-version = "1.1.0"
-description = "Install Python packages from Reticulum rngit remotes via pip/pipx/poetry/uv"
+version = "1.2.0"
+description = "Install Python packages from Reticulum remotes and offline wheel bundles"
 requires-python = ">=3.7"
 license = {text = "BSD-2-Clause"}
 classifiers = [
@@ -24,11 +24,13 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Archiving :: Packaging",
 ]
 
 [project.scripts]
 pip-rns = "pip_rns.cli:main"
 pipx-rns = "pip_rns.cli_pipx:main"
+opip = "opip.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pip_rns", "scripts"]
+packages = ["src/pip_rns", "src/opip", "scripts"]

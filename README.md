@@ -1,10 +1,21 @@
 # pip-rns
 
-Install Python packages over [Reticulum](https://reticulum.network/) from rngit remotes. Supports pip, pipx, uv and poetry.
+Install Python packages over [Reticulum](https://reticulum.network/) from rngit remotes, and create or install integrity-backed offline wheel bundles (`.opip`).
 
 rngit: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
-## Features
+## Tools
+
+| Tool | Purpose |
+|------|---------|
+| `pip-rns` / `pipx-rns` | Install packages from Reticulum rngit remotes via pip, pipx, uv, or poetry |
+| `opip` | Build, verify, and install offline wheel bundles for sneakernet / air-gap targets |
+
+Both ship in this package. `opip` uses only the Python standard library (no extra dependencies).
+
+## pip-rns
+
+### Features
 
 - **Multi-backend** - install with pip, pipx, uv, or poetry
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
@@ -16,12 +27,12 @@ rngit: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 - **Aliases** - short names for long remote paths
 - **Indexes** - sync package listings from remote RNS repos
 
-## Requirements
+### Requirements
 
 - rns `1.2.0` or higher
 - python 3.7 or higher
 
-## Install
+### Install
 
 **Install from local wheel:**
 
@@ -52,13 +63,13 @@ pipx install pip-rns
 pip install git+https://github.com/Quad4-Software/pip-rns
 ```
 
-## Verify Releases
+### Verify Releases
 
 ```bash
 rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 ```
 
-## Usage
+### Usage
 
 ```bash
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
@@ -66,16 +77,16 @@ pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy@v1.6.3
 ```
 
-### Adding Quad4 Index
+#### Adding Quad4 Index
 
 ```bash
 pip-rns index add rns://06a54b505bb67b25ef3f8097e8001edc/public/index
 pip-rns index list
 ```
 
-## Commands
+### Commands
 
-### `pip-rns` (generic)
+#### `pip-rns` (generic)
 
 ```
 pip-rns install <identity/group/repo> [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--from-release] [--verify IDENTITY] [-- <tool flags>]
@@ -87,7 +98,7 @@ pip-rns index add|rm|ls|sync|list|search
 pip-rns release list|view
 ```
 
-### `pipx-rns` (pipx-specific)
+#### `pipx-rns` (pipx-specific)
 
 ```
 pipx-rns install <remote> [--ref TAG] [--editable] [--from-release] [--verify IDENTITY]
@@ -97,7 +108,7 @@ pipx-rns list
 pipx-rns uninstall <package>
 ```
 
-### Releases
+#### Releases
 
 Install pre-built `.whl` from an rngit release (faster, no build step):
 
@@ -118,9 +129,9 @@ pip-rns release list rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node
 pip-rns release view rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node v1.6.0
 ```
 
-**Note:** Release artifacts are downloaded via `rngit release fetch` on the rngit node hosting the repository.
+Release artifacts are downloaded via `rngit release fetch` on the rngit node hosting the repository.
 
-### Aliases
+#### Aliases
 
 Save long remote paths under a short name:
 
@@ -143,7 +154,7 @@ pip-rns --config /path/to/dir alias add lxmfy <remote>
 PIP_RNS_CONFIG=/path/to/dir pip-rns install lxmfy
 ```
 
-### Indexes
+#### Indexes
 
 Register an index (an rngit repo with a `packages` file) and install by name:
 
@@ -156,7 +167,7 @@ pip-rns install lxmfy
 
 Indexes chain with aliases: local aliases take priority, then synced indexes, then raw path.
 
-### Passthrough
+#### Passthrough
 
 Flags after `--` are forwarded to the underlying tool:
 
@@ -166,7 +177,7 @@ pip-rns install --poetry identity/group/repo -- --dev
 pipx-rns install identity/group/repo -- --force
 ```
 
-## Environment
+### pip-rns Environment
 
 | Variable | Default | Description |
 |---|---|---|
@@ -178,6 +189,93 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
 | `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
 | `NO_COLOR` | - | disable colors (standard) |
+
+## opip (offline bundles)
+
+Create and install integrity-backed offline Python wheel bundles (`.opip`).
+
+### Features
+
+- **create**: Fetch wheels from PyPI and pack them into an integrity-backed bundle
+- **auto-detect**: Read `pyproject.toml`, `setup.py`, or `requirements.txt` from a cloned project
+- **universal bundles**: `--platform universal` bundles wheels for Windows, Linux, and macOS in one file
+- **install**: Install from a local bundle, HTTP/HTTPS/FTP/git, or Reticulum (`rns://`) source
+- **export**: Copy a verified bundle for sneakernet / USB sharing
+- **uninstall / update**: Manage registered bundles
+- **verify**: Check integrity, authenticity, and PyPI provenance
+- **Windows integration**: File association and Explorer context menus (`register-windows`)
+
+Each bundle contains `manifest.json`, `integrity.json`, `lock.json`, `sbom.json`, optional `publisher.json` and `authenticity.json`, plus a `wheels/` directory and pinned `requirements.txt`.
+
+### Quick start
+
+Bundle a cloned project on a connected machine:
+
+```bash
+git clone https://github.com/example/some-project.git
+cd some-project
+opip create
+```
+
+Copy the `.opip` file to the air-gapped machine:
+
+```bash
+opip verify my-bundle.opip
+opip install my-bundle.opip
+```
+
+Install from an rngit release over Reticulum:
+
+```bash
+opip install rns://identity/group/repo@v1.0.0
+opip install rns://identity/group/repo@v1.0.0:my-bundle.opip
+```
+
+Manual requirements and platform targeting:
+
+```bash
+opip create -o my-bundle.opip -r requirements.txt
+opip create -r requirements.txt --python 3.12 --platform win_amd64
+opip create -r requirements.txt --python 3.12 --platform universal
+```
+
+Signed bundles:
+
+```bash
+opip keygen -o signing-key.json
+opip create -r requirements.txt --publisher "My Team" --sign-key signing-key.json --require-pypi-hash
+opip verify shared-bundle.opip --trust-key signing-key.json --require-signature
+```
+
+### opip Commands
+
+| Command | Description |
+|---------|-------------|
+| `create [-o FILE] [-C DIR] [-r REQ.txt] [packages...]` | Build a bundle |
+| `install SOURCE [--target DIR] [--user\|--system] [--replace]` | Install a bundle |
+| `uninstall BUNDLE [--user]` | Uninstall by registered bundle name |
+| `update BUNDLE [-o FILE]` | Rebuild a registered bundle |
+| `export SOURCE -o FILE` | Copy a verified bundle for sharing |
+| `verify BUNDLE [--trust-key FILE] [--require-signature]` | Verify integrity and authenticity |
+| `keygen -o FILE` | Generate HMAC signing key |
+| `info BUNDLE` | Show bundle metadata |
+| `list [bundles\|installed]` | List registry |
+| `help [COMMAND] [-i]` | Interactive or per-command help |
+| `register-windows` | Register `.opip` association and context menus |
+
+### opip Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `OPIP_DATA_DIR` | State directory (same as `--data-dir`) |
+| `OPIP_JOBS` | Default parallel downloads for `create` |
+| `OPIP_PYTHON` | Default `--python` for `create` |
+| `OPIP_PLATFORM` | Default `--platform` for `create` |
+| `OPIP_PUBLISHER` | Default `--publisher` for `create` |
+| `OPIP_SIGN_KEY` | Default `--sign-key` path for `create` |
+| `OPIP_TRUST_KEY` | Default `--trust-key` path for `verify` |
+| `OPIP_COLOR` | `auto`, `always`, or `never` |
+| `NO_COLOR` | Standard; disables colors when set |
 
 ## Shell Completions
 

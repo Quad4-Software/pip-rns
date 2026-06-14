@@ -13,3 +13,6 @@ env
 __pypackages__
 *.whl
 *.tar.gz
+*.opip
+*.opip.bak
+.opip/
