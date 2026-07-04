@@ -34,3 +34,16 @@ opip = "opip.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pip_rns", "src/opip", "scripts"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.4.1",
+]
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "src"
+explicit_package_bases = true
+warn_return_any = true
+warn_unused_configs = true
+packages = ["pip_rns", "opip", "tests"]

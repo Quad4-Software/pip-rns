@@ -5,7 +5,7 @@ RNS_REMOTE ?= rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
 TAG ?= v1.2.0
 PREFIX ?= /usr/local
 
-.PHONY: all clean build sign upload release release-rns tag retag test install install-user
+.PHONY: all clean build sign upload release release-rns tag retag test typecheck install install-user
 
 all: build
 
@@ -47,6 +47,9 @@ retag:
 
 test:
 	python -m tests.test_runner
+
+typecheck:
+	uv run mypy
 
 install:
 	pip install --break-system-packages .
