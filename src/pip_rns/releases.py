@@ -48,7 +48,7 @@ def release_info(remote: str, tag: str) -> dict:
 
 def _parse_release_view(text: str) -> dict:
     info: dict = {}
-    artifacts: list[dict] = []
+    artifacts: list[dict[str, str]] = []
     in_artifacts = False
     for line in text.splitlines():
         if line.startswith("Release :"):
@@ -92,7 +92,7 @@ def _parse_release_list(text: str) -> list[dict]:
     return releases
 
 
-def _pick_whl(artifacts: list[dict]) -> Optional[str]:
+def _pick_whl(artifacts: list[dict[str, str]]) -> Optional[str]:
     whls = [a["name"] for a in artifacts if a["name"].endswith(".whl") and not a["name"].endswith(".rsg")]
     if not whls:
         return None
@@ -104,7 +104,7 @@ def _pick_whl(artifacts: list[dict]) -> Optional[str]:
     return whls[0]
 
 
-def _pick_opip(artifacts: list[dict], pattern: str | None = None) -> Optional[str]:
+def _pick_opip(artifacts: list[dict[str, str]], pattern: str | None = None) -> Optional[str]:
     names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
     if not names:
         return None

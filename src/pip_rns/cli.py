@@ -154,41 +154,43 @@ def main() -> None:
     # --- alias dispatch ---
     if args.command == "alias":
         alias_init(_config(args))
-        mgr = get_alias_mgr()
+        alias_mgr = get_alias_mgr()
+        assert alias_mgr is not None
         if args.alias_command in ("add", "set"):
-            mgr.set(args.name, args.remote)
+            alias_mgr.set(args.name, args.remote)
             print(f"{green('✔')} alias {bold(args.name)} \u2192 {args.remote}")
         elif args.alias_command == "rm":
-            mgr.remove(args.name)
+            alias_mgr.remove(args.name)
             print(f"{green('✔')} alias {bold(args.name)} removed")
         elif args.alias_command == "ls":
-            for name, remote in mgr.list().items():
+            for name, remote in alias_mgr.list().items():
                 print(f"{name}={remote}")
         return
 
     # --- index dispatch ---
     if args.command == "index":
         index_init()
-        mgr = get_index_mgr()
+        index_mgr = get_index_mgr()
+        assert index_mgr is not None
         if args.index_command == "add":
-            mgr.add(args.url)
+            index_mgr.add(args.url)
             print(f"{green('✔')} index added: {args.url}")
         elif args.index_command == "rm":
-            mgr.remove(args.url)
+            index_mgr.remove(args.url)
             print(f"{green('✔')} index removed: {args.url}")
         elif args.index_command == "ls":
-            for url in mgr.list():
+            for url in index_mgr.list():
                 print(url)
         elif args.index_command == "sync":
             print(f"{header('⤵ Syncing indexes')}")
-            mgr.sync()
-            count = len(mgr.packages())
+            index_mgr.sync()
+            count = len(index_mgr.packages())
             print(f"{green('✔')} {count} package{'s' if count != 1 else ''} synced")
         elif args.index_command in ("list", "packages"):
-            for name, remote in sorted(mgr.packages().items()):
+            for name, remote in sorted(index_mgr.packages().items()):
                 print(f"{name}={remote}")
         elif args.index_command == "search":
-            results = mgr.search(args.query)
+            results = index_mgr.search(args.query)
             if results:
                 for name, remote in sorted(results.items()):
                     print(f"{name}={remote}")

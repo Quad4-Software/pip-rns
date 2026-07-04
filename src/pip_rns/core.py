@@ -6,20 +6,21 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Callable
 
 from .installer import BaseInstaller, get_installer
 from .resolver import Resolver, parse_ref
 from .ui import bold, dim, green, header, success
 
 
-def _cleanup(path: str, editable: bool, use_cache: bool = False) -> None:
+def _cleanup(path: Path, editable: bool, use_cache: bool = False) -> None:
     if not editable and not use_cache:
         shutil.rmtree(path, ignore_errors=True)
 
 
 def _action_install(
     inst: BaseInstaller,
-    package_path: str,
+    package_path: Path,
     editable: bool,
     extra_args: list[str] | None,
     **kwargs: object,
@@ -29,7 +30,7 @@ def _action_install(
 
 def _action_update(
     inst: BaseInstaller,
-    package_path: str,
+    package_path: Path,
     editable: bool,
     extra_args: list[str] | None,
     **kwargs: object,
@@ -39,7 +40,7 @@ def _action_update(
 
 def _action_inject(
     inst: BaseInstaller,
-    package_path: str,
+    package_path: Path,
     editable: bool,
     extra_args: list[str] | None,
     inject_venv: str | None = None,
@@ -51,7 +52,9 @@ def _action_inject(
     inst.inject(inject_venv, package_path, extra_args=extra_args)
 
 
-_ACTIONS: dict[str, callable] = {
+_ActionFn = Callable[..., None]
+
+_ACTIONS: dict[str, _ActionFn] = {
     "install": _action_install,
     "update": _action_update,
     "inject": _action_inject,

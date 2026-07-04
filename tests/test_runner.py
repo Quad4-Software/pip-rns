@@ -13,6 +13,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from typing import Callable
 
 ROOT = Path(__file__).parent.parent
 SRC = ROOT / "src"
@@ -24,8 +25,8 @@ from tests.support import SkipTest
 TESTS_DIR = Path(__file__).parent
 
 
-def _discover() -> list[tuple[str, str, callable]]:
-    tests: list[tuple[str, str, callable]] = []
+def _discover() -> list[tuple[str, str, Callable[[], None]]]:
+    tests: list[tuple[str, str, Callable[[], None]]] = []
     for f in sorted(TESTS_DIR.glob("test_*.py")):
         mod = importlib.import_module(f"tests.{f.stem}")
         for name in sorted(dir(mod)):
@@ -97,7 +98,7 @@ def main() -> int:
         if skipped:
             summary += f"  {yellow}{skipped} skipped{reset}"
         if passed + skipped < total:
-            summary += f"  {dim}{total} total{reset}"
+            summary += f"  {D}{total} total{reset}"
     print(summary)
 
     if failed and not verbose:
