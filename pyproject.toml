@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pip-rns"
-version = "1.3.0"
+dynamic = ["version"]
 description = "Install Python packages from Reticulum remotes and offline wheel bundles"
 requires-python = ">=3.7"
 license = {text = "BSD-2-Clause"}
@@ -31,6 +31,9 @@ classifiers = [
 pip-rns = "pip_rns.cli:main"
 pipx-rns = "pip_rns.cli_pipx:main"
 opip = "opip.cli:main"
+
+[tool.hatch.version]
+path = "src/pip_rns/version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pip_rns", "src/opip", "scripts"]

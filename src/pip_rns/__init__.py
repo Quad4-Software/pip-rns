@@ -1,1 +1,5 @@
-__version__ = "1.2.0"
+"""pip-rns: install Python packages from Reticulum remotes."""
+
+from .version import __version__
+
+__all__ = ["__version__"]

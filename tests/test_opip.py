@@ -168,9 +168,13 @@ def test_resolve_remote_source_alias():
 
 
 def test_user_agent_version():
-    assert "1.2.0" in opip_fetch.USER_AGENT
+    from pip_rns.version import __version__
+    import opip
+
+    assert __version__ in opip_fetch.USER_AGENT
     assert "Quad4-Software/pip-rns" in opip_fetch.USER_AGENT
     assert opip_fetch.USER_AGENT == opip_resolver.USER_AGENT
+    assert opip.__version__ == __version__
 
 
 def test_rns_fetch_parse_ref():

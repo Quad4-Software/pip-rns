@@ -14,6 +14,7 @@ from .doctor import print_doctor, run_doctor
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
 from .ui import header, init as ui_init
+from .version import __version__
 
 
 def main() -> None:
@@ -28,6 +29,11 @@ def main() -> None:
             "  pipx-rns update 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="pipx-rns {0}".format(__version__),
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"

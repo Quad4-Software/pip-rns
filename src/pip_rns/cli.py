@@ -20,6 +20,7 @@ from .installer import InstallerError, format_installer_error
 from .releases import list_releases, release_info
 from .ui import bold, dim, green, header, init as ui_init
 from .venv_prefs import VenvPrefs
+from .version import __version__
 
 
 def _add_common_install_args(p: argparse.ArgumentParser) -> None:
@@ -101,6 +102,11 @@ def main() -> None:
             "  pip-rns completion install"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="pip-rns {0}".format(__version__),
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"

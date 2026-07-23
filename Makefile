@@ -2,7 +2,8 @@ EDITOR ?= nano
 RNID_ID ?= e46112d44649266d71fe2193e00a4710
 RNID_KEY ?= $(HOME)/.rngit/client_identity
 RNS_REMOTE ?= rns://06a54b505bb67b25ef3f8097e8001edc/public/pip-rns
-TAG ?= v1.2.0
+VERSION := $(shell sed -n 's/^__version__ = "\(.*\)"/\1/p' src/pip_rns/version.py)
+TAG ?= v$(VERSION)
 PREFIX ?= /usr/local
 
 .PHONY: all clean build sign upload release release-rns tag retag test typecheck install install-user
