@@ -28,7 +28,9 @@ def show_main_help():
         terminal.bullet(name, desc)
     terminal.write_out("")
     terminal.info("Run opip help <command> or opip <command> --help for details.")
-    terminal.info("Global flags: --data-dir, --no-color, --version")
+    terminal.info(
+        "Global flags: --data-dir, --no-color, --no-interactive/-y, --version"
+    )
 
 
 def show_command_help(parser, command_name):
@@ -70,10 +72,12 @@ def _colorize_help_text(text):
     return "\n".join(lines)
 
 
-def interactive_help(parser):
+def interactive_help(parser, no_interactive=False):
     """TTY menu to browse commands."""
     show_main_help()
-    if not sys.stdin.isatty():
+    from opip.interactive import is_noninteractive
+
+    if is_noninteractive(no_interactive):
         return 0
 
     names = [name for name, _desc in COMMAND_SUMMARY if name != "help"]

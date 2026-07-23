@@ -111,12 +111,18 @@ class RnsResolver(GitResolver):
     scheme = "rns"
 
     def clone(self, url: str, dest: Path, ref: str | None = None) -> None:
+        from .progress import RnsWait
+
         check_rns_available()
-        super().clone(url, dest, ref=ref)
+        with RnsWait("Waiting on Reticulum (clone)"):
+            super().clone(url, dest, ref=ref)
 
     def update(self, url: str, dest: Path, ref: str | None = None) -> None:
+        from .progress import RnsWait
+
         check_rns_available()
-        super().update(url, dest, ref=ref)
+        with RnsWait("Waiting on Reticulum (update)"):
+            super().update(url, dest, ref=ref)
 
 
 register_scheme("rns", RnsResolver)

@@ -54,9 +54,7 @@ def uninstall_bundle(bundle_name, store=None, user=False, target=None):
     store = store or Store()
     record = store.get_install(bundle_name)
     if record is None:
-        raise UninstallError(
-            "No install record for bundle: {0}".format(bundle_name)
-        )
+        raise UninstallError("No install record for bundle: {0}".format(bundle_name))
 
     packages = record.get("packages", [])
     install_target = target or record.get("target")

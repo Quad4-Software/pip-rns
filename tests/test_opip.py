@@ -7,7 +7,13 @@ import tempfile
 import zipfile
 
 from opip.bundle import verify_bundle, write_bundle_zip
-from opip.integrity import build_integrity, collect_files, dump_integrity, file_hash, verify_integrity
+from opip.integrity import (
+    build_integrity,
+    collect_files,
+    dump_integrity,
+    file_hash,
+    verify_integrity,
+)
 from opip.lockfile import dump_json, make_lock, make_sbom
 from opip.manifest import dump_manifest, make_manifest
 from opip.provenance import build_wheel_record
@@ -21,11 +27,9 @@ from pip_rns.aliases import AliasManager
 
 
 def _make_minimal_wheel(path: str, name: str = "pkg", version: str = "1.0.0") -> None:
-    metadata = (
-        "Metadata-Version: 2.1\n"
-        "Name: {0}\n"
-        "Version: {1}\n"
-    ).format(name, version)
+    metadata = ("Metadata-Version: 2.1\nName: {0}\nVersion: {1}\n").format(
+        name, version
+    )
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("{0}/__init__.py".format(name), "")
         zf.writestr(
@@ -172,9 +176,7 @@ def test_user_agent_version():
 def test_rns_fetch_parse_ref():
     from opip.rns_fetch import _parse_ref
 
-    remote, ref, artifact = _parse_ref(
-        "rns://id/group/repo@v1.0.0:bundle.opip"
-    )
+    remote, ref, artifact = _parse_ref("rns://id/group/repo@v1.0.0:bundle.opip")
     assert remote == "rns://id/group/repo"
     assert ref == "v1.0.0"
     assert artifact == "bundle.opip"

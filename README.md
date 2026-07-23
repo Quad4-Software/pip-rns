@@ -20,7 +20,7 @@ Both ship in this package. `opip` uses only the Python standard library (no extr
 - **Multi-backend** - install with pip, pipx, uv, or poetry
 - **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
 - **Releases** - install pre-built `.whl` files from rngit releases (`--from-release`)
-- **Signature verification** - require rngit release signatures (`--verify <identity>`)
+- **Signature verification** - release `.rsm`/`.rsg` verified by default via rngit (`--verify <identity>` pins the signer)
 - **Offline cache** - `--use-cache` for repeat or offline installs
 - **Editable mode** - `--editable` for persistent checkouts
 - **pipx inject** - install into existing pipx venvs
@@ -29,7 +29,6 @@ Both ship in this package. `opip` uses only the Python standard library (no extr
 
 ### Requirements
 
-- rns `1.2.0` or higher
 - python 3.7 or higher
 
 ### Install
@@ -77,36 +76,45 @@ pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy@v1.6.3
 ```
 
-#### Adding Quad4 Index
+#### Adding an index (example)
 
 ```bash
-pip-rns index add rns://06a54b505bb67b25ef3f8097e8001edc/public/index
+pip-rns index add rns://identity/group/index
 pip-rns index list
 ```
+
+You choose which indexes to trust. None are added automatically.
 
 ### Commands
 
 #### `pip-rns` (generic)
 
 ```
-pip-rns install <identity/group/repo> [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--from-release] [--verify IDENTITY] [-- <tool flags>]
+pip-rns install <identity/group/repo> [--from-release|--from-source] [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--remember-venv] [-- <tool flags>]
 pip-rns update <remote> [options]
 pip-rns list [--pipx] [--uv] [--poetry]
 pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
 pip-rns alias add|set|rm|ls
 pip-rns index add|rm|ls|sync|list|search
 pip-rns release list|view
+pip-rns venv list|set|forget
 pip-rns bundle install|verify
+pip-rns doctor [--online]
+pip-rns completion install [--shell bash|zsh|fish]
 ```
+
+Install prefers a release `.whl` when one exists (use `--from-source` to force a clone, or `--from-release` to require a wheel). Indexes are opt-in: add only remotes you choose.
 
 #### `pipx-rns` (pipx-specific)
 
 ```
-pipx-rns install <remote> [--ref TAG] [--editable] [--from-release] [--verify IDENTITY]
+pipx-rns install <remote> [--ref TAG] [--editable] [--from-release|--from-source] [--verify IDENTITY]
 pipx-rns inject <venv> <remote>
 pipx-rns update <remote>
 pipx-rns list
 pipx-rns uninstall <package>
+pipx-rns doctor [--online]
+pipx-rns completion install
 ```
 
 #### Releases
@@ -117,7 +125,7 @@ Install pre-built `.whl` from an rngit release (faster, no build step):
 pip-rns install --from-release rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0
 ```
 
-Require the release manifest signer when installing:
+Require a specific release signer when installing (optional pin; `.rsm`/`.rsg` are still verified by default):
 
 ```bash
 pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d44649266d71fe2193e00a4710
@@ -197,8 +205,15 @@ pipx-rns install identity/group/repo -- --force
 | `PIP_RNS_POETRY` | `poetry` | poetry command |
 | `PIP_RNS_CONFIG` | - | config directory for aliases |
 | `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
-| `PIP_RNS_COLOR` | `1` | disable colors (`0`) |
+| `PIP_RNS_COLOR` | `auto` | `auto`, `always`, `never` (or `0`/`1`) |
+| `PIP_RNS_NO_INTERACTIVE` | - | disable prompts when set |
 | `NO_COLOR` | - | disable colors (standard) |
+| `FORCE_COLOR` | - | force colors (standard) |
+| `CI` | - | disables prompts and color unless `FORCE_COLOR` |
+
+Color stays off on classic Windows `cmd.exe` / PowerShell unless Windows Terminal (`WT_SESSION`), ConEmu/ANSICON, or `FORCE_COLOR` is set. Global flag: `--no-interactive`. Long RNS waits show a TTY spinner (`Waiting on Reticulum…`).
+
+Remember a venv: `pip-rns install … --venv /path --remember-venv` or `pip-rns venv set default /path`.
 
 ## opip (offline bundles)
 
@@ -249,11 +264,12 @@ opip create -r requirements.txt --python 3.12 --platform win_amd64
 opip create -r requirements.txt --python 3.12 --platform universal
 ```
 
-Signed bundles (Reticulum RSG):
+Signed bundles (Reticulum RSG). A present `.rsg` is verified automatically via the embedded pubkey. Pass `--signer` to pin a required identity:
 
 ```bash
 opip keygen -o publisher.rns
 opip create -r requirements.txt --publisher "My Team" --identity publisher.rns --require-pypi-hash
+opip verify shared-bundle.opip
 opip verify shared-bundle.opip --signer e46112d44649266d71fe2193e00a4710 --require-signature
 ```
 
@@ -268,7 +284,8 @@ rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 | Command | Description |
 |---------|-------------|
 | `create [-o FILE] [-C DIR] [-r REQ.txt] [packages...]` | Build a bundle |
-| `install SOURCE [--signer IDENTITY] [--require-signature]` | Install a bundle |
+| `install SOURCE [--target DIR] [--remember-target] [--signer IDENTITY]` | Install a bundle |
+| `dest list\|set\|forget` | Remembered install destinations per bundle |
 | `uninstall BUNDLE [--user]` | Uninstall by registered bundle name |
 | `update BUNDLE [-o FILE]` | Rebuild a registered bundle |
 | `export SOURCE -o FILE` | Copy a verified bundle for sharing |
@@ -276,8 +293,14 @@ rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 | `keygen -o FILE` | Generate Reticulum identity for signing |
 | `info BUNDLE` | Show bundle metadata |
 | `list [bundles\|installed]` | List registry |
+| `doctor` | Check environment health |
+| `completion install` | Install shell completions |
 | `help [COMMAND] [-i]` | Interactive or per-command help |
 | `register-windows` | Register `.opip` association and context menus |
+
+Global flags: `--no-color`, `--no-interactive` / `-y`, `--data-dir`, `--version`.
+
+Remember a per-bundle install destination after `opip install --target DIR` (prompted when interactive), or use `--remember-target` / `opip dest set NAME PATH`. Later installs reuse that path when `--target` is omitted.
 
 ### opip Environment
 
@@ -291,10 +314,24 @@ rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 | `OPIP_IDENTITY` | Default `--identity` path for `create` |
 | `OPIP_SIGNER` | Default `--signer` for `verify` and `install` |
 | `OPIP_COLOR` | `auto`, `always`, or `never` |
+| `OPIP_NO_COLOR` | Disable color when set |
+| `OPIP_FORCE_COLOR` | Force color when set |
+| `OPIP_NO_INTERACTIVE` | Disable prompts when set |
 | `NO_COLOR` | Standard; disables colors when set |
+| `FORCE_COLOR` | Standard; enables colors when set |
+| `CI` | Disables prompts and color unless `FORCE_COLOR` |
 | `PIP_RNS_CONFIG` | pip-rns config directory; aliases are resolved for `rns://` installs |
 
 ## Shell Completions
+
+```bash
+pip-rns completion install
+opip completion install
+# or pick a shell explicitly:
+pip-rns completion install --shell zsh
+```
+
+Manual copy (same destinations):
 
 ```bash
 # Bash

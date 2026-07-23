@@ -185,6 +185,7 @@ def pick_best_wheel(candidates, py_version, platform_tag):
     ]
     if not compatible:
         return None
+
     # Prefer exact platform match, then none-any, then first
     def sort_key(w):
         plat = w.get("plat", "any")

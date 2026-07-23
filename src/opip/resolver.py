@@ -8,7 +8,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from opip import pypi_cache
-from opip.wheel import parse_wheel_filename, pick_best_wheel, wheel_matches_platform
+from opip.wheel import parse_wheel_filename, pick_best_wheel
 
 
 PYPI_URL = "https://pypi.org/pypi/{package}/json"
@@ -104,6 +104,7 @@ def version_matches(version, spec):
 
 def _cmp_version(a, b):
     """Compare two version strings. Returns -1, 0, or 1."""
+
     def parts(v):
         return [int(x) if x.isdigit() else x for x in re.split(r"[.\-]", v)]
 
@@ -323,9 +324,7 @@ def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
     merged = {}
     if progress:
         sys.stderr.write(
-            "Universal bundle across {0} platforms\n".format(
-                len(UNIVERSAL_PLATFORMS)
-            )
+            "Universal bundle across {0} platforms\n".format(len(UNIVERSAL_PLATFORMS))
         )
         sys.stderr.flush()
 
@@ -345,9 +344,7 @@ def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
             merged[spec["filename"]] = spec
 
     if progress:
-        sys.stderr.write(
-            "Universal bundle: {0} unique wheels\n".format(len(merged))
-        )
+        sys.stderr.write("Universal bundle: {0} unique wheels\n".format(len(merged)))
         sys.stderr.flush()
     return list(merged.values())
 
@@ -393,7 +390,10 @@ def _resolve_single_platform(
         workers = max(1, min(jobs, len(pending)))
         if workers == 1:
             results = [
-                (item, _resolve_one(item[0], item[1], item[2], py_version, platform_tag))
+                (
+                    item,
+                    _resolve_one(item[0], item[1], item[2], py_version, platform_tag),
+                )
                 for item in pending
             ]
         else:

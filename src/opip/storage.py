@@ -1,4 +1,4 @@
-"""Local storage for bundle registry and install records."""
+"""Local storage for bundle registry, install records, and preferred destinations."""
 
 import json
 import os
@@ -27,15 +27,17 @@ def default_cache_dir():
 
 
 class Store:
-    """Persistent JSON-backed registry for bundles and installs."""
+    """Persistent JSON-backed registry for bundles, installs, and dest prefs."""
 
     def __init__(self, data_dir=None):
         self.data_dir = data_dir or default_data_dir()
         self.bundles_path = os.path.join(self.data_dir, "bundles.json")
         self.installs_path = os.path.join(self.data_dir, "installs.json")
+        self.prefs_path = os.path.join(self.data_dir, "prefs.json")
         os.makedirs(self.data_dir, exist_ok=True)
         self._bundles = self._load(self.bundles_path, {"bundles": []})
         self._installs = self._load(self.installs_path, {"installs": []})
+        self._prefs = self._load(self.prefs_path, {"destinations": {}})
 
     def _load(self, path, default):
         if os.path.isfile(path):
@@ -51,6 +53,7 @@ class Store:
     def save(self):
         self._save(self.bundles_path, self._bundles)
         self._save(self.installs_path, self._installs)
+        self._save(self.prefs_path, self._prefs)
 
     def register_bundle(self, name, path, manifest):
         entry = {
@@ -110,3 +113,29 @@ class Store:
             i for i in self._installs["installs"] if i["bundle"] != bundle_name
         ]
         self.save()
+
+    def get_preferred_target(self, name):
+        dests = self._prefs.get("destinations") or {}
+        path = dests.get(name)
+        return path if path else None
+
+    def set_preferred_target(self, name, path):
+        if "destinations" not in self._prefs or not isinstance(
+            self._prefs["destinations"], dict
+        ):
+            self._prefs["destinations"] = {}
+        self._prefs["destinations"][name] = os.path.abspath(path)
+        self.save()
+
+    def forget_preferred_target(self, name):
+        dests = self._prefs.get("destinations") or {}
+        if name in dests:
+            del dests[name]
+            self._prefs["destinations"] = dests
+            self.save()
+            return True
+        return False
+
+    def list_preferred_targets(self):
+        dests = self._prefs.get("destinations") or {}
+        return sorted(dests.items())

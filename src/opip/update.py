@@ -3,7 +3,7 @@
 import os
 import shutil
 
-from opip.bundle import BundleError, create_bundle, verify_bundle
+from opip.bundle import create_bundle, verify_bundle
 from opip.install import install_bundle
 from opip.storage import Store
 from opip.uninstall import uninstall_bundle
@@ -65,9 +65,7 @@ def update_bundle(
 
         if reinstall:
             try:
-                uninstall_bundle(
-                    bundle_name, store=store, user=user, target=target
-                )
+                uninstall_bundle(bundle_name, store=store, user=user, target=target)
             except Exception:
                 pass
             install_bundle(output_path, target=target, user=user, store=store)

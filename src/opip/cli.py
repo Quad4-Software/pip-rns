@@ -10,6 +10,7 @@ from opip.config import apply_defaults
 from opip.export import ExportError, export_bundle
 from opip.help_pages import interactive_help, show_command_help, show_main_help
 from opip.install import InstallError, install_from_source, uninstall_from_file
+from opip.interactive import is_noninteractive
 from opip.open_handler import OpenError, open_bundle
 from opip.listing import (
     format_bundle_table,
@@ -51,6 +52,17 @@ def build_parser():
         "--no-color",
         action="store_true",
         help="Disable colored output (env: OPIP_NO_COLOR, NO_COLOR).",
+    )
+    parser.add_argument(
+        "--no-interactive",
+        action="store_true",
+        help="Never prompt (also: -y/--yes, CI, OPIP_NO_INTERACTIVE, non-TTY).",
+    )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Assume yes / non-interactive (alias for --no-interactive).",
     )
 
     sub = parser.add_subparsers(dest="command", help="Available commands")
@@ -148,11 +160,6 @@ def build_parser():
         help="Do not reuse the local wheel cache.",
     )
     p_create.add_argument(
-        "--no-interactive",
-        action="store_true",
-        help="Do not prompt for bundle name; fail if name is unknown.",
-    )
-    p_create.add_argument(
         "--require-pypi-hash",
         action="store_true",
         help="Require PyPI sha256 digests for every downloaded wheel.",
@@ -210,13 +217,38 @@ def build_parser():
         "--signer",
         metavar="IDENTITY",
         default=None,
-        help="Require bundle signed by IDENTITY (env: OPIP_SIGNER).",
+        help=(
+            "Pin required signer identity (env: OPIP_SIGNER). "
+            "Without this, a present .rsg is still verified via embedded pubkey."
+        ),
     )
     p_install.add_argument(
         "--require-signature",
         action="store_true",
         help="Fail if bundle is not signed.",
     )
+    p_install.add_argument(
+        "--remember-target",
+        action="store_true",
+        help="Remember --target for this bundle name without prompting.",
+    )
+    p_install.add_argument(
+        "--forget-target",
+        action="store_true",
+        help="Forget any remembered install destination for this bundle.",
+    )
+
+    p_dest = sub.add_parser(
+        "dest",
+        help="Manage remembered install destinations per bundle name.",
+    )
+    dest_sub = p_dest.add_subparsers(dest="dest_command", help="dest actions")
+    dest_sub.add_parser("list", help="List remembered destinations.")
+    p_dest_set = dest_sub.add_parser("set", help="Set remembered destination.")
+    p_dest_set.add_argument("name", help="Bundle name.")
+    p_dest_set.add_argument("path", help="Install target directory.")
+    p_dest_forget = dest_sub.add_parser("forget", help="Forget remembered destination.")
+    p_dest_forget.add_argument("name", help="Bundle name.")
 
     p_uninstall = sub.add_parser(
         "uninstall",
@@ -285,7 +317,10 @@ def build_parser():
         "--signer",
         metavar="IDENTITY",
         default=None,
-        help="Required signer identity hash or file (env: OPIP_SIGNER).",
+        help=(
+            "Pin required signer identity (env: OPIP_SIGNER). "
+            "Without this, a present .rsg is still verified via embedded pubkey."
+        ),
     )
     p_verify.add_argument(
         "--require-signature",
@@ -327,6 +362,31 @@ def build_parser():
         help="What to list (default: bundles).",
     )
 
+    sub.add_parser(
+        "doctor",
+        help="Check opip environment health.",
+    )
+
+    p_comp = sub.add_parser(
+        "completion",
+        help="Install shell completions.",
+    )
+    cp = p_comp.add_subparsers(dest="completion_command", help="completion actions")
+    p_comp_install = cp.add_parser(
+        "install", help="Install completions for this shell."
+    )
+    p_comp_install.add_argument(
+        "--shell",
+        choices=("bash", "zsh", "fish"),
+        default=None,
+        help="Shell (default: detect from $SHELL).",
+    )
+    p_comp_install.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show copy actions without writing files.",
+    )
+
     return parser
 
 
@@ -334,22 +394,30 @@ def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     parser = build_parser()
 
-    if not argv:
-        terminal.configure()
-        show_main_help()
-        if sys.stdin.isatty():
-            return interactive_help(parser)
-        return 0
-
     no_color = "--no-color" in argv
     terminal.configure(no_color=no_color)
+
+    if not argv:
+        show_main_help()
+        if is_noninteractive():
+            return 2
+        return interactive_help(parser)
+
     args = parser.parse_args(argv)
     args = apply_defaults(args)
+    args.no_interactive = bool(
+        getattr(args, "no_interactive", False) or getattr(args, "yes", False)
+    )
 
     if args.command == "help":
         if args.topic:
             return show_command_help(parser, args.topic)
-        if args.interactive or sys.stdin.isatty():
+        if args.interactive and not is_noninteractive(args.no_interactive):
+            return interactive_help(parser)
+        if is_noninteractive(args.no_interactive):
+            show_main_help()
+            return 0
+        if sys.stdin.isatty():
             return interactive_help(parser)
         show_main_help()
         return 0
@@ -362,7 +430,17 @@ def main(argv=None):
 
     try:
         return _dispatch(args, store)
-    except (BundleError, InstallError, UninstallError, UpdateError, ProjectError, ExportError, OpenError, IdentityError, SigningError) as exc:
+    except (
+        BundleError,
+        InstallError,
+        UninstallError,
+        UpdateError,
+        ProjectError,
+        ExportError,
+        OpenError,
+        IdentityError,
+        SigningError,
+    ) as exc:
         terminal.error(str(exc))
         return 1
     except KeyboardInterrupt:
@@ -384,9 +462,7 @@ def _resolve_create_plan(args):
             project_info, project_dir, include_dev=args.with_dev
         )
         if project_info.source:
-            terminal.info(
-                "Using {0} from {1}".format(project_info.source, project_dir)
-            )
+            terminal.info("Using {0} from {1}".format(project_info.source, project_dir))
 
     if not reqs:
         raise BundleError(
@@ -420,13 +496,9 @@ def _resolve_include_project(args, project_info, project_dir):
 
 
 def _prompt_bundle_name(no_interactive):
-    if no_interactive:
+    if is_noninteractive(no_interactive):
         raise BundleError(
             "Could not determine bundle name. Pass --name or use a pyproject.toml."
-        )
-    if not sys.stdin.isatty():
-        raise BundleError(
-            "Could not determine bundle name. Pass --name NAME."
         )
     sys.stdout.write(terminal.bold("Bundle name: "))
     sys.stdout.flush()
@@ -487,13 +559,29 @@ def _dispatch(args, store):
             verify=not args.no_verify,
             signer=args.signer,
             require_signature=args.require_signature,
+            target_explicit=args.target is not None,
+            remember_target=args.remember_target,
+            forget_target=args.forget_target,
+            no_interactive=args.no_interactive,
         )
-        terminal.success(
-            "Installed {0} packages from bundle.".format(len(packages))
-        )
+        terminal.success("Installed {0} packages from bundle.".format(len(packages)))
         for pkg in packages:
             terminal.write_out("  {0}".format(pkg))
+        dest = args.target or ("user site" if args.user else "system/active")
+        if args.no_verify:
+            signer = "skipped (--no-verify)"
+        elif args.signer:
+            signer = "verified {0}".format(args.signer)
+        else:
+            signer = "auto (.rsg when present)"
+        terminal.write_out(terminal.dim("Resolved: {0}".format(args.source)))
+        terminal.write_out(terminal.dim("Mode: opip bundle"))
+        terminal.write_out(terminal.dim("Dest: {0}".format(dest)))
+        terminal.write_out(terminal.dim("Signer: {0}".format(signer)))
         return 0
+
+    if args.command == "dest":
+        return _dispatch_dest(args, store)
 
     if args.command == "uninstall":
         packages = uninstall_bundle(
@@ -503,9 +591,7 @@ def _dispatch(args, store):
             target=args.target,
         )
         terminal.success(
-            "Uninstalled {0} packages from {1}.".format(
-                len(packages), args.bundle
-            )
+            "Uninstalled {0} packages from {1}.".format(len(packages), args.bundle)
         )
         return 0
 
@@ -525,11 +611,11 @@ def _dispatch(args, store):
             store=store,
             user=args.user,
             target=args.target,
+            no_interactive=args.no_interactive,
+            target_explicit=args.target is not None,
         )
         if packages:
-            terminal.success(
-                "Done. {0} packages affected.".format(len(packages))
-            )
+            terminal.success("Done. {0} packages affected.".format(len(packages)))
         return 0
 
     if args.command == "export":
@@ -623,6 +709,57 @@ def _dispatch(args, store):
             terminal.write_out(format_bundle_table(list_bundles(store)))
         return 0
 
+    if args.command == "doctor":
+        from opip.doctor import print_doctor, run_doctor
+
+        terminal.heading("opip doctor")
+        return print_doctor(run_doctor(data_dir=args.data_dir))
+
+    if args.command == "completion":
+        from opip.completion_cmd import install_completions
+
+        cmd = getattr(args, "completion_command", None)
+        if cmd != "install":
+            terminal.error("Usage: opip completion install [--shell bash|zsh|fish]")
+            return 1
+        try:
+            lines = install_completions(
+                shell=getattr(args, "shell", None),
+                dry_run=getattr(args, "dry_run", False),
+            )
+        except (ValueError, FileNotFoundError) as exc:
+            terminal.error(str(exc))
+            return 1
+        for line in lines:
+            terminal.write_out(line)
+        return 0
+
+    return 1
+
+
+def _dispatch_dest(args, store):
+    cmd = getattr(args, "dest_command", None)
+    if cmd == "list" or cmd is None:
+        rows = store.list_preferred_targets()
+        if not rows:
+            terminal.info("No remembered destinations.")
+            return 0
+        for name, path in rows:
+            terminal.write_out("{0}\t{1}".format(name, path))
+        return 0
+    if cmd == "set":
+        store.set_preferred_target(args.name, args.path)
+        terminal.success(
+            "Remembered {0} -> {1}".format(args.name, os.path.abspath(args.path))
+        )
+        return 0
+    if cmd == "forget":
+        if store.forget_preferred_target(args.name):
+            terminal.success("Forgot destination for {0}.".format(args.name))
+        else:
+            terminal.warn("No remembered destination for {0}.".format(args.name))
+        return 0
+    terminal.error("Usage: opip dest list|set|forget")
     return 1
 
 

@@ -35,8 +35,12 @@ opip = "opip.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/pip_rns", "src/opip", "scripts"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"completions" = "completions"
+
 [dependency-groups]
 dev = [
+    "hypothesis>=6.79.4",
     "mypy>=1.4.1",
 ]
 

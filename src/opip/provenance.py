@@ -67,22 +67,16 @@ def verify_wheel_provenance(wheel_path, record, require_pypi_hash=False):
     actual = file_hash(wheel_path)
     expected = record.get("sha256")
     if actual != expected:
-        errors.append(
-            "Bundled hash mismatch for {0}".format(record.get("filename"))
-        )
+        errors.append("Bundled hash mismatch for {0}".format(record.get("filename")))
 
     pypi_sha = record.get("pypi_sha256")
     source = record.get("source", "pypi")
 
     if source == "pypi" or source == "cache":
         if require_pypi_hash and not pypi_sha:
-            errors.append(
-                "Missing PyPI digest for {0}".format(record.get("package"))
-            )
+            errors.append("Missing PyPI digest for {0}".format(record.get("package")))
         if pypi_sha and actual != pypi_sha:
-            errors.append(
-                "PyPI digest mismatch for {0}".format(record.get("package"))
-            )
+            errors.append("PyPI digest mismatch for {0}".format(record.get("package")))
 
     if source == "local":
         if record.get("provenance_verified"):

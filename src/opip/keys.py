@@ -14,9 +14,7 @@ class IdentityError(Exception):
 
 def _check_rnid():
     if shutil.which("rnid") is None:
-        raise IdentityError(
-            "rnid not found on PATH. Install via: pip install rns"
-        )
+        raise IdentityError("rnid not found on PATH. Install via: pip install rns")
 
 
 def generate_identity(path):

@@ -58,11 +58,47 @@ def load_integrity(data):
     return data
 
 
-def verify_integrity(base_dir, integrity):
-    """Verify all files listed in integrity manifest exist and match."""
+def _resolve_integrity_path(base_dir, rel_path):
+    """Resolve rel_path under base_dir or return an error string."""
+    if not rel_path or not isinstance(rel_path, str):
+        return None, "Invalid integrity path: {0}".format(rel_path)
+    normalized = rel_path.replace("\\", "/")
+    if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
+        return None, "Absolute integrity path rejected: {0}".format(rel_path)
+    parts = [p for p in normalized.split("/") if p not in ("", ".")]
+    if any(p == ".." for p in parts):
+        return None, "Path traversal in integrity entry: {0}".format(rel_path)
+    if not parts:
+        return None, "Empty integrity path: {0}".format(rel_path)
+    base = os.path.abspath(base_dir)
+    full = os.path.abspath(os.path.join(base, *parts))
+    try:
+        common = os.path.commonpath([base, full])
+    except ValueError:
+        return None, "Integrity path escapes base: {0}".format(rel_path)
+    if common != base:
+        return None, "Integrity path escapes base: {0}".format(rel_path)
+    return full, None
+
+
+def verify_integrity(base_dir, integrity, all_files=None):
+    """
+    Verify files listed in integrity exist and match.
+
+    If all_files is provided (absolute paths under base_dir), also fail when
+    disk contains files not listed in the integrity manifest.
+    """
     errors = []
+    listed = set()
     for rel_path, expected in integrity.get("files", {}).items():
-        full = os.path.join(base_dir, rel_path.replace("/", os.sep))
+        full, path_err = _resolve_integrity_path(base_dir, rel_path)
+        if path_err:
+            errors.append(path_err)
+            continue
+        listed.add(os.path.relpath(full, base_dir).replace("\\", "/"))
+        if not expected:
+            errors.append("Empty hash for {0}".format(rel_path))
+            continue
         if not os.path.isfile(full):
             errors.append("Missing file: {0}".format(rel_path))
             continue
@@ -73,6 +109,13 @@ def verify_integrity(base_dir, integrity):
                     rel_path, expected[:16], actual[:16]
                 )
             )
+
+    if all_files is not None:
+        for full in all_files:
+            rel = os.path.relpath(full, base_dir).replace("\\", "/")
+            if rel not in listed:
+                errors.append("Unlisted file present: {0}".format(rel))
+
     return errors
 
 

@@ -9,6 +9,7 @@ from pip_rns.releases import (
     _parse_release_view,
     _parse_release_list,
     _rsg_name_for_artifact,
+    release_has_signatures,
 )
 from tests.support import SkipTest
 
@@ -116,6 +117,7 @@ def test_parse_release_view():
     assert len(info["artifacts"]) == 3
     assert info["artifacts"][0]["name"] == "pkg-1.0.0-py3-none-any.whl"
     assert info["artifacts"][2]["name"] == "pkg-1.0.0-py3-none-any.whl.rsg"
+    assert release_has_signatures(info["artifacts"]) is True
 
 
 SAMPLE_RELEASE_LIST = """Tag          Status     Created              Objs  Notes
@@ -133,13 +135,10 @@ def test_parse_release_list():
     assert releases[1]["tag"] == "v0.1.0"
 
 
-# -- optional live test (requires network)
-# python -m tests.test_runner -f lives
-
-
 def test_live_release_list():
     """Optional: list releases for rns-page-node (requires RNS + rngit)."""
     import os
+
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
@@ -147,7 +146,9 @@ def test_live_release_list():
     except ImportError:
         raise SkipTest("pip-rns not installed in current Python")
 
-    releases = list_releases("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node")
+    releases = list_releases(
+        "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node"
+    )
     assert len(releases) >= 1
     assert any(r["tag"] == "v1.6.0" for r in releases)
 
@@ -155,6 +156,7 @@ def test_live_release_list():
 def test_live_release_view():
     """Optional: view v1.6.0 release (requires RNS + rngit)."""
     import os
+
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
@@ -162,15 +164,23 @@ def test_live_release_view():
     except ImportError:
         raise SkipTest("pip-rns not installed in current Python")
 
-    info = release_info("rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node", "v1.6.0")
+    info = release_info(
+        "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node", "v1.6.0"
+    )
     assert info["status"] == "published"
-    whls = [a for a in info["artifacts"] if a["name"].endswith(".whl") and not a["name"].endswith(".rsg")]
+    whls = [
+        a
+        for a in info["artifacts"]
+        if a["name"].endswith(".whl") and not a["name"].endswith(".rsg")
+    ]
     assert len(whls) >= 1
+    assert release_has_signatures(info["artifacts"]) is True
 
 
 def test_live_download_and_verify():
-    """Optional: fetch and verify .whl from v1.6.0 (requires RNS + rngit)."""
+    """Optional: fetch and pin-verify .whl from v1.6.0 (requires RNS + rngit)."""
     import os
+
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
@@ -186,7 +196,9 @@ def test_live_download_and_verify():
     whl = _pick_whl(info.get("artifacts", []))
     assert whl is not None
 
-    whl_path = fetch_release_artifact(remote, tag, whl, verify_identity=verify_id)
-    assert os.path.isfile(whl_path)
+    fetched = fetch_release_artifact(remote, tag, whl, verify_identity=verify_id)
+    assert os.path.isfile(fetched.path)
+    assert fetched.verified is True
+    assert fetched.signer == verify_id
 
-    os.unlink(whl_path)
+    os.unlink(fetched.path)

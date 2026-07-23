@@ -6,6 +6,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 _REGISTERED_INSTALLERS: dict[str, type[BaseInstaller]] = {}
@@ -14,6 +15,23 @@ _ENV_PIP = shlex.split(os.environ.get("PIP_RNS_PIP", "pip"))
 _ENV_PIPX = shlex.split(os.environ.get("PIP_RNS_PIPX", "pipx"))
 _ENV_UV = shlex.split(os.environ.get("PIP_RNS_UV", "uv"))
 _ENV_POETRY = shlex.split(os.environ.get("PIP_RNS_POETRY", "poetry"))
+
+
+class InstallerError(RuntimeError):
+    """Friendly installer failure with optional recovery kind and hints."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str | None = None,
+        hints: list[str] | None = None,
+        output: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.hints = list(hints or [])
+        self.output = output or ""
 
 
 def register_installer(name: str, cls: type[BaseInstaller]) -> None:
@@ -33,12 +51,161 @@ def get_installer(name: str = "pip", venv: str | None = None) -> BaseInstaller:
     return cls(venv=venv)
 
 
-def _venv_pip_cmd(venv: str) -> list[str]:
+def _venv_python(venv: str) -> Path:
     base = Path(venv)
-    python = (
-        base / "Scripts" / "python.exe" if os.name == "nt" else base / "bin" / "python"
+    if os.name == "nt":
+        return base / "Scripts" / "python.exe"
+    return base / "bin" / "python"
+
+
+def _venv_pip_cmd(venv: str) -> list[str]:
+    return [str(_venv_python(venv)), "-m", "pip"]
+
+
+def classify_install_failure(
+    cmd: list[str],
+    returncode: int,
+    output: str,
+) -> InstallerError:
+    """Map backend stderr/stdout into an InstallerError with hints."""
+    text = output or ""
+    low = text.lower()
+    tool = cmd[0] if cmd else "installer"
+
+    if (
+        "externally-managed-environment" in low
+        or "externally managed" in low
+        or "pep 668" in low
+    ):
+        return InstallerError(
+            "System Python is externally managed (PEP 668).",
+            kind="externally_managed",
+            hints=[
+                "Install into a virtual environment:",
+                "  pip-rns install <remote> --venv .venv",
+                "  python -m venv .venv && pip-rns install <remote> --venv .venv",
+                "Or use an isolated app install:",
+                "  pip-rns install <remote> --pipx",
+                "  pipx-rns install <remote>",
+            ],
+            output=text,
+        )
+
+    if "no module named pip" in low or "no module named 'pip'" in low:
+        return InstallerError(
+            "pip is not available in this Python environment.",
+            kind="missing_pip",
+            hints=[
+                "Create a venv with pip, then retry:",
+                "  python -m venv .venv && .venv/bin/python -m ensurepip",
+                "  pip-rns install <remote> --venv .venv",
+                "Or use uv / pipx:",
+                "  pip-rns install <remote> --uv --venv .venv",
+                "  pip-rns install <remote> --pipx",
+            ],
+            output=text,
+        )
+
+    if "permission denied" in low or "operation not permitted" in low:
+        return InstallerError(
+            "Permission denied while installing packages.",
+            kind="permission",
+            hints=[
+                "Avoid system site-packages. Use a venv or pipx:",
+                "  pip-rns install <remote> --venv .venv",
+                "  pip-rns install <remote> --pipx",
+            ],
+            output=text,
+        )
+
+    if "no space left on device" in low:
+        return InstallerError(
+            "Disk full while installing packages.",
+            kind="disk_full",
+            hints=["Free disk space and retry."],
+            output=text,
+        )
+
+    if "could not find a version that satisfies" in low or (
+        "no matching distribution" in low
+    ):
+        return InstallerError(
+            "No matching package distribution found.",
+            kind="not_found",
+            hints=[
+                "Check the package name, Python version, and platform tags.",
+                "Try --from-source if a release wheel is wrong for this host.",
+            ],
+            output=text,
+        )
+
+    if "error: failed to build" in low or (
+        "building wheel for" in low and "error" in low
+    ):
+        return InstallerError(
+            "Package build failed.",
+            kind="build_failed",
+            hints=[
+                "Install build deps for this package, or use --from-release when a wheel exists.",
+            ],
+            output=text,
+        )
+
+    summary = text.strip().splitlines()
+    tail = summary[-8:] if summary else [f"{tool} exited with code {returncode}"]
+    return InstallerError(
+        "Package install failed.",
+        kind="install_failed",
+        hints=[
+            "Retry with an isolated target:",
+            "  pip-rns install <remote> --venv .venv",
+            "  pip-rns install <remote> --pipx",
+        ]
+        + [f"  {line}" for line in tail if line.strip()],
+        output=text,
     )
-    return [str(python), "-m", "pip"]
+
+
+def run_installer_cmd(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run an installer command and raise InstallerError on failure."""
+    try:
+        result = subprocess.run(args, capture_output=True, text=True)
+    except FileNotFoundError as exc:
+        missing = args[0] if args else "command"
+        raise InstallerError(
+            f"Command not found: {missing}",
+            kind="missing_command",
+            hints=[
+                f"Install {missing} and ensure it is on PATH.",
+                "For pip installs into a venv: pip-rns install <remote> --venv .venv",
+                "For apps: pip-rns install <remote> --pipx",
+            ],
+        ) from exc
+
+    stdout = result.stdout if isinstance(result.stdout, str) else ""
+    stderr = result.stderr if isinstance(result.stderr, str) else ""
+    returncode = result.returncode if isinstance(result.returncode, int) else 0
+
+    if stdout:
+        sys.stdout.write(stdout)
+        if not stdout.endswith("\n"):
+            sys.stdout.write("\n")
+    if stderr:
+        sys.stderr.write(stderr)
+        if not stderr.endswith("\n"):
+            sys.stderr.write("\n")
+
+    if returncode != 0:
+        raise classify_install_failure(args, returncode, stderr + stdout)
+    return result
+
+
+def format_installer_error(exc: InstallerError) -> str:
+    """Render InstallerError for stderr."""
+    lines = [f"error: {exc}"]
+    for hint in exc.hints:
+        lines.append(hint)
+    return "\n".join(lines)
 
 
 class BaseInstaller:
@@ -105,7 +272,7 @@ class PipInstaller(BaseInstaller):
         args.append(str(package_path))
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def update(
         self,
@@ -116,7 +283,7 @@ class PipInstaller(BaseInstaller):
         args = [*self._cmd(), "install", "--force-reinstall", str(package_path)]
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def inject(
         self,
@@ -128,10 +295,10 @@ class PipInstaller(BaseInstaller):
         raise NotImplementedError(msg)
 
     def list_packages(self) -> None:
-        subprocess.run([*self._cmd(), "list"])
+        run_installer_cmd([*self._cmd(), "list"])
 
     def uninstall(self, package: str) -> None:
-        subprocess.run([*self._cmd(), "uninstall", package])
+        run_installer_cmd([*self._cmd(), "uninstall", "-y", package])
 
 
 class PipxInstaller(BaseInstaller):
@@ -155,17 +322,21 @@ class PipxInstaller(BaseInstaller):
         if extra_args:
             args.extend(extra_args)
         try:
-            subprocess.run(args, check=True)
-        except Exception:
+            run_installer_cmd(args)
+        except InstallerError:
             pkg = self._pkg_name(package_path)
             runpip_args = [
-                *self._cmd(), "runpip", pkg,
-                "install", "--force-reinstall", str(package_path),
+                *self._cmd(),
+                "runpip",
+                pkg,
+                "install",
+                "--force-reinstall",
+                str(package_path),
             ]
             try:
-                subprocess.run(runpip_args, check=True)
+                run_installer_cmd(runpip_args)
                 return
-            except Exception:
+            except InstallerError:
                 pass
             raise
 
@@ -177,17 +348,21 @@ class PipxInstaller(BaseInstaller):
     ) -> None:
         pkg = self._pkg_name(package_path)
         runpip_args = [
-            *self._cmd(), "runpip", pkg,
-            "install", "--force-reinstall", str(package_path),
+            *self._cmd(),
+            "runpip",
+            pkg,
+            "install",
+            "--force-reinstall",
+            str(package_path),
         ]
         try:
-            subprocess.run(runpip_args, check=True)
+            run_installer_cmd(runpip_args)
             return
-        except Exception:
+        except InstallerError:
             pass
         extra_args = extra_args or []
         args = [*self._cmd(), "install", "--force", str(package_path), *extra_args]
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def inject(
         self,
@@ -198,13 +373,13 @@ class PipxInstaller(BaseInstaller):
         args = [*self._cmd(), "inject", venv_name, str(package_path)]
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def list_packages(self) -> None:
-        subprocess.run([*self._cmd(), "list"])
+        run_installer_cmd([*self._cmd(), "list"])
 
     def uninstall(self, package: str) -> None:
-        subprocess.run([*self._cmd(), "uninstall", package])
+        run_installer_cmd([*self._cmd(), "uninstall", package])
 
 
 class UvInstaller(BaseInstaller):
@@ -215,19 +390,24 @@ class UvInstaller(BaseInstaller):
     def _cmd(self) -> list[str]:
         return _ENV_UV
 
+    def _python_args(self) -> list[str]:
+        if not self.venv:
+            return []
+        return ["--python", str(_venv_python(self.venv))]
+
     def install(
         self,
         package_path: Path,
         editable: bool = False,
         extra_args: list[str] | None = None,
     ) -> None:
-        args = [*self._cmd(), "pip", "install"]
+        args = [*self._cmd(), "pip", "install", *self._python_args()]
         if editable:
             args.append("-e")
         args.append(str(package_path))
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def update(
         self,
@@ -239,12 +419,13 @@ class UvInstaller(BaseInstaller):
             *self._cmd(),
             "pip",
             "install",
-            "--force-reinstall",
+            "--reinstall",
+            *self._python_args(),
             str(package_path),
         ]
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def inject(
         self,
@@ -256,10 +437,12 @@ class UvInstaller(BaseInstaller):
         raise NotImplementedError(msg)
 
     def list_packages(self) -> None:
-        subprocess.run([*self._cmd(), "pip", "list"])
+        run_installer_cmd([*self._cmd(), "pip", "list", *self._python_args()])
 
     def uninstall(self, package: str) -> None:
-        subprocess.run([*self._cmd(), "pip", "uninstall", package])
+        run_installer_cmd(
+            [*self._cmd(), "pip", "uninstall", *self._python_args(), package]
+        )
 
 
 class PoetryInstaller(BaseInstaller):
@@ -276,12 +459,13 @@ class PoetryInstaller(BaseInstaller):
         editable: bool = False,
         extra_args: list[str] | None = None,
     ) -> None:
-        args = [*self._cmd(), "add", str(package_path)]
+        args = [*self._cmd(), "add"]
         if editable:
-            args.insert(1, "--editable")
+            args.append("--editable")
+        args.append(str(package_path))
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def update(
         self,
@@ -292,7 +476,7 @@ class PoetryInstaller(BaseInstaller):
         args = [*self._cmd(), "add", "--editable", str(package_path)]
         if extra_args:
             args.extend(extra_args)
-        subprocess.run(args, check=True)
+        run_installer_cmd(args)
 
     def inject(
         self,
@@ -304,10 +488,10 @@ class PoetryInstaller(BaseInstaller):
         raise NotImplementedError(msg)
 
     def list_packages(self) -> None:
-        subprocess.run([*self._cmd(), "show"])
+        run_installer_cmd([*self._cmd(), "show"])
 
     def uninstall(self, package: str) -> None:
-        subprocess.run([*self._cmd(), "remove", package])
+        run_installer_cmd([*self._cmd(), "remove", package])
 
 
 register_installer("pip", PipInstaller)

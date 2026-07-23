@@ -14,7 +14,9 @@ def utc_now_iso():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def make_manifest(name, requirements, wheels, python_version, platform_tag, extras=None):
+def make_manifest(
+    name, requirements, wheels, python_version, platform_tag, extras=None
+):
     """Build a new bundle manifest dict."""
     manifest = {
         "version": MANIFEST_VERSION,
@@ -41,9 +43,7 @@ def load_manifest(data):
         data = json.loads(data)
     version = data.get("version")
     if version not in SUPPORTED_VERSIONS:
-        raise ValueError(
-            "Unsupported manifest version: {0}".format(version)
-        )
+        raise ValueError("Unsupported manifest version: {0}".format(version))
     return data
 
 

@@ -9,7 +9,13 @@ import tempfile
 import zipfile
 
 from opip.fetch import download_wheels_parallel
-from opip.integrity import build_integrity, collect_files, dump_integrity, verify_integrity
+from opip.integrity import (
+    build_integrity,
+    collect_files,
+    dump_integrity,
+    load_integrity,
+    verify_integrity,
+)
 from opip.keys import export_public_record, identity_hash
 from opip.lockfile import dump_json, make_lock, make_sbom
 from opip.manifest import BUNDLE_EXTENSION, dump_manifest, load_manifest, make_manifest
@@ -22,6 +28,7 @@ from opip.resolver import (
     is_universal_platform,
     resolve_requirements,
 )
+from opip.safe_zip import UnsafeZipError, extract_zip_safe, safe_artifact_name
 from opip.signing import has_signature, sign_bundle, verify_bundle_signature
 from opip.wheel import read_wheel_metadata
 
@@ -61,9 +68,7 @@ def build_project_wheel(project_dir, wheels_dir):
     )
     if result.returncode != 0:
         raise BundleError(
-            "Failed to build project wheel:\n{0}".format(
-                result.stderr or result.stdout
-            )
+            "Failed to build project wheel:\n{0}".format(result.stderr or result.stdout)
         )
     for name in os.listdir(wheels_dir):
         if name.endswith(".whl"):
@@ -138,11 +143,10 @@ def create_bundle(
             require_pypi_hash=require_pypi_hash,
         )
         for spec in wheels_specs:
-            path = os.path.join(wheels_dir, spec["filename"])
+            filename = safe_artifact_name(spec["filename"])
+            path = os.path.join(wheels_dir, filename)
             source = "cache" if use_cache else "pypi"
-            wheel_entries.append(
-                build_wheel_record(path, spec=spec, source=source)
-            )
+            wheel_entries.append(build_wheel_record(path, spec=spec, source=source))
 
         if include_project and project_dir:
             project_wheel = build_project_wheel(project_dir, wheels_dir)
@@ -202,7 +206,9 @@ def create_bundle(
                 contact=publisher_contact,
                 public_record=trust,
             )
-            with open(os.path.join(tmpdir, PUBLISHER_FILE), "w", encoding="utf-8") as fh:
+            with open(
+                os.path.join(tmpdir, PUBLISHER_FILE), "w", encoding="utf-8"
+            ) as fh:
                 fh.write(dump_publisher(publisher_record))
 
         sbom_data = make_sbom(manifest, wheel_entries, publisher=publisher_record)
@@ -246,8 +252,10 @@ def extract_bundle(bundle_path, dest_dir=None):
         raise BundleError("Bundle not found: {0}".format(bundle_path))
 
     dest_dir = dest_dir or tempfile.mkdtemp(prefix="opip-extract-")
-    with zipfile.ZipFile(bundle_path, "r") as zf:
-        zf.extractall(dest_dir)
+    try:
+        extract_zip_safe(bundle_path, dest_dir)
+    except UnsafeZipError as exc:
+        raise BundleError(str(exc))
 
     manifest_path = os.path.join(dest_dir, "manifest.json")
     integrity_path = os.path.join(dest_dir, "integrity.json")
@@ -260,7 +268,10 @@ def extract_bundle(bundle_path, dest_dir=None):
     with open(manifest_path, "r", encoding="utf-8") as fh:
         manifest = load_manifest(fh.read())
     with open(integrity_path, "r", encoding="utf-8") as fh:
-        integrity = json.load(fh)
+        try:
+            integrity = load_integrity(fh.read())
+        except ValueError as exc:
+            raise BundleError(str(exc))
 
     publisher = None
     pub_path = os.path.join(dest_dir, PUBLISHER_FILE)
@@ -289,34 +300,41 @@ def verify_bundle_contents(
     integrity = bundle_ctx["integrity"]
     errors = []
 
-    all_files = collect_files(dest_dir)
-    errors.extend(verify_integrity(dest_dir, integrity))
+    all_files = collect_files(dest_dir, exclude=["integrity.json"])
+    errors.extend(verify_integrity(dest_dir, integrity, all_files=all_files))
 
     if bundle_path:
         if has_signature(bundle_path):
-            if signer is not None:
-                errors.extend(verify_bundle_signature(bundle_path, signer))
-            elif require_signature:
-                errors.append(
-                    "Bundle is signed but no signer identity provided (--signer)"
-                )
+            errors.extend(verify_bundle_signature(bundle_path, signer))
         elif require_signature:
-            errors.append("Bundle is not signed but --require-signature was specified")
+            errors.append("Bundle has no .rsg sidecar but --require-signature was set.")
 
     wheels_dir = os.path.join(dest_dir, "wheels")
     for record in manifest.get("wheels", []):
-        whl = os.path.join(wheels_dir, record.get("filename", ""))
+        raw_name = record.get("filename", "")
+        try:
+            filename = safe_artifact_name(raw_name)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        whl = os.path.join(wheels_dir, filename)
+        if not record.get("sha256"):
+            errors.append("Missing sha256 for wheel: {0}".format(filename))
         if os.path.isfile(whl):
             errors.extend(
-                verify_wheel_provenance(whl, record, require_pypi_hash=require_pypi_hash)
+                verify_wheel_provenance(
+                    whl, record, require_pypi_hash=require_pypi_hash
+                )
             )
         else:
-            errors.append("Missing wheel file: {0}".format(record.get("filename")))
+            errors.append("Missing wheel file: {0}".format(filename))
 
     return errors
 
 
-def verify_bundle(bundle_path, signer=None, require_signature=False, require_pypi_hash=False):
+def verify_bundle(
+    bundle_path, signer=None, require_signature=False, require_pypi_hash=False
+):
     """Verify bundle. Returns (errors, manifest)."""
     ctx = extract_bundle(bundle_path)
     try:

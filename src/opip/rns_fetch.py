@@ -4,7 +4,6 @@ import fnmatch
 import os
 import shutil
 import subprocess
-import tempfile
 
 from opip.fetch import FetchError
 from opip.remote_resolve import resolve_remote_source
@@ -22,7 +21,7 @@ def _parse_ref(remote):
     last_at = remote.rfind("@")
     artifact = None
     if last_at > last_slash:
-        ref_part = remote[last_at + 1:]
+        ref_part = remote[last_at + 1 :]
         if ":" in ref_part:
             ref, artifact = ref_part.split(":", 1)
         else:
@@ -38,9 +37,7 @@ def _check_rns_available():
         return
     if shutil.which("git") is None:
         raise FetchError("git is not installed. Install git to fetch bundles over RNS.")
-    raise FetchError(
-        "git-remote-rns not found on PATH. Install via: pipx install rns"
-    )
+    raise FetchError("git-remote-rns not found on PATH. Install via: pipx install rns")
 
 
 def _clone_repo(remote, dest_dir, ref=None):
@@ -82,16 +79,22 @@ def fetch_rns_bundle(source, dest_dir, verify_identity=None):
                     picked,
                     verify_identity=verify_identity,
                 )
-                return bundle_path
+                return bundle_path.path
         except (RuntimeError, ValueError) as exc:
             raise FetchError(str(exc)) from exc
 
     clone_dir = os.path.join(dest_dir, "rns-clone")
-    _clone_repo(remote, clone_dir, ref=ref if ref and not shutil.which("rngit") else None)
+    _clone_repo(
+        remote, clone_dir, ref=ref if ref and not shutil.which("rngit") else None
+    )
     for root, _dirs, files in os.walk(clone_dir):
         for name in sorted(files):
             if name.endswith(".opip"):
-                if artifact and name != artifact and not fnmatch.fnmatch(name, artifact):
+                if (
+                    artifact
+                    and name != artifact
+                    and not fnmatch.fnmatch(name, artifact)
+                ):
                     continue
                 bundle_path = os.path.join(root, name)
                 copy_sidecar_from_dir(bundle_path, root)

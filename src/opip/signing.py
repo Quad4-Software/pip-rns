@@ -8,6 +8,10 @@ import subprocess
 RSG_EXTENSION = ".rsg"
 
 SIGNATURE_VALID_RE = re.compile(r"Signature is valid", re.IGNORECASE)
+SIGNED_BY_RE = re.compile(
+    r"signed by\s+<?([0-9a-fA-F]{32})>?",
+    re.IGNORECASE,
+)
 
 
 class SigningError(Exception):
@@ -17,7 +21,8 @@ class SigningError(Exception):
 def _check_rnid():
     if shutil.which("rnid") is None:
         raise SigningError(
-            "rnid not found on PATH. Install via: pip install rns"
+            "rnid not found on PATH (needed to sign and verify bundles). "
+            "Install via: pip install rns"
         )
 
 
@@ -51,30 +56,71 @@ def sign_bundle(bundle_path, identity_path):
     return sig_path
 
 
+def parse_signer_identity(output):
+    """Extract hex identity hash from rnid or rngit verify output."""
+    if not output:
+        return None
+    match = SIGNED_BY_RE.search(output)
+    if match:
+        return match.group(1).lower()
+    return None
+
+
 def verify_bundle_signature(bundle_path, signer=None):
     """
     Verify the .rsg signature for a bundle file.
 
+    When signer is None, rnid validates against the pubkey embedded in the
+    modern .rsg (automatic authenticity check). When signer is set, require
+    that exact identity.
+
     Returns list of error strings (empty if valid or unsigned).
+    """
+    errors, _identity = verify_bundle_signature_info(bundle_path, signer=signer)
+    return errors
+
+
+def verify_bundle_signature_info(bundle_path, signer=None):
+    """
+    Verify the .rsg signature for a bundle file.
+
+    Returns (errors, signing_identity_hex_or_None).
+    Empty errors means valid or unsigned.
     """
     bundle_path = os.path.abspath(bundle_path)
     sig_path = signature_path(bundle_path)
     if not os.path.isfile(sig_path):
-        return []
+        return [], None
 
-    if signer is None:
-        return ["Bundle is signed but no signer identity provided (--signer)"]
+    try:
+        _check_rnid()
+    except SigningError as exc:
+        return [str(exc)], None
 
-    _check_rnid()
+    cmd = ["rnid", "-V", bundle_path]
+    if signer is not None:
+        cmd = ["rnid", "-i", signer, "-V", bundle_path]
+
     result = subprocess.run(
-        ["rnid", "-i", signer, "-V", bundle_path, sig_path],
+        cmd,
         capture_output=True,
         text=True,
     )
     output = (result.stdout or "") + (result.stderr or "")
+    identity = parse_signer_identity(output)
+
     if result.returncode != 0:
         err = output.strip()
-        return ["Signature verification failed: {0}".format(err)]
+        if signer is None and "legacy" in err.lower():
+            return [
+                "Legacy .rsg requires --signer IDENTITY or OPIP_SIGNER "
+                "to verify authenticity."
+            ], None
+        return [
+            "Signature check failed for {0}: {1}".format(bundle_path, err)
+        ], identity
+
     if not SIGNATURE_VALID_RE.search(output):
-        return ["Signature verification failed"]
-    return []
+        return ["Signature check failed for {0}".format(bundle_path)], identity
+
+    return [], identity

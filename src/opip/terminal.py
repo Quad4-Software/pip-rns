@@ -28,11 +28,20 @@ def _env_truthy(name):
     return val.strip().lower() not in ("", "0", "false", "no", "off")
 
 
-def _env_falsy(name):
-    val = os.environ.get(name)
-    if val is None:
-        return False
-    return val.strip().lower() in ("", "0", "false", "no", "off")
+def _windows_color_host_ok():
+    """
+    Return True only on modern Windows hosts that handle ANSI well.
+
+    Classic cmd.exe and PowerShell stay colorless unless FORCE_COLOR.
+    """
+    if os.environ.get("WT_SESSION"):
+        return True
+    if _env_truthy("ANSICON") or _env_truthy("ConEmuANSI"):
+        return True
+    term = (os.environ.get("TERM") or "").strip().lower()
+    if term.startswith("xterm") or term in ("cygwin", "ansi", "mintty"):
+        return True
+    return False
 
 
 def enable_windows_vt():
@@ -53,6 +62,38 @@ def enable_windows_vt():
         pass
 
 
+def should_enable_color(color_mode=None, no_color=False):
+    """
+    Decide whether ANSI color should be enabled.
+
+    color_mode: auto, always, never, or None to read OPIP_COLOR.
+    """
+    mode = (color_mode or os.environ.get("OPIP_COLOR", "auto")).strip().lower()
+    if no_color or _env_truthy("OPIP_NO_COLOR") or _env_truthy("NO_COLOR"):
+        return False
+    if _env_truthy("FORCE_COLOR") or _env_truthy("OPIP_FORCE_COLOR"):
+        return True
+    if mode == "never":
+        return False
+    if mode == "always":
+        return True
+
+    if _env_truthy("CI") or _env_truthy("GITHUB_ACTIONS"):
+        return False
+    if _env_truthy("OPIP_NO_INTERACTIVE"):
+        return False
+
+    try:
+        if not (sys.stdout.isatty() or sys.stderr.isatty()):
+            return False
+    except Exception:
+        return False
+
+    if sys.platform == "win32" and not _windows_color_host_ok():
+        return False
+    return True
+
+
 def configure(color_mode=None, no_color=False):
     """
     Configure color output.
@@ -61,22 +102,9 @@ def configure(color_mode=None, no_color=False):
     """
     global _enabled, _initialized
 
-    mode = (color_mode or os.environ.get("OPIP_COLOR", "auto")).strip().lower()
-    if no_color or _env_truthy("OPIP_NO_COLOR") or _env_truthy("NO_COLOR"):
-        mode = "never"
-    if _env_truthy("FORCE_COLOR") or _env_truthy("OPIP_FORCE_COLOR"):
-        mode = "always"
-
-    if mode == "never":
-        _enabled = False
-    elif mode == "always":
-        _enabled = True
-    else:
-        _enabled = sys.stdout.isatty() or sys.stderr.isatty()
-
+    _enabled = should_enable_color(color_mode=color_mode, no_color=no_color)
     if _enabled:
         enable_windows_vt()
-
     _initialized = True
 
 

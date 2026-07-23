@@ -23,9 +23,7 @@ def export_bundle(source, output_path, store=None):
 
     errors, manifest = verify_bundle(bundle_path)
     if errors:
-        raise ExportError(
-            "Bundle failed verification:\n" + "\n".join(errors)
-        )
+        raise ExportError("Bundle failed verification:\n" + "\n".join(errors))
 
     if not output_path.endswith(".opip"):
         output_path = output_path + ".opip"

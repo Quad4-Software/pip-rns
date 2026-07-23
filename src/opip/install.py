@@ -4,10 +4,10 @@ import os
 import shutil
 import subprocess
 import sys
-import zipfile
 
 from opip.bundle import extract_bundle, verify_bundle_contents
 from opip.resolver import detect_platform, detect_python_version, is_universal_platform
+from opip.safe_zip import UnsafeZipError, extract_zip_safe, safe_artifact_name
 from opip.wheel import parse_wheel_filename, wheel_matches_platform
 
 
@@ -35,16 +35,27 @@ def _select_wheels_for_install(manifest, wheels_dir):
     platform_tag = detect_platform()
     manifest_platform = manifest.get("platform")
 
+    def _wheel_path(record):
+        filename = safe_artifact_name(record["filename"])
+        return os.path.join(wheels_dir, filename)
+
     if not is_universal_platform(manifest_platform):
-        return sorted(
-            os.path.join(wheels_dir, w["filename"])
-            for w in manifest.get("wheels", [])
-            if os.path.isfile(os.path.join(wheels_dir, w["filename"]))
-        )
+        paths = []
+        for w in manifest.get("wheels", []):
+            try:
+                whl_path = _wheel_path(w)
+            except ValueError as exc:
+                raise InstallError(str(exc))
+            if os.path.isfile(whl_path):
+                paths.append(whl_path)
+        return sorted(paths)
 
     selected = []
     for w in manifest.get("wheels", []):
-        whl_path = os.path.join(wheels_dir, w["filename"])
+        try:
+            whl_path = _wheel_path(w)
+        except ValueError as exc:
+            raise InstallError(str(exc))
         if not os.path.isfile(whl_path):
             continue
         parsed = parse_wheel_filename(w["filename"])
@@ -60,7 +71,9 @@ def _select_wheels_for_install(manifest, wheels_dir):
     return sorted(selected)
 
 
-def install_via_pip(wheels_dir, requirements_path, target=None, user=False, replace=False, wheels=None):
+def install_via_pip(
+    wheels_dir, requirements_path, target=None, user=False, replace=False, wheels=None
+):
     """Install using pip --no-index --find-links."""
     import glob
 
@@ -99,14 +112,10 @@ def install_wheel_manual(wheel_path, target_dir):
     Fallback when pip is not available.
     """
     os.makedirs(target_dir, exist_ok=True)
-    with zipfile.ZipFile(wheel_path, "r") as zf:
-        for name in zf.namelist():
-            if name.endswith("/"):
-                continue
-            dest = os.path.join(target_dir, name)
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            with zf.open(name) as src, open(dest, "wb") as out:
-                shutil.copyfileobj(src, out)
+    try:
+        extract_zip_safe(wheel_path, target_dir)
+    except UnsafeZipError as exc:
+        raise InstallError(str(exc))
 
 
 def install_bundle(
@@ -119,17 +128,36 @@ def install_bundle(
     verify=True,
     signer=None,
     require_signature=False,
+    target_explicit=False,
+    remember_target=False,
+    forget_target=False,
+    no_interactive=False,
 ):
     """
     Install all wheels from a bundle.
 
     Returns list of installed package names.
     """
+    from opip import terminal
+    from opip.interactive import is_noninteractive
+
     ctx = extract_bundle(bundle_path)
     extract_dir = ctx["dest_dir"]
     manifest = ctx["manifest"]
+    bundle_name = (
+        manifest.get("name") or os.path.splitext(os.path.basename(bundle_path))[0]
+    )
 
     try:
+        if forget_target and store is not None:
+            store.forget_preferred_target(bundle_name)
+
+        if target is None and store is not None:
+            remembered = store.get_preferred_target(bundle_name)
+            if remembered:
+                target = remembered
+                terminal.info("Using remembered target: {0}".format(target))
+
         if verify:
             errors = verify_bundle_contents(
                 ctx,
@@ -138,9 +166,7 @@ def install_bundle(
                 require_signature=require_signature,
             )
             if errors:
-                raise InstallError(
-                    "Bundle verification failed:\n" + "\n".join(errors)
-                )
+                raise InstallError("Bundle verification failed:\n" + "\n".join(errors))
 
         wheels_dir = os.path.join(extract_dir, "wheels")
         req_path = os.path.join(extract_dir, "requirements.txt")
@@ -167,7 +193,6 @@ def install_bundle(
                 install_wheel_manual(whl, target_dir)
 
         if store is not None:
-            bundle_name = manifest.get("name") or os.path.basename(bundle_path)
             store.record_install(
                 bundle_name,
                 packages,
@@ -175,11 +200,51 @@ def install_bundle(
                 bundle_path=bundle_path,
             )
             store.register_bundle(bundle_name, bundle_path, manifest)
+            _maybe_remember_target(
+                store,
+                bundle_name,
+                target,
+                target_explicit=target_explicit,
+                remember_target=remember_target,
+                no_interactive=is_noninteractive(no_interactive),
+            )
 
         return packages
 
     finally:
         shutil.rmtree(extract_dir, ignore_errors=True)
+
+
+def _maybe_remember_target(
+    store,
+    bundle_name,
+    target,
+    target_explicit=False,
+    remember_target=False,
+    no_interactive=False,
+):
+    if not target:
+        return
+    from opip import terminal
+
+    if remember_target:
+        store.set_preferred_target(bundle_name, target)
+        terminal.info("Remembered target for {0}: {1}".format(bundle_name, target))
+        return
+    if not target_explicit or no_interactive:
+        return
+    existing = store.get_preferred_target(bundle_name)
+    if existing and os.path.abspath(existing) == os.path.abspath(target):
+        return
+    sys.stdout.write("Remember {0} for {1}? [y/N] ".format(target, bundle_name))
+    sys.stdout.flush()
+    try:
+        answer = input().strip().lower()
+    except EOFError:
+        answer = ""
+    if answer in ("y", "yes"):
+        store.set_preferred_target(bundle_name, target)
+        terminal.info("Remembered target for {0}: {1}".format(bundle_name, target))
 
 
 def _default_install_target(user):
@@ -206,6 +271,10 @@ def install_from_source(
     verify=True,
     signer=None,
     require_signature=False,
+    target_explicit=False,
+    remember_target=False,
+    forget_target=False,
+    no_interactive=False,
 ):
     """Acquire bundle from any source and install."""
     from opip.sources import acquire_bundle
@@ -214,9 +283,7 @@ def install_from_source(
 
     cache_dir = cache_dir or os.path.join(default_cache_dir(), "acquired")
     os.makedirs(cache_dir, exist_ok=True)
-    bundle_path = acquire_bundle(
-        source, dest_dir=cache_dir, verify_identity=signer
-    )
+    bundle_path = acquire_bundle(source, dest_dir=cache_dir, verify_identity=signer)
     return install_bundle(
         bundle_path,
         target=target,
@@ -226,6 +293,10 @@ def install_from_source(
         verify=verify,
         signer=signer,
         require_signature=require_signature,
+        target_explicit=target_explicit,
+        remember_target=remember_target,
+        forget_target=forget_target,
+        no_interactive=no_interactive,
     )
 
 

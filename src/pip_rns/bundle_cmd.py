@@ -30,12 +30,25 @@ def register_parsers(sub: argparse._SubParsersAction) -> None:
         "--signer",
         metavar="IDENTITY",
         default=None,
-        help="Require bundle signed by IDENTITY (env: OPIP_SIGNER)",
+        help=(
+            "Pin required signer identity (env: OPIP_SIGNER). "
+            "Without this, a present .rsg is still verified"
+        ),
     )
     bi.add_argument(
         "--require-signature",
         action="store_true",
         help="Fail if bundle is not signed",
+    )
+    bi.add_argument(
+        "--remember-target",
+        action="store_true",
+        help="Remember --target for this bundle name without prompting",
+    )
+    bi.add_argument(
+        "--forget-target",
+        action="store_true",
+        help="Forget any remembered install destination for this bundle",
     )
 
     bv = bp.add_parser("verify", help="Verify a .opip bundle")
@@ -44,7 +57,10 @@ def register_parsers(sub: argparse._SubParsersAction) -> None:
         "--signer",
         metavar="IDENTITY",
         default=None,
-        help="Required signer identity hash or file (env: OPIP_SIGNER)",
+        help=(
+            "Pin required signer identity (env: OPIP_SIGNER). "
+            "Without this, a present .rsg is still verified"
+        ),
     )
     bv.add_argument(
         "--require-signature",
@@ -80,6 +96,10 @@ def dispatch(args, config_dir: str | None) -> None:
                 verify=not args.no_verify,
                 signer=args.signer or os.environ.get("OPIP_SIGNER"),
                 require_signature=args.require_signature,
+                target_explicit=args.target is not None,
+                remember_target=getattr(args, "remember_target", False),
+                forget_target=getattr(args, "forget_target", False),
+                no_interactive=getattr(args, "no_interactive", False),
             )
         except InstallError as exc:
             print(str(exc))

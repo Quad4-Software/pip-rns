@@ -94,7 +94,9 @@ def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
             if bundle:
                 copy_sidecar_from_dir(bundle, os.path.dirname(bundle))
                 return bundle
-            raise FetchError("No {0} bundle found in git repository".format(BUNDLE_EXTENSION))
+            raise FetchError(
+                "No {0} bundle found in git repository".format(BUNDLE_EXTENSION)
+            )
 
         basename = os.path.basename(source.split("?")[0].split("#")[0])
         if not basename.endswith(BUNDLE_EXTENSION):

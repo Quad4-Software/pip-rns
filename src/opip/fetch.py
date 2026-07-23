@@ -5,13 +5,13 @@ import os
 import shutil
 import ssl
 import subprocess
-import sys
 import tempfile
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from opip.integrity import file_hash
+from opip.safe_zip import contain_path, safe_artifact_name
 from opip.wheel_cache import lookup_wheel, store_wheel
 
 USER_AGENT = "opip/{0} (+https://github.com/Quad4-Software/pip-rns)".format(
@@ -26,9 +26,7 @@ class FetchError(Exception):
 
 def _build_opener():
     ctx = ssl.create_default_context()
-    return urllib.request.build_opener(
-        urllib.request.HTTPSHandler(context=ctx)
-    )
+    return urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx))
 
 
 def download_url(url, dest_path, timeout=120, expected_hash=None):
@@ -59,10 +57,15 @@ def download_url(url, dest_path, timeout=120, expected_hash=None):
     return dest_path
 
 
-def download_wheel(wheel_spec, dest_dir, timeout=120, use_cache=True, require_pypi_hash=False):
+def download_wheel(
+    wheel_spec, dest_dir, timeout=120, use_cache=True, require_pypi_hash=False
+):
     """Download a wheel from resolver spec into dest_dir."""
     url = wheel_spec["url"]
-    filename = wheel_spec["filename"]
+    try:
+        filename = safe_artifact_name(wheel_spec["filename"])
+    except ValueError as exc:
+        raise FetchError(str(exc))
     dest = os.path.join(dest_dir, filename)
     expected = None
     digests = wheel_spec.get("digests") or {}
@@ -201,7 +204,11 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
         raise FetchError("git clone failed: {0}".format(stderr.strip()))
 
     if subpath:
-        target = os.path.join(clone_dir, subpath.replace("/", os.sep))
+        try:
+            target = contain_path(clone_dir, subpath)
+        except ValueError as exc:
+            shutil.rmtree(tmp_parent, ignore_errors=True)
+            raise FetchError(str(exc))
     else:
         target = clone_dir
 

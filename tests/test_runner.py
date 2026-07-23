@@ -20,7 +20,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from tests.support import SkipTest
+from tests.support import SkipTest  # noqa: E402
 
 TESTS_DIR = Path(__file__).parent
 

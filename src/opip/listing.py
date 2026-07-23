@@ -20,9 +20,7 @@ def list_installed(store=None):
 def format_bundle_table(bundles):
     if not bundles:
         return "No bundles registered."
-    lines = ["{0:<24} {1:<8} {2:<12} {3}".format(
-        "NAME", "WHEELS", "PYTHON", "PATH"
-    )]
+    lines = ["{0:<24} {1:<8} {2:<12} {3}".format("NAME", "WHEELS", "PYTHON", "PATH")]
     lines.append("-" * 72)
     for b in bundles:
         lines.append(
@@ -83,8 +81,6 @@ def show_bundle_info(bundle_path):
         elif w.get("source") == "local":
             prov = " local"
         lines.append(
-            "  {0} {1} ({2}{3})".format(
-                w.get("package"), w.get("version"), src, prov
-            )
+            "  {0} {1} ({2}{3})".format(w.get("package"), w.get("version"), src, prov)
         )
     return "\n".join(lines)

@@ -141,11 +141,11 @@ def _from_pyproject(path, project_dir):
     if isinstance(poetry_groups, dict):
         for group in poetry_groups.values():
             if isinstance(group, dict):
-                requirements.extend(
-                    _normalize_dep_list(group.get("dependencies"))
-                )
+                requirements.extend(_normalize_dep_list(group.get("dependencies")))
 
-    optional = project.get("optional-dependencies", {}) if isinstance(project, dict) else {}
+    optional = (
+        project.get("optional-dependencies", {}) if isinstance(project, dict) else {}
+    )
     if isinstance(optional, dict):
         for deps in optional.values():
             requirements.extend(_normalize_dep_list(deps))
@@ -206,9 +206,7 @@ def _from_setup_py(path, project_dir):
         name = name_match.group(1)
 
     requirements = []
-    requires_match = re.search(
-        r"install_requires\s*=\s*\[(.*?)\]", text, re.DOTALL
-    )
+    requires_match = re.search(r"install_requires\s*=\s*\[(.*?)\]", text, re.DOTALL)
     if requires_match:
         block = requires_match.group(1)
         for item in re.findall(r"""['"]([^'"]+)['"]""", block):
@@ -229,7 +227,6 @@ def _parse_toml_subset(text):
     Supports sections, key = value, inline arrays, and multiline arrays.
     """
     root = {}
-    stack = [root]
     section_keys = []
 
     lines = text.splitlines()
@@ -253,7 +250,6 @@ def _parse_toml_subset(text):
                     nxt = {}
                     node[key] = nxt
                 node = nxt
-            stack = [root, node]
             continue
 
         if "=" not in line:

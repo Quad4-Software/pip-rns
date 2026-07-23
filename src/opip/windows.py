@@ -1,6 +1,5 @@
 """Windows shell integration: file association and context menus."""
 
-import os
 import sys
 
 
@@ -39,14 +38,18 @@ def register_windows():
     uninstall_cmd = _launcher("uninstall-file")
     verify_cmd = _launcher("verify")
 
-    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Software\\Classes\\" + EXT) as ext_key:
+    with winreg.CreateKey(
+        winreg.HKEY_CURRENT_USER, "Software\\Classes\\" + EXT
+    ) as ext_key:
         winreg.SetValue(ext_key, None, winreg.REG_SZ, PROG_ID)
 
     base = "Software\\Classes\\{0}".format(PROG_ID)
     with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base) as prog_key:
         winreg.SetValue(prog_key, None, winreg.REG_SZ, "opip offline bundle")
         with winreg.CreateKey(prog_key, "DefaultIcon") as icon_key:
-            winreg.SetValue(icon_key, None, winreg.REG_SZ, "{0},0".format(sys.executable))
+            winreg.SetValue(
+                icon_key, None, winreg.REG_SZ, "{0},0".format(sys.executable)
+            )
         with winreg.CreateKey(prog_key, "shell\\open\\command") as open_key:
             winreg.SetValue(open_key, None, winreg.REG_SZ, open_cmd)
 
@@ -61,7 +64,6 @@ def register_windows():
 def unregister_windows():
     """Remove .opip file association and context menus."""
     _require_windows()
-    import subprocess
 
     keys = [
         r"HKCU\Software\Classes\{0}\shell".format(PROG_ID),
