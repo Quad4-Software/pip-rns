@@ -72,11 +72,11 @@ def offer_install_options(
 
     print(f"\n{yellow('No version/branch specified for')} {bold(remote)}")
     print("How do you want to install?")
-    print("  1) Latest release wheel (default)")
-    print("  2) Clone master")
-    print("  3) Clone main")
-    print("  4) Clone default branch")
-    print("  5) Pick a release tag")
+    print("  1) Latest release wheel (default, preferred)")
+    print("  2) Clone master (expensive on RNS)")
+    print("  3) Clone main (expensive on RNS)")
+    print("  4) Clone default branch (expensive on RNS)")
+    print("  5) Pick a signed release tag")
     print("  6) Abort")
     choice = _read_line("Choice [1/2/3/4/5/6]: ") or "1"
 

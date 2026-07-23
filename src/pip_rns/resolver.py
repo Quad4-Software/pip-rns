@@ -203,6 +203,10 @@ def _ensure_clone(
         raise
 
 
+class OfflineError(RuntimeError):
+    """Raised when --offline needs network or a missing cache."""
+
+
 class Resolver:
     """Facade that normalizes a remote string, selects the right resolver, and produces a local clone."""
 
@@ -212,6 +216,7 @@ class Resolver:
         editable: bool = False,
         ref: str | None = None,
         use_cache: bool = False,
+        offline: bool = False,
     ) -> Path:
         from .aliases import get_manager as get_alias_mgr
         from .indexes import get_manager as get_index_mgr
@@ -222,6 +227,16 @@ class Resolver:
         imgr = get_index_mgr()
         if imgr:
             remote = imgr.resolve(remote)
+        # Discovered Python packages from pip-rns discover scan
+        if "/" not in remote and "://" not in remote:
+            try:
+                from .discover import DiscoverStore
+
+                found = DiscoverStore().resolve_package(remote)
+                if found:
+                    remote = found
+            except Exception:
+                pass
         url = normalize_url(remote)
 
         # Local paths: return directly, no clone needed
@@ -230,7 +245,7 @@ class Resolver:
 
         resolver = get_resolver(url)
 
-        # RNS clones are expensive; prefer persistent cache + fetch unless disabled
+        # RNS clones are expensive. Prefer persistent cache + fetch unless disabled.
         if (
             not editable
             and not use_cache
@@ -240,8 +255,20 @@ class Resolver:
         ):
             use_cache = True
 
+        if offline:
+            use_cache = True
+
         if editable:
             dest = PERSISTENT_DIR / repo_hash(url)
+            if offline:
+                git_dir = dest / ".git"
+                if dest.exists() and git_dir.exists():
+                    self.last_status = "cached"
+                    return dest
+                raise OfflineError(
+                    f"Offline: no editable clone at {dest}. "
+                    "Clone once online, then retry with --offline."
+                )
             status = _ensure_clone(resolver, url, dest, ref=ref, update_existing=True)
             self.last_status = status
             return dest
@@ -249,9 +276,27 @@ class Resolver:
         if use_cache:
             cache_key = repo_hash(f"{url}@{ref}" if ref else url)
             dest = CACHE_DIR / cache_key
-            status = _ensure_clone(resolver, url, dest, ref=ref, update_existing=True)
+            if offline:
+                git_dir = dest / ".git"
+                if dest.exists() and git_dir.exists():
+                    self.last_status = "cached"
+                    return dest
+                raise OfflineError(
+                    f"Offline: no cached clone for {url}. "
+                    "Install once online (or use a local path / .opip), "
+                    "then retry with --offline."
+                )
+            status = _ensure_clone(
+                resolver, url, dest, ref=ref, update_existing=not offline
+            )
             self.last_status = status
             return dest
+
+        if offline:
+            raise OfflineError(
+                "Offline: source install requires a cache hit or local path. "
+                "Use --use-cache online first, or install from a release / .opip."
+            )
 
         tmpdir = Path(tempfile.mkdtemp(prefix="pip-rns-"))
         try:

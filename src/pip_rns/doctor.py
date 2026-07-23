@@ -89,12 +89,89 @@ def run_doctor(
             Check(
                 "indexes",
                 True,
-                f"{n} registered ({_config_dir()})",
+                f"{n} registered ({_config_dir()}) (opt-in only)",
                 "pass" if n else "warn",
             )
         )
     except Exception as exc:
         checks.append(Check("indexes", False, str(exc), "warn"))
+
+    from .trust import TrustStore
+
+    trust = TrustStore(cfg)
+    trusted = trust.list_all()
+    if trusted:
+        detail = (
+            f"{len(trusted)} entr{'y' if len(trusted) == 1 else 'ies'} ({trust.path})"
+        )
+        checks.append(Check("trust", True, detail, "pass"))
+    else:
+        checks.append(
+            Check(
+                "trust",
+                True,
+                f"empty ({trust.path}). use pip-rns trust add",
+                "warn",
+            )
+        )
+
+    from .resolver import CACHE_DIR, PERSISTENT_DIR
+
+    cache_n = 0
+    if CACHE_DIR.is_dir():
+        cache_n = sum(1 for p in CACHE_DIR.iterdir() if p.is_dir())
+    checks.append(
+        Check(
+            "source-cache",
+            True,
+            f"{cache_n} clone(s) under {CACHE_DIR}",
+            "pass" if cache_n else "warn",
+        )
+    )
+    edit_n = 0
+    if PERSISTENT_DIR.is_dir():
+        edit_n = sum(1 for p in PERSISTENT_DIR.iterdir() if p.is_dir())
+    checks.append(
+        Check(
+            "editable-checkouts",
+            True,
+            f"{edit_n} under {PERSISTENT_DIR}",
+            "pass",
+        )
+    )
+
+    from .discover import DiscoverStore
+
+    discovered = DiscoverStore(cfg)
+    dnodes = discovered.list()
+    checks.append(
+        Check(
+            "discover",
+            True,
+            (
+                f"{len(dnodes)} node(s) ({discovered.path})"
+                if dnodes
+                else f"empty ({discovered.path}). pip-rns discover --save"
+            ),
+            "pass" if dnodes else "warn",
+        )
+    )
+
+    try:
+        import RNS  # noqa: F401
+
+        checks.append(
+            Check("rns-python", True, "import RNS ok (needed for discover)", "pass")
+        )
+    except ImportError:
+        checks.append(
+            Check(
+                "rns-python",
+                False,
+                "RNS not importable. pip install rns (needed for discover)",
+                "warn",
+            )
+        )
 
     color_on = pip_ui.should_enable_color()
     checks.append(

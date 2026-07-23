@@ -73,7 +73,7 @@ def download_wheel(
         expected = digests["sha256"]
     elif require_pypi_hash:
         raise FetchError(
-            "PyPI provides no sha256 digest for {0}; use without --require-pypi-hash".format(
+            "PyPI provides no sha256 digest for {0}. use without --require-pypi-hash".format(
                 filename
             )
         )

@@ -44,7 +44,7 @@ def test_parse_fetch_verify_unverified():
 
 
 def test_fetch_passes_no_signer_by_default():
-    """Default fetch must not require -s; rngit still validates .rsm/.rsg."""
+    """Default fetch must not require -s. rngit still validates .rsm/.rsg."""
     from pip_rns.releases import fetch_release_artifact
 
     fake = mock.Mock(

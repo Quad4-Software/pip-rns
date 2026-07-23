@@ -694,7 +694,7 @@ def _dispatch(args, store):
         terminal.success("Wrote identity: {0}".format(args.output))
         terminal.write_out("  Identity hash: {0}".format(signer))
         terminal.write_out(
-            "  Sign bundles with --identity; verify with --signer {0}".format(signer)
+            "  Sign bundles with --identity. verify with --signer {0}".format(signer)
         )
         return 0
 

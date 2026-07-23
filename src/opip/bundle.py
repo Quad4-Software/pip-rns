@@ -119,7 +119,7 @@ def create_bundle(
         for spec in wheels_specs:
             if "sha256" not in (spec.get("digests") or {}):
                 raise BundleError(
-                    "PyPI provides no sha256 for {0}; cannot satisfy --require-pypi-hash".format(
+                    "PyPI provides no sha256 for {0}. cannot satisfy --require-pypi-hash".format(
                         spec.get("filename")
                     )
                 )

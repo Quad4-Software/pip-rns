@@ -58,10 +58,10 @@ ENV_HELP = [
     ("OPIP_NO_COLOR", "Disable color when set (non-empty)"),
     ("OPIP_FORCE_COLOR", "Force color when set (non-empty)"),
     ("OPIP_NO_INTERACTIVE", "Disable prompts when set (non-empty)"),
-    ("NO_COLOR", "Standard; disables color when set"),
-    ("FORCE_COLOR", "Standard; enables color when set"),
+    ("NO_COLOR", "Standard. Disables color when set"),
+    ("FORCE_COLOR", "Standard. Enables color when set"),
     ("CI", "When set, disables prompts and color (unless FORCE_COLOR)"),
-    ("PIP_RNS_CONFIG", "pip-rns config directory; aliases resolve for rns:// installs"),
+    ("PIP_RNS_CONFIG", "pip-rns config directory. aliases resolve for rns:// installs"),
 ]
 
 COMMAND_SUMMARY = [

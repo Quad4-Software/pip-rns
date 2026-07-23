@@ -13,12 +13,25 @@ from .bundle_cmd import register_parsers as register_bundle_parsers
 from .completion_cmd import install_completions
 from .core import install, list_packages, uninstall
 from .core import update as update_fn
+from .discover import (
+    DiscoverStore,
+    discover_nodes,
+    format_node_line,
+)
+from .discover_scan import (
+    format_package_line,
+    install_hint,
+    scan_nodes,
+)
 from .doctor import print_doctor, run_doctor
+from .export_cmd import export_release
 from .indexes import get_manager as get_index_mgr
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
 from .errors import UserCancelled
 from .releases import list_releases, release_info
+from .resolver import OfflineError
+from .trust import TrustStore
 from .ui import bold, dim, green, header, init as ui_init
 from .venv_prefs import VenvPrefs
 from .version import __version__
@@ -46,7 +59,7 @@ def _add_common_install_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--use-cache",
         action="store_true",
-        help="Cache clone locally; reuse cache when offline",
+        help="Cache clone locally. Reuse cache when offline",
     )
     p.add_argument(
         "--from-release",
@@ -67,8 +80,33 @@ def _add_common_install_args(p: argparse.ArgumentParser) -> None:
         metavar="IDENTITY",
         help=(
             "Pin required release signer identity. "
+            "Also uses pip-rns trust store when unset. "
             "Release .rsm/.rsg are verified by default via rngit"
         ),
+    )
+    p.add_argument(
+        "--insecure",
+        action="store_true",
+        help=(
+            "Allow install when signed release verification is not confirmed "
+            "(fail-closed is the default)"
+        ),
+    )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Use local cache / paths only (no RNS fetch or clone)",
+    )
+    p.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip expensive-clone confirmation prompts",
+    )
+    p.add_argument(
+        "--require-release",
+        action="store_true",
+        help="Require a release wheel (no anonymous source tip)",
     )
     p.add_argument(
         "--remember-venv",
@@ -104,6 +142,9 @@ _COMMANDS = frozenset(
         "doctor",
         "completion",
         "venv",
+        "trust",
+        "export",
+        "discover",
     }
 )
 
@@ -178,6 +219,9 @@ def main(argv: list[str] | None = None) -> None:
             "  pip-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy\n"
             "  pip-rns install --pipx repo@v1.0.0\n"
             "  pip-rns rns://id/group/repo@master\n"
+            "  pip-rns export rns://id/group/repo -o ./mirror\n"
+            "  pip-rns discover\n"
+            "  pip-rns trust add rns://id/group/repo IDENTITY\n"
             "  pip-rns alias add myapp 06a54b50.../public/MyApp\n"
             "  pip-rns doctor\n"
             "  pip-rns completion install"
@@ -273,6 +317,94 @@ def main(argv: list[str] | None = None) -> None:
     a.add_argument("path", help="Virtualenv path")
     a = vp.add_parser("forget", help="Forget remembered venv")
     a.add_argument("name", help="Remote rns:// URL or 'default'")
+
+    p = sub.add_parser("trust", help="Trusted release publisher identities")
+    tp = p.add_subparsers(dest="trust_command", required=True)
+    a = tp.add_parser("add", help="Trust a signer for a remote (or set default)")
+    a.add_argument(
+        "remote_or_default",
+        help="Remote rns:// URL, or 'default' for global default signer",
+    )
+    a.add_argument("identity", help="32-hex Reticulum identity hash")
+    a = tp.add_parser("rm", help="Forget a trusted signer")
+    a.add_argument(
+        "remote_or_default",
+        help="Remote rns:// URL, or 'default'",
+    )
+    tp.add_parser("ls", help="List trusted publishers")
+    a = tp.add_parser("set-default", help="Set default signer identity")
+    a.add_argument("identity")
+    tp.add_parser("forget-default", help="Clear default signer")
+
+    p = sub.add_parser(
+        "export",
+        help="Mirror release artifacts for sneakernet / offline sharing",
+    )
+    p.add_argument("remote", help="rns:// URL of the repository")
+    p.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        metavar="DIR",
+        help="Output directory for wheels and signatures",
+    )
+    p.add_argument("--ref", metavar="TAG", help="Release tag (default: latest)")
+    p.add_argument(
+        "--verify",
+        metavar="IDENTITY",
+        help="Pin required signer (else trust store)",
+    )
+    p.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Do not pin signer from trust store",
+    )
+    p.add_argument(
+        "--all",
+        action="store_true",
+        dest="all_artifacts",
+        help="Export all artifacts (not only the preferred .whl + .rsg)",
+    )
+
+    p = sub.add_parser(
+        "discover",
+        help="Listen for announced rngit repository nodes on Reticulum",
+    )
+    p.add_argument(
+        "discover_command",
+        nargs="?",
+        default="listen",
+        choices=("listen", "ls", "clear", "scan", "packages"),
+        help="listen (default), ls, clear, scan, or packages",
+    )
+    p.add_argument(
+        "--seconds",
+        type=float,
+        default=30.0,
+        metavar="N",
+        help="Listen duration in seconds (default: 30)",
+    )
+    p.add_argument(
+        "--save",
+        action="store_true",
+        help="Remember heard nodes in the discover store",
+    )
+    p.add_argument(
+        "--scan",
+        action="store_true",
+        help="After listen (or with scan), catalog Python packages on nodes",
+    )
+    p.add_argument(
+        "--no-releases",
+        action="store_true",
+        help="Skip rngit release wheel checks during scan",
+    )
+    p.add_argument(
+        "--reticulum-config",
+        metavar="DIR",
+        default=None,
+        help="Reticulum config directory (default: ~/.reticulum)",
+    )
 
     p = sub.add_parser("doctor", help="Check pip-rns environment health")
     p.add_argument(
@@ -429,6 +561,192 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"No remembered venv for {args.name}")
         return
 
+    if args.command == "trust":
+        store = TrustStore(_config(args))
+        if args.trust_command == "ls":
+            rows = store.list_all()
+            if not rows:
+                print("No trusted publishers.")
+            for name, identity in rows:
+                print(f"{name}\t{identity}")
+        elif args.trust_command == "add":
+            if args.remote_or_default == "default":
+                store.set_default(args.identity)
+                print(f"{green('✔')} default signer -> {args.identity}")
+            else:
+                from .releases import _normalize_remote
+
+                remote = _normalize_remote(args.remote_or_default)
+                store.set_remote(remote, args.identity)
+                print(f"{green('✔')} trusted {remote} -> {args.identity}")
+        elif args.trust_command == "rm":
+            if args.remote_or_default == "default":
+                ok = store.forget_default()
+            else:
+                from .releases import _normalize_remote
+
+                ok = store.forget_remote(_normalize_remote(args.remote_or_default))
+            if ok:
+                print(f"{green('✔')} forgot {args.remote_or_default}")
+            else:
+                print(f"No trust entry for {args.remote_or_default}")
+        elif args.trust_command == "set-default":
+            store.set_default(args.identity)
+            print(f"{green('✔')} default signer -> {args.identity}")
+        elif args.trust_command == "forget-default":
+            if store.forget_default():
+                print(f"{green('✔')} forgot default signer")
+            else:
+                print("No default signer set")
+        return
+
+    if args.command == "export":
+        try:
+            export_release(
+                args.remote,
+                args.output,
+                ref=args.ref,
+                verify_identity=args.verify,
+                insecure=args.insecure,
+                config_dir=_config(args),
+                all_artifacts=args.all_artifacts,
+            )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
+        return
+
+    if args.command == "discover":
+        store = DiscoverStore(_config(args))
+        cmd = args.discover_command or "listen"
+
+        def _print_packages(pkgs: list) -> None:
+            if not pkgs:
+                print("No Python packages cataloged yet.")
+                print(dim("Run: pip-rns discover scan"))
+                return
+            print(f"{header('⤵ Packages')} {len(pkgs)} from discovery")
+            for raw in pkgs:
+                from .discover_scan import DiscoveredPackage
+
+                pkg = (
+                    raw if hasattr(raw, "remote") else DiscoveredPackage.from_dict(raw)
+                )
+                if pkg is None:
+                    continue
+                print(f"  {format_package_line(pkg)}")
+                print(f"    {dim(install_hint(pkg))}")
+
+        if cmd == "ls":
+            rows = store.list()
+            if not rows:
+                print("No discovered nodes saved.")
+            for node in rows:
+                print(format_node_line(node))
+            pkgs = store.list_packages()
+            if pkgs:
+                print()
+                _print_packages(pkgs)
+            return
+        if cmd == "packages":
+            _print_packages(store.list_packages())
+            return
+        if cmd == "clear":
+            n = store.clear()
+            print(f"{green('✔')} cleared {n} discovered node(s)")
+            return
+        if cmd == "scan":
+            nodes = store.list()
+            if not nodes:
+                print(
+                    "No saved nodes. Run: pip-rns discover --save",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
+            print(f"{header('⤵ Scan')} {len(nodes)} node(s) for Python packages")
+            try:
+                pkgs = scan_nodes(
+                    nodes,
+                    reticulum_config=args.reticulum_config,
+                    check_releases=not args.no_releases,
+                    on_status=lambda m: print(f"  {dim(m)}"),
+                )
+            except Exception as exc:
+                print(str(exc), file=sys.stderr)
+                raise SystemExit(1) from exc
+            store.merge_packages(pkgs)
+            _print_packages(store.list_packages())
+            if pkgs:
+                print(
+                    f"{green('✔')} {len(pkgs)} package(s) saved. "
+                    f"Install with short name: pip-rns install <name>"
+                )
+            return
+
+        print(
+            f"{header('⤵ Discover')} listening for "
+            f"{bold('git.repositories')} "
+            f"{dim(f'({args.seconds:g}s)')}"
+        )
+
+        def _on_node(node):
+            label = node.node_name or "-"
+            print(f"  {green('heard')} {node.destination_hash}  {dim(label)}")
+
+        try:
+            nodes = discover_nodes(
+                seconds=args.seconds,
+                reticulum_config=args.reticulum_config,
+                on_announce=_on_node,
+            )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        if args.save and nodes:
+            store.merge(nodes)
+            print(f"{green('✔')} saved {len(nodes)} node(s) to {store.path}")
+        elif not nodes:
+            print(f"  {dim('no announces heard in window')}")
+        else:
+            print(f"{dim('heard')} {len(nodes)} node(s) (pass --save to remember)")
+            for node in nodes:
+                print(f"  {format_node_line(node)}")
+
+        if args.scan and nodes:
+            if args.save:
+                targets = store.list()
+            else:
+                targets = nodes
+            print(f"{header('⤵ Scan')} {len(targets)} node(s) for Python packages")
+            try:
+                pkgs = scan_nodes(
+                    targets,
+                    reticulum_config=args.reticulum_config,
+                    check_releases=not args.no_releases,
+                    on_status=lambda m: print(f"  {dim(m)}"),
+                )
+            except Exception as exc:
+                print(str(exc), file=sys.stderr)
+                raise SystemExit(1) from exc
+            store.merge_packages(pkgs)
+            _print_packages(store.list_packages())
+            if pkgs:
+                print(f"{green('✔')} install with short name: pip-rns install <name>")
+        return
+
     _boot(args)
 
     venv = getattr(args, "venv", None)
@@ -437,6 +755,10 @@ def main(argv: list[str] | None = None) -> None:
     from_release = getattr(args, "from_release", False)
     from_source = getattr(args, "from_source", False)
     verify_identity = getattr(args, "verify", None)
+    insecure = getattr(args, "insecure", False)
+    offline = getattr(args, "offline", False)
+    assume_yes = getattr(args, "yes", False)
+    require_release = getattr(args, "require_release", False)
 
     if from_release and from_source:
         print("Use either --from-release or --from-source, not both.", file=sys.stderr)
@@ -452,6 +774,10 @@ def main(argv: list[str] | None = None) -> None:
         from_release=from_release,
         from_source=from_source,
         verify_identity=verify_identity,
+        insecure=insecure,
+        offline=offline,
+        assume_yes=assume_yes,
+        require_release=require_release,
         venv_explicit=venv is not None,
         remember_venv=getattr(args, "remember_venv", False),
         forget_venv=getattr(args, "forget_venv", False),
@@ -468,6 +794,9 @@ def main(argv: list[str] | None = None) -> None:
         except KeyboardInterrupt:
             print("\nInterrupted.", file=sys.stderr)
             raise SystemExit(130)
+        except OfflineError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
@@ -480,6 +809,9 @@ def main(argv: list[str] | None = None) -> None:
         except KeyboardInterrupt:
             print("\nInterrupted.", file=sys.stderr)
             raise SystemExit(130)
+        except OfflineError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc

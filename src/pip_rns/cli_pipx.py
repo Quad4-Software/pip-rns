@@ -14,6 +14,7 @@ from .doctor import print_doctor, run_doctor
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
 from .errors import UserCancelled
+from .resolver import OfflineError
 from .ui import header, init as ui_init
 from .version import __version__
 
@@ -58,7 +59,7 @@ def main() -> None:
     p.add_argument(
         "--use-cache",
         action="store_true",
-        help="Cache clone locally; reuse cache when offline",
+        help="Cache clone locally. Reuse cache when offline",
     )
     p.add_argument(
         "--from-release",
@@ -79,8 +80,30 @@ def main() -> None:
         metavar="IDENTITY",
         help=(
             "Pin required release signer identity. "
+            "Also uses pip-rns trust store when unset. "
             "Release .rsm/.rsg are verified by default via rngit"
         ),
+    )
+    p.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Allow install when signed release verification is not confirmed",
+    )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Use local cache / paths only (no RNS fetch or clone)",
+    )
+    p.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip expensive-clone confirmation prompts",
+    )
+    p.add_argument(
+        "--require-release",
+        action="store_true",
+        help="Require a release wheel (no anonymous source tip)",
     )
     p.add_argument("extra", nargs="*")
 
@@ -89,6 +112,8 @@ def main() -> None:
     p.add_argument("remote")
     p.add_argument("--ref", metavar="TAG")
     p.add_argument("--use-cache", action="store_true")
+    p.add_argument("--offline", action="store_true")
+    p.add_argument("--yes", "-y", action="store_true")
     p.add_argument("extra", nargs="*")
 
     p = sub.add_parser(
@@ -110,9 +135,14 @@ def main() -> None:
         metavar="IDENTITY",
         help=(
             "Pin required release signer identity. "
+            "Also uses pip-rns trust store when unset. "
             "Release .rsm/.rsg are verified by default via rngit"
         ),
     )
+    p.add_argument("--insecure", action="store_true")
+    p.add_argument("--offline", action="store_true")
+    p.add_argument("--yes", "-y", action="store_true")
+    p.add_argument("--require-release", action="store_true")
     p.add_argument("extra", nargs="*")
 
     sub.add_parser("list", help="List pipx-installed packages")
@@ -170,6 +200,10 @@ def main() -> None:
     from_release = getattr(args, "from_release", False)
     from_source = getattr(args, "from_source", False)
     verify_identity = getattr(args, "verify", None)
+    insecure = getattr(args, "insecure", False)
+    offline = getattr(args, "offline", False)
+    assume_yes = getattr(args, "yes", False)
+    require_release = getattr(args, "require_release", False)
 
     if from_release and from_source:
         print("Use either --from-release or --from-source, not both.", file=sys.stderr)
@@ -187,6 +221,10 @@ def main() -> None:
                 from_release=from_release,
                 from_source=from_source,
                 verify_identity=verify_identity,
+                insecure=insecure,
+                offline=offline,
+                assume_yes=assume_yes,
+                require_release=require_release,
                 no_interactive=no_interactive,
                 config_dir=cfg,
             )
@@ -196,6 +234,9 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\nInterrupted.", file=sys.stderr)
             raise SystemExit(130)
+        except OfflineError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
@@ -228,6 +269,10 @@ def main() -> None:
                 from_release=from_release,
                 from_source=from_source,
                 verify_identity=verify_identity,
+                insecure=insecure,
+                offline=offline,
+                assume_yes=assume_yes,
+                require_release=require_release,
                 no_interactive=no_interactive,
                 config_dir=cfg,
             )
@@ -237,6 +282,9 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\nInterrupted.", file=sys.stderr)
             raise SystemExit(130)
+        except OfflineError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc

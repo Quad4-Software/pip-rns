@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.3.1
+
+### Added
+
+- Trust store for release publishers (`pip-rns trust add|rm|ls|set-default`)
+- Default and per-remote signer pins used when `--verify` is unset
+- `--offline` installs from local cache / paths only (no RNS fetch)
+- `--insecure` opt-out of fail-closed signature confirmation
+- `--require-release` to refuse anonymous source tips
+- `--yes` / `-y` to skip expensive RNS clone confirmation
+- `pip-rns export` to mirror release wheels and signatures for sneakernet
+- Doctor checks for trust store and source cache
+- `pip-rns discover` listens for announced rngit nodes (`git.repositories`)
+- Discover store (`discover ls` / `clear`) and doctor checks for RNS + heard nodes
+- `pip-rns discover scan` catalogs Python packages (Nomad pages, packages indexes, release wheels)
+- Short-name install from discovered packages (`pip-rns install lxmfy`)
+- Single-source version in `src/pip_rns/version.py` (hatch dynamic version)
+
+### Changed
+
+- Signed releases fail closed when verification is not confirmed (unless `--insecure`)
+- Branch-like refs (`@master`, `@main`) clone from source without a release probe
+- Bare remotes prompt for install mode on a TTY (`pip-rns rns://…` works as install shorthand)
+- RNS source installs reuse a local cache and fetch/update instead of full recloning
+- Interactive warning before first expensive RNS source clone
+- Ctrl-C and prompt cancel exit cleanly (status 130)
+- README leads with user-chosen sources and sneakernet, indexes as opt-in peers
+
 ## 1.3.0
 
 ### Added
@@ -22,10 +50,6 @@
 - Present `.rsg` sidecars are verified by default via embedded pubkey (`--signer` pins identity)
 - Release `.rsm`/`.rsg` verification is default via rngit (`--verify` pins identity)
 - Installer failures (PEP 668, permissions, missing pip) show recovery hints and can prompt for a venv
-- Branch-like refs (`@master`, `@main`) clone from source without a release probe
-- Bare remotes prompt for install mode on a TTY (`pip-rns rns://…` works as install shorthand)
-- RNS source installs reuse a local cache and fetch/update instead of full recloning
-- Ctrl-C and prompt cancel exit cleanly (status 130)
 - Clearer signature error text
 - Colors off on classic Windows cmd PowerShell and CI unless forced
 - uv update uses reinstall

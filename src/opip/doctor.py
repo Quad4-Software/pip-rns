@@ -31,7 +31,7 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
             Check(
                 "rnid",
                 False,
-                "not on PATH (pip install rns) — needed to sign/verify",
+                "not on PATH (pip install rns). needed to sign/verify",
                 "warn",
             )
         )

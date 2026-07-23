@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import Callable
 
 from .installer import BaseInstaller, InstallerError, get_installer
-from .resolver import Resolver, normalize_url, parse_ref, ref_implies_source
+from .resolver import (
+    OfflineError,
+    Resolver,
+    normalize_url,
+    parse_ref,
+    ref_implies_source,
+)
 from .ui import bold, dim, green, header, success, yellow
 
 
@@ -62,6 +68,7 @@ _ACTIONS: dict[str, _ActionFn] = {
 
 def _resolve_remote_label(remote: str) -> str:
     from .aliases import get_manager as get_alias_mgr
+    from .discover import DiscoverStore
     from .indexes import get_manager as get_index_mgr
 
     amgr = get_alias_mgr()
@@ -70,6 +77,10 @@ def _resolve_remote_label(remote: str) -> str:
     imgr = get_index_mgr()
     if imgr is not None:
         remote = imgr.resolve(remote)
+    if "/" not in remote and "://" not in remote:
+        found = DiscoverStore().resolve_package(remote)
+        if found:
+            remote = found
     return normalize_url(remote)
 
 
@@ -145,7 +156,7 @@ def _installer_for_venv(venv: str, preferred: str = "pip") -> str:
     if _bootstrap_pip(venv):
         return "pip"
     if shutil.which("uv") is not None:
-        print(f"  {dim('venv has no pip; using uv pip --python')}")
+        print(f"  {dim('venv has no pip. using uv pip --python')}")
         return "uv"
     return "pip"
 
@@ -272,6 +283,27 @@ def _probe_release_wheel(remote: str, ref: str | None) -> tuple[str, str] | None
     return tag, whl
 
 
+def _maybe_remember_signer(store, remote: str, identity: str) -> None:
+    """Optionally save a discovered signer to the trust store."""
+    from .errors import UserCancelled
+
+    print(f"  {dim('Discovered signer')} {bold(identity)}")
+    try:
+        answer = (
+            input("Remember as trusted publisher for this remote? [y/N/d=default]: ")
+            .strip()
+            .lower()
+        )
+    except (EOFError, KeyboardInterrupt) as exc:
+        raise UserCancelled("Cancelled.") from exc
+    if answer in ("y", "yes"):
+        store.set_remote(remote, identity)
+        print(f"  {green('trusted')} {remote}")
+    elif answer in ("d", "default"):
+        store.set_default(identity)
+        print(f"  {green('default signer')} {identity}")
+
+
 def _run(
     remote: str,
     action: str,
@@ -283,6 +315,8 @@ def _run(
     ref: str | None = None,
     use_cache: bool = False,
     no_interactive: bool = False,
+    offline: bool = False,
+    assume_yes: bool = False,
 ) -> None:
     if ref is None:
         remote, ref = parse_ref(remote)
@@ -292,6 +326,28 @@ def _run(
     resolved = _resolve_remote_label(remote)
 
     print(f"{header('⤵ Resolving')} {bold(label)}")
+    if offline:
+        print(f"  {dim('offline: cache / local only')}")
+
+    from .cost_warn import confirm_expensive_rns_clone
+    from .resolver import CACHE_DIR, PERSISTENT_DIR, normalize_url, repo_hash
+
+    # Warn only when a fresh network clone is likely (no cache yet)
+    if not offline and action in ("install", "update", "inject"):
+        url = normalize_url(resolved)
+        if url.startswith("rns://"):
+            if editable:
+                dest = PERSISTENT_DIR / repo_hash(url)
+            else:
+                cache_key = repo_hash(f"{url}@{ref}" if ref else url)
+                dest = CACHE_DIR / cache_key
+            if not (dest / ".git").exists():
+                confirm_expensive_rns_clone(
+                    resolved,
+                    no_interactive=no_interactive,
+                    assume_yes=assume_yes,
+                )
+
     inst = get_installer(installer, venv=venv)
     resolver = Resolver()
     package_path = resolver.resolve(
@@ -299,6 +355,7 @@ def _run(
         editable=editable,
         ref=ref,
         use_cache=use_cache,
+        offline=offline,
     )
 
     status = getattr(resolver, "last_status", None)
@@ -334,13 +391,13 @@ def _run(
                 inject_venv=inject_venv,
             )
     except Exception:
-        _cleanup(package_path, editable, use_cache=use_cache)
+        _cleanup(package_path, editable, use_cache=use_cache or offline)
         raise
 
-    _cleanup(package_path, editable, use_cache=use_cache)
+    _cleanup(package_path, editable, use_cache=use_cache or offline)
     _print_status(
         resolved=resolved,
-        mode="source clone",
+        mode="source clone" + (" (offline)" if offline else ""),
         dest=_dest_label(venv),
         signer="not requested",
     )
@@ -359,6 +416,10 @@ def install(
     from_release: bool = False,
     from_source: bool = False,
     verify_identity: str | None = None,
+    insecure: bool = False,
+    offline: bool = False,
+    assume_yes: bool = False,
+    require_release: bool = False,
     venv_explicit: bool = False,
     remember_venv: bool = False,
     forget_venv: bool = False,
@@ -368,16 +429,23 @@ def install(
     """Install a package from a remote (prefer release wheel when available)."""
     if from_release and from_source:
         raise ValueError("Use either --from-release or --from-source, not both")
+    if require_release:
+        from_release = True
+        if from_source or editable:
+            raise ValueError(
+                "--require-release cannot be combined with --from-source/--editable"
+            )
 
     remote_base, embedded_ref = parse_ref(remote)
     if ref is None:
         ref = embedded_ref
     explicit_from_source = from_source
-    # Branch-like @master/@main skips release probe; version tags still prefer wheels
+    # Branch-like @master/@main skips release probe. Version tags still prefer wheels.
     if (
         not from_release
         and not from_source
         and not editable
+        and not require_release
         and ref_implies_source(ref)
     ):
         from_source = True
@@ -385,6 +453,7 @@ def install(
     resolved = _resolve_remote_label(remote_base)
     # Prefer full normalize after alias resolve with ref stripped for prefs key
     from .releases import _normalize_remote
+    from .trust import resolve_verify_identity
     from .venv_prefs import VenvPrefs, maybe_remember_venv
 
     prefs = VenvPrefs(config_dir)
@@ -399,6 +468,15 @@ def install(
             print(f"  {dim('Using remembered venv:')} {venv}")
     elif venv:
         venv = str(Path(venv).expanduser().resolve())
+
+    signer = resolve_verify_identity(
+        remote_key,
+        explicit=verify_identity,
+        insecure=insecure,
+        config_dir=config_dir,
+    )
+    if signer and not verify_identity:
+        print(f"  {dim('Using trusted signer:')} {signer}")
 
     # Bare remote (no ref / mode): offer interactive choices
     if not ref and not from_source and not from_release and not editable:
@@ -432,6 +510,8 @@ def install(
             ref=ref,
             use_cache=use_cache,
             no_interactive=no_interactive,
+            offline=offline,
+            assume_yes=assume_yes,
         )
         maybe_remember_venv(
             prefs,
@@ -445,15 +525,49 @@ def install(
         return
 
     if from_release:
+        if offline:
+            raise OfflineError(
+                "Offline: release fetch needs RNS. "
+                "Use a local .opip / exported wheel, or cache a source clone."
+            )
         venv = install_from_release(
             resolved,
             installer=installer,
             ref=ref,
             extra_args=extra_args,
             venv=venv,
-            verify_identity=verify_identity,
+            verify_identity=signer,
+            insecure=insecure,
             require_wheel=True,
             no_interactive=no_interactive,
+            config_dir=config_dir,
+        )
+        maybe_remember_venv(
+            prefs,
+            remote_key,
+            venv,
+            venv_explicit=venv_explicit or bool(venv),
+            remember=remember_venv,
+            forget=False,
+            no_interactive=no_interactive,
+        )
+        return
+
+    if offline:
+        # No release probe over RNS. Use cached source only.
+        print(f"  {dim('Offline: skipping release probe. using cache')}")
+        _run(
+            resolved,
+            "install",
+            installer=installer,
+            editable=editable,
+            extra_args=extra_args,
+            venv=venv,
+            ref=ref,
+            use_cache=True,
+            no_interactive=no_interactive,
+            offline=True,
+            assume_yes=assume_yes,
         )
         maybe_remember_venv(
             prefs,
@@ -478,12 +592,16 @@ def install(
             ref=tag if probe_ref is None and tag != "latest" else (probe_ref or tag),
             extra_args=extra_args,
             venv=venv,
-            verify_identity=verify_identity,
+            verify_identity=signer,
+            insecure=insecure,
             require_wheel=True,
             no_interactive=no_interactive,
+            config_dir=config_dir,
         )
     else:
-        print(f"  {dim('No release wheel; cloning source')}")
+        if require_release:
+            raise RuntimeError("No release wheel found (--require-release)")
+        print(f"  {dim('No release wheel. cloning source')}")
         _run(
             resolved,
             "install",
@@ -494,6 +612,8 @@ def install(
             ref=ref,
             use_cache=use_cache,
             no_interactive=no_interactive,
+            offline=offline,
+            assume_yes=assume_yes,
         )
 
     maybe_remember_venv(
@@ -519,6 +639,10 @@ def update(
     from_release: bool = False,
     from_source: bool = False,
     verify_identity: str | None = None,
+    insecure: bool = False,
+    offline: bool = False,
+    assume_yes: bool = False,
+    require_release: bool = False,
     venv_explicit: bool = False,
     remember_venv: bool = False,
     forget_venv: bool = False,
@@ -537,6 +661,10 @@ def update(
         from_release=from_release,
         from_source=from_source,
         verify_identity=verify_identity,
+        insecure=insecure,
+        offline=offline,
+        assume_yes=assume_yes,
+        require_release=require_release,
         venv_explicit=venv_explicit,
         remember_venv=remember_venv,
         forget_venv=forget_venv,
@@ -553,8 +681,10 @@ def install_from_release(
     venv: str | None = None,
     ref: str | None = None,
     verify_identity: str | None = None,
+    insecure: bool = False,
     require_wheel: bool = False,
     no_interactive: bool = False,
+    config_dir: str | None = None,
 ) -> str | None:
     from .releases import (
         _normalize_remote,
@@ -564,6 +694,7 @@ def install_from_release(
         release_has_signatures,
         release_info,
     )
+    from .trust import TrustStore
 
     remote = _normalize_remote(remote)
     _, group, repo = _parse_rns_url(remote)
@@ -588,20 +719,48 @@ def install_from_release(
         return venv
 
     print(f"  {dim('artifact:')} {whl}")
+    signed = release_has_signatures(artifacts)
 
     fetched = fetch_release_artifact(remote, tag, whl, verify_identity=verify_identity)
     whl_path = fetched.path
     print(f"  {dim(f'downloaded {whl}')}")
-    # rngit release fetch validates .rsm and artifact .rsg before returning
-    print(f"  {green('signature valid')}")
-    if verify_identity:
-        signer_status = f"verified {verify_identity}"
-    elif fetched.signer:
-        signer_status = f"verified {fetched.signer}"
-    elif fetched.verified or release_has_signatures(artifacts):
-        signer_status = "verified (release .rsm/.rsg)"
+
+    # Fail closed: signed release must show verification unless --insecure
+    if signed and not fetched.verified and not verify_identity and not insecure:
+        if os.path.isfile(whl_path):
+            os.unlink(whl_path)
+        raise RuntimeError(
+            f"Release {tag}: signatures present but verification did not confirm. "
+            "Refuse to install (fail closed). Pass --verify IDENTITY, "
+            "run pip-rns trust add, or use --insecure to override."
+        )
+    if signed and insecure and not fetched.verified:
+        print(f"  {yellow('insecure: skipping signature confirmation')}")
+        signer_status = "insecure (unverified)"
+    elif not signed:
+        print(f"  {dim('unsigned release')}")
+        signer_status = "unsigned release"
     else:
-        signer_status = "verified (release fetch)"
+        print(f"  {green('signature valid')}")
+        if verify_identity:
+            signer_status = f"verified {verify_identity}"
+        elif fetched.signer:
+            signer_status = f"verified {fetched.signer}"
+        else:
+            signer_status = "verified (release .rsm/.rsg)"
+
+    # Offer to remember signer when we learned one and store is empty for remote
+    from opip.interactive import is_noninteractive
+
+    if (
+        not insecure
+        and fetched.signer
+        and not verify_identity
+        and not is_noninteractive(no_interactive)
+    ):
+        store = TrustStore(config_dir)
+        if not store.get_remote(remote) and not store.get_default():
+            _maybe_remember_signer(store, remote, fetched.signer)
 
     inst = get_installer(installer, venv=venv)
     try:

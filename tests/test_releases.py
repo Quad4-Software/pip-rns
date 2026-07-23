@@ -1,4 +1,4 @@
-"""Tests for releases.py — URL parsing, artifact picking, release view parsing."""
+"""Tests for releases.py. URL parsing, artifact picking, release view parsing."""
 
 from __future__ import annotations
 

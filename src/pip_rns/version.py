@@ -1,3 +1,3 @@
 """Package version for pip-rns and opip (single source of truth)."""
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
