@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from .installer import BaseInstaller, InstallerError, get_installer
-from .resolver import Resolver, normalize_url, parse_ref
+from .resolver import Resolver, normalize_url, parse_ref, ref_implies_source
 from .ui import bold, dim, green, header, success, yellow
 
 
@@ -195,8 +195,10 @@ def _offer_managed_env_recovery(
     print("  3) Abort")
     try:
         choice = input("Choice [1/2/3]: ").strip() or "1"
-    except EOFError:
-        return None
+    except (EOFError, KeyboardInterrupt) as exc:
+        from .errors import UserCancelled
+
+        raise UserCancelled("Cancelled.") from exc
 
     if choice == "2":
         return "pipx", None
@@ -205,8 +207,10 @@ def _offer_managed_env_recovery(
 
     try:
         path = input("Venv path [.venv]: ").strip() or ".venv"
-    except EOFError:
-        path = ".venv"
+    except (EOFError, KeyboardInterrupt) as exc:
+        from .errors import UserCancelled
+
+        raise UserCancelled("Cancelled.") from exc
     try:
         created = _ensure_venv(path)
     except Exception as exc:
@@ -289,15 +293,21 @@ def _run(
 
     print(f"{header('⤵ Resolving')} {bold(label)}")
     inst = get_installer(installer, venv=venv)
-    package_path = Resolver().resolve(
+    resolver = Resolver()
+    package_path = resolver.resolve(
         remote,
         editable=editable,
         ref=ref,
         use_cache=use_cache,
     )
 
-    if use_cache and not editable:
-        print(f"  {dim('using cached copy')}")
+    status = getattr(resolver, "last_status", None)
+    if status == "updated":
+        print(f"  {dim('updated cached clone')}")
+    elif status == "cached":
+        print(f"  {dim('using cached clone')}")
+    elif use_cache and not editable:
+        print(f"  {dim('cached clone ready')}")
 
     fn = _ACTIONS.get(action)
     if fn is None:
@@ -359,7 +369,20 @@ def install(
     if from_release and from_source:
         raise ValueError("Use either --from-release or --from-source, not both")
 
-    resolved = _resolve_remote_label(remote.split("@")[0] if "@" in remote else remote)
+    remote_base, embedded_ref = parse_ref(remote)
+    if ref is None:
+        ref = embedded_ref
+    explicit_from_source = from_source
+    # Branch-like @master/@main skips release probe; version tags still prefer wheels
+    if (
+        not from_release
+        and not from_source
+        and not editable
+        and ref_implies_source(ref)
+    ):
+        from_source = True
+
+    resolved = _resolve_remote_label(remote_base)
     # Prefer full normalize after alias resolve with ref stripped for prefs key
     from .releases import _normalize_remote
     from .venv_prefs import VenvPrefs, maybe_remember_venv
@@ -377,15 +400,30 @@ def install(
     elif venv:
         venv = str(Path(venv).expanduser().resolve())
 
+    # Bare remote (no ref / mode): offer interactive choices
+    if not ref and not from_source and not from_release and not editable:
+        from .install_prompt import offer_install_options
+
+        choice = offer_install_options(resolved, no_interactive=no_interactive)
+        if choice is not None:
+            from_source = choice.from_source
+            from_release = choice.from_release
+            if choice.ref is not None:
+                ref = choice.ref
+            if from_source:
+                explicit_from_source = True
+
     if editable or from_source:
         if from_release:
             raise ValueError(
                 "--from-release cannot be combined with --editable/--from-source"
             )
-        if from_source:
+        if explicit_from_source:
             print(f"  {dim('Cloning source (--from-source)')}")
+        elif ref:
+            print(f"  {dim(f'Cloning source (@{ref})')}")
         _run(
-            remote,
+            resolved,
             "install",
             installer=installer,
             editable=editable,
@@ -408,7 +446,7 @@ def install(
 
     if from_release:
         venv = install_from_release(
-            remote,
+            resolved,
             installer=installer,
             ref=ref,
             extra_args=extra_args,
@@ -428,11 +466,8 @@ def install(
         )
         return
 
-    probe_remote = remote
+    probe_remote = resolved
     probe_ref = ref
-    if probe_ref is None:
-        probe_remote, probe_ref = parse_ref(remote)
-    probe_remote = _resolve_remote_label(probe_remote)
     hit = _probe_release_wheel(probe_remote, probe_ref)
     if hit:
         tag, whl = hit
@@ -450,7 +485,7 @@ def install(
     else:
         print(f"  {dim('No release wheel; cloning source')}")
         _run(
-            remote,
+            resolved,
             "install",
             installer=installer,
             editable=editable,

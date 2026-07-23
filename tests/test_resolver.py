@@ -76,3 +76,67 @@ def test_repo_hash_different_urls_differ():
     h1 = repo_hash("rns://abc/def/ghi")
     h2 = repo_hash("rns://xyz/def/ghi")
     assert h1 != h2
+
+
+def test_rns_source_defaults_to_cache_and_updates():
+    from unittest import mock
+
+    from pip_rns.resolver import Resolver, CACHE_DIR, repo_hash
+
+    url = "rns://aabb/g/repo"
+    dest = CACHE_DIR / repo_hash(f"{url}@master")
+    fake = mock.Mock()
+    with mock.patch("pip_rns.resolver.get_resolver", return_value=fake):
+        with mock.patch(
+            "pip_rns.resolver._ensure_clone", return_value="updated"
+        ) as ensure:
+            path = Resolver().resolve(url, ref="master")
+    assert path == dest
+    assert ensure.called
+    assert ensure.call_args.kwargs.get("update_existing") is True
+
+
+def test_ensure_clone_updates_existing_git_checkout():
+    from unittest import mock
+    from pathlib import Path
+    import tempfile
+
+    from pip_rns.resolver import _ensure_clone
+
+    with tempfile.TemporaryDirectory() as tmp:
+        dest = Path(tmp) / "repo"
+        dest.mkdir()
+        (dest / ".git").mkdir()
+        fake = mock.Mock()
+        status = _ensure_clone(
+            fake, "rns://id/g/r", dest, ref="master", update_existing=True
+        )
+        assert status == "updated"
+        fake.update.assert_called_once()
+        fake.clone.assert_not_called()
+
+
+def test_ensure_clone_cleans_partial_on_interrupt():
+    from unittest import mock
+    from pathlib import Path
+    import tempfile
+
+    from pip_rns.resolver import _ensure_clone
+
+    with tempfile.TemporaryDirectory() as tmp:
+        dest = Path(tmp) / "repo"
+        fake = mock.Mock()
+
+        def boom(*_a, **_k):
+            dest.mkdir(parents=True, exist_ok=True)
+            raise KeyboardInterrupt()
+
+        fake.clone.side_effect = boom
+        try:
+            _ensure_clone(
+                fake, "rns://id/g/r", dest, ref="master", update_existing=True
+            )
+            assert False, "expected KeyboardInterrupt"
+        except KeyboardInterrupt:
+            pass
+        assert not dest.exists()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -62,6 +63,44 @@ def parse_ref(remote: str) -> tuple[str, str | None]:
     if last_at > last_slash:
         return remote[:last_at], remote[last_at + 1 :] or None
     return remote, None
+
+
+_VERSION_REF_RE = re.compile(r"^v?\d+(\.\d+)*([a-zA-Z0-9._+-]*)?$")
+_BRANCH_REF_NAMES = frozenset(
+    {
+        "master",
+        "main",
+        "trunk",
+        "develop",
+        "development",
+        "dev",
+        "head",
+        "default",
+        "stable",
+        "next",
+    }
+)
+
+
+def ref_implies_source(ref: str | None) -> bool:
+    """
+    True when ref looks like a branch/commit, not a release version tag.
+
+    Version-like refs (v1.2.3, 1.2.3) still prefer release wheels.
+    Branch names like master/main skip the release probe.
+    """
+    if not ref:
+        return False
+    name = ref.strip()
+    if not name:
+        return False
+    if name.lower() in _BRANCH_REF_NAMES:
+        return True
+    if _VERSION_REF_RE.match(name):
+        return False
+    if re.fullmatch(r"[0-9a-fA-F]{7,40}", name):
+        return True
+    return True
 
 
 def repo_hash(url: str) -> str:
@@ -128,6 +167,42 @@ class RnsResolver(GitResolver):
 register_scheme("rns", RnsResolver)
 
 
+def _ensure_clone(
+    resolver: BaseResolver,
+    url: str,
+    dest: Path,
+    *,
+    ref: str | None,
+    update_existing: bool,
+) -> str:
+    """
+    Clone into dest, or update an existing checkout.
+
+    Returns a short status label: 'cloned', 'updated', or 'cached'.
+    Cleans up incomplete dest on interrupt.
+    """
+    git_dir = dest / ".git"
+    try:
+        if dest.exists() and git_dir.exists():
+            if update_existing:
+                resolver.update(url, dest, ref=ref)
+                return "updated"
+            return "cached"
+        if dest.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        resolver.clone(url, dest, ref=ref)
+        return "cloned"
+    except KeyboardInterrupt:
+        if dest.exists() and not git_dir.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+        raise
+    except Exception:
+        if dest.exists() and not git_dir.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+        raise
+
+
 class Resolver:
     """Facade that normalizes a remote string, selects the right resolver, and produces a local clone."""
 
@@ -155,23 +230,34 @@ class Resolver:
 
         resolver = get_resolver(url)
 
+        # RNS clones are expensive; prefer persistent cache + fetch unless disabled
+        if (
+            not editable
+            and not use_cache
+            and url.startswith("rns://")
+            and os.environ.get("PIP_RNS_NO_CACHE", "").strip()
+            not in ("1", "true", "yes")
+        ):
+            use_cache = True
+
         if editable:
             dest = PERSISTENT_DIR / repo_hash(url)
-            if dest.exists():
-                resolver.update(url, dest, ref=ref)
-            else:
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                resolver.clone(url, dest, ref=ref)
+            status = _ensure_clone(resolver, url, dest, ref=ref, update_existing=True)
+            self.last_status = status
             return dest
 
         if use_cache:
             cache_key = repo_hash(f"{url}@{ref}" if ref else url)
             dest = CACHE_DIR / cache_key
-            if not dest.exists():
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                resolver.clone(url, dest, ref=ref)
+            status = _ensure_clone(resolver, url, dest, ref=ref, update_existing=True)
+            self.last_status = status
             return dest
 
-        tmpdir = Path(tempfile.mkdtemp())
-        resolver.clone(url, tmpdir, ref=ref)
+        tmpdir = Path(tempfile.mkdtemp(prefix="pip-rns-"))
+        try:
+            resolver.clone(url, tmpdir, ref=ref)
+        except BaseException:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            raise
+        self.last_status = "cloned"
         return tmpdir

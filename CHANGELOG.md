@@ -22,6 +22,10 @@
 - Present `.rsg` sidecars are verified by default via embedded pubkey (`--signer` pins identity)
 - Release `.rsm`/`.rsg` verification is default via rngit (`--verify` pins identity)
 - Installer failures (PEP 668, permissions, missing pip) show recovery hints and can prompt for a venv
+- Branch-like refs (`@master`, `@main`) clone from source without a release probe
+- Bare remotes prompt for install mode on a TTY (`pip-rns rns://…` works as install shorthand)
+- RNS source installs reuse a local cache and fetch/update instead of full recloning
+- Ctrl-C and prompt cancel exit cleanly (status 130)
 - Clearer signature error text
 - Colors off on classic Windows cmd PowerShell and CI unless forced
 - uv update uses reinstall

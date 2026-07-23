@@ -13,6 +13,7 @@ from .core import update as update_fn
 from .doctor import print_doctor, run_doctor
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
+from .errors import UserCancelled
 from .ui import header, init as ui_init
 from .version import __version__
 
@@ -66,8 +67,12 @@ def main() -> None:
     )
     p.add_argument(
         "--from-source",
+        "-s",
         action="store_true",
-        help="Force clone/install from source (skip release probe)",
+        help=(
+            "Force clone/install from source (skip release probe). "
+            "Also implied by branch-like refs such as @master or @main"
+        ),
     )
     p.add_argument(
         "--verify",
@@ -94,7 +99,12 @@ def main() -> None:
     p.add_argument("--ref", metavar="TAG")
     p.add_argument("--use-cache", action="store_true")
     p.add_argument("--from-release", action="store_true")
-    p.add_argument("--from-source", action="store_true")
+    p.add_argument(
+        "--from-source",
+        "-s",
+        action="store_true",
+        help="Force clone from source (also implied by @master/@main)",
+    )
     p.add_argument(
         "--verify",
         metavar="IDENTITY",
@@ -180,6 +190,12 @@ def main() -> None:
                 no_interactive=no_interactive,
                 config_dir=cfg,
             )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
@@ -192,6 +208,12 @@ def main() -> None:
                 ref=ref,
                 use_cache=use_cache,
             )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
@@ -209,6 +231,12 @@ def main() -> None:
                 no_interactive=no_interactive,
                 config_dir=cfg,
             )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc

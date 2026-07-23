@@ -74,6 +74,8 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
 # or 
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy@v1.6.3
+# branch (clones source; no release probe)
+pip-rns install rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum@master
 ```
 
 #### Adding an index (example)
@@ -90,7 +92,7 @@ You choose which indexes to trust. None are added automatically.
 #### `pip-rns` (generic)
 
 ```
-pip-rns install <identity/group/repo> [--from-release|--from-source] [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--remember-venv] [-- <tool flags>]
+pip-rns [install] <identity/group/repo> [--from-release|--from-source|-s] [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache] [--venv PATH] [--remember-venv] [-- <tool flags>]
 pip-rns update <remote> [options]
 pip-rns list [--pipx] [--uv] [--poetry]
 pip-rns uninstall <package> [--pipx] [--uv] [--poetry]
@@ -103,7 +105,7 @@ pip-rns doctor [--online]
 pip-rns completion install [--shell bash|zsh|fish]
 ```
 
-Install prefers a release `.whl` when one exists (use `--from-source` to force a clone, or `--from-release` to require a wheel). Indexes are opt-in: add only remotes you choose.
+`pip-rns rns://id/group/repo` is shorthand for install. With no `@ref` / mode flags on a TTY, you get a menu (latest release, clone master/main, pick a release). Install prefers a release `.whl` when one exists (use `--from-source`/`-s` to force a clone, or `--from-release` to require a wheel). Branch-like refs such as `@master` or `@main` clone from source automatically. RNS source installs reuse `~/.local/share/pip-rns/cache` and fetch/update on repeat (set `PIP_RNS_NO_CACHE=1` to force a fresh temp clone). Indexes are opt-in: add only remotes you choose.
 
 #### `pipx-rns` (pipx-specific)
 

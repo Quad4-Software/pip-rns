@@ -17,6 +17,7 @@ from .doctor import print_doctor, run_doctor
 from .indexes import get_manager as get_index_mgr
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
+from .errors import UserCancelled
 from .releases import list_releases, release_info
 from .ui import bold, dim, green, header, init as ui_init
 from .venv_prefs import VenvPrefs
@@ -54,8 +55,12 @@ def _add_common_install_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--from-source",
+        "-s",
         action="store_true",
-        help="Force clone/install from source (skip release probe)",
+        help=(
+            "Force clone/install from source (skip release probe). "
+            "Also implied by branch-like refs such as @master or @main"
+        ),
     )
     p.add_argument(
         "--verify",
@@ -86,18 +91,94 @@ def _boot(args) -> None:
     index_init()
 
 
-def main() -> None:
+_COMMANDS = frozenset(
+    {
+        "install",
+        "update",
+        "list",
+        "uninstall",
+        "alias",
+        "index",
+        "release",
+        "bundle",
+        "doctor",
+        "completion",
+        "venv",
+    }
+)
+
+
+def _looks_like_remote(token: str) -> bool:
+    if not token or token.startswith("-"):
+        return False
+    low = token.lower()
+    if low.startswith("rns://"):
+        return True
+    # identity/group/repo or alias-ish path with a slash
+    if "/" in token and "://" not in token:
+        return True
+    return False
+
+
+def _inject_install_command(argv: list[str]) -> list[str]:
+    """Allow `pip-rns rns://...` as shorthand for `pip-rns install rns://...`."""
+    if len(argv) < 2:
+        return argv
+    # skip global flags before the first positional
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--version", "-h", "--help"):
+            return argv
+        if (
+            arg.startswith("--")
+            and "=" not in arg
+            and arg
+            in (
+                "--no-color",
+                "--no-interactive",
+                "--config",
+            )
+        ):
+            if arg == "--config" and i + 1 < len(argv):
+                i += 2
+                continue
+            i += 1
+            continue
+        if arg.startswith("--config="):
+            i += 1
+            continue
+        if arg.startswith("-"):
+            i += 1
+            continue
+        break
+    if i >= len(argv):
+        return argv
+    token = argv[i]
+    if token in _COMMANDS:
+        return argv
+    if _looks_like_remote(token):
+        return argv[:i] + ["install"] + argv[i:]
+    return argv
+
+
+def main(argv: list[str] | None = None) -> None:
+    if argv is None:
+        argv = sys.argv[1:]
+    else:
+        argv = list(argv)
+    argv = _inject_install_command(argv)
+
     parser = argparse.ArgumentParser(
         prog="pip-rns",
         description="Install Python packages from Reticulum (rns://) remotes",
         epilog=(
             "Examples:\n"
+            "  pip-rns rns://id/group/repo\n"
             "  pip-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy\n"
             "  pip-rns install --pipx repo@v1.0.0\n"
+            "  pip-rns rns://id/group/repo@master\n"
             "  pip-rns alias add myapp 06a54b50.../public/MyApp\n"
-            "  pip-rns install myapp -- --break-system-packages\n"
-            "  pip-rns index add rns://identity/group/index\n"
-            "  pip-rns index sync && pip-rns index search lxmf\n"
             "  pip-rns doctor\n"
             "  pip-rns completion install"
         ),
@@ -221,7 +302,7 @@ def main() -> None:
 
     register_bundle_parsers(sub)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     ui_init(no_color=args.no_color)
     no_interactive = bool(getattr(args, "no_interactive", False))
 
@@ -381,12 +462,24 @@ def main() -> None:
     if args.command == "install":
         try:
             install(args.remote, **install_kwargs)
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
     elif args.command == "update":
         try:
             update_fn(args.remote, **install_kwargs)
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
