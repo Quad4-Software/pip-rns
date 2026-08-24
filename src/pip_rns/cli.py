@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from typing import TypedDict
 
 from .aliases import get_manager as get_alias_mgr
 from .aliases import init as alias_init
@@ -24,17 +25,39 @@ from .discover_scan import (
     scan_nodes,
 )
 from .doctor import print_doctor, run_doctor
+from .errors import UserCancelled
 from .export_cmd import export_release
 from .indexes import get_manager as get_index_mgr
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
-from .errors import UserCancelled
 from .releases import list_releases, release_info
 from .resolver import OfflineError
 from .trust import TrustStore
-from .ui import bold, dim, green, header, init as ui_init
+from .ui import bold, dim, green, header
+from .ui import init as ui_init
 from .venv_prefs import VenvPrefs
 from .version import __version__
+
+
+class _InstallKw(TypedDict):
+    installer: str
+    editable: bool
+    extra_args: list[str] | None
+    venv: str | None
+    ref: str | None
+    use_cache: bool
+    from_release: bool
+    from_source: bool
+    verify_identity: str | None
+    insecure: bool
+    offline: bool
+    assume_yes: bool
+    require_release: bool
+    venv_explicit: bool
+    remember_venv: bool
+    forget_venv: bool
+    no_interactive: bool
+    config_dir: str | None
 
 
 def _add_common_install_args(p: argparse.ArgumentParser) -> None:
@@ -156,9 +179,7 @@ def _looks_like_remote(token: str) -> bool:
     if low.startswith("rns://"):
         return True
     # identity/group/repo or alias-ish path with a slash
-    if "/" in token and "://" not in token:
-        return True
-    return False
+    return bool("/" in token and "://" not in token)
 
 
 def _inject_install_command(argv: list[str]) -> list[str]:
@@ -204,10 +225,7 @@ def _inject_install_command(argv: list[str]) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> None:
-    if argv is None:
-        argv = sys.argv[1:]
-    else:
-        argv = list(argv)
+    argv = sys.argv[1:] if argv is None else list(argv)
     argv = _inject_install_command(argv)
 
     parser = argparse.ArgumentParser(
@@ -231,7 +249,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--version",
         action="version",
-        version="pip-rns {0}".format(__version__),
+        version=f"pip-rns {__version__}",
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"
@@ -623,16 +641,16 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "discover":
-        store = DiscoverStore(_config(args))
+        discover_store = DiscoverStore(_config(args))
         cmd = args.discover_command or "listen"
 
-        def _print_packages(pkgs: list) -> None:
-            if not pkgs:
+        def _print_packages(catalog: list) -> None:
+            if not catalog:
                 print("No Python packages cataloged yet.")
                 print(dim("Run: pip-rns discover scan"))
                 return
-            print(f"{header('⤵ Packages')} {len(pkgs)} from discovery")
-            for raw in pkgs:
+            print(f"{header('⤵ Packages')} {len(catalog)} from discovery")
+            for raw in catalog:
                 from .discover_scan import DiscoveredPackage
 
                 pkg = (
@@ -644,35 +662,35 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"    {dim(install_hint(pkg))}")
 
         if cmd == "ls":
-            rows = store.list()
-            if not rows:
+            saved_nodes = discover_store.list_nodes()
+            if not saved_nodes:
                 print("No discovered nodes saved.")
-            for node in rows:
-                print(format_node_line(node))
-            pkgs = store.list_packages()
-            if pkgs:
+            for heard in saved_nodes:
+                print(format_node_line(heard))
+            saved_catalog = discover_store.list_packages()
+            if saved_catalog:
                 print()
-                _print_packages(pkgs)
+                _print_packages(saved_catalog)
             return
         if cmd == "packages":
-            _print_packages(store.list_packages())
+            _print_packages(discover_store.list_packages())
             return
         if cmd == "clear":
-            n = store.clear()
+            n = discover_store.clear()
             print(f"{green('✔')} cleared {n} discovered node(s)")
             return
         if cmd == "scan":
-            nodes = store.list()
-            if not nodes:
+            saved_nodes = discover_store.list_nodes()
+            if not saved_nodes:
                 print(
                     "No saved nodes. Run: pip-rns discover --save",
                     file=sys.stderr,
                 )
                 raise SystemExit(1)
-            print(f"{header('⤵ Scan')} {len(nodes)} node(s) for Python packages")
+            print(f"{header('⤵ Scan')} {len(saved_nodes)} node(s) for Python packages")
             try:
-                pkgs = scan_nodes(
-                    nodes,
+                scanned = scan_nodes(
+                    saved_nodes,
                     reticulum_config=args.reticulum_config,
                     check_releases=not args.no_releases,
                     on_status=lambda m: print(f"  {dim(m)}"),
@@ -680,11 +698,11 @@ def main(argv: list[str] | None = None) -> None:
             except Exception as exc:
                 print(str(exc), file=sys.stderr)
                 raise SystemExit(1) from exc
-            store.merge_packages(pkgs)
-            _print_packages(store.list_packages())
-            if pkgs:
+            discover_store.merge_packages(scanned)
+            _print_packages(discover_store.list_packages())
+            if scanned:
                 print(
-                    f"{green('✔')} {len(pkgs)} package(s) saved. "
+                    f"{green('✔')} {len(scanned)} package(s) saved. "
                     f"Install with short name: pip-rns install <name>"
                 )
             return
@@ -700,7 +718,7 @@ def main(argv: list[str] | None = None) -> None:
             print(f"  {green('heard')} {node.destination_hash}  {dim(label)}")
 
         try:
-            nodes = discover_nodes(
+            heard_nodes = discover_nodes(
                 seconds=args.seconds,
                 reticulum_config=args.reticulum_config,
                 on_announce=_on_node,
@@ -715,25 +733,26 @@ def main(argv: list[str] | None = None) -> None:
             print(str(exc), file=sys.stderr)
             raise SystemExit(1) from exc
 
-        if args.save and nodes:
-            store.merge(nodes)
-            print(f"{green('✔')} saved {len(nodes)} node(s) to {store.path}")
-        elif not nodes:
+        if args.save and heard_nodes:
+            discover_store.merge(heard_nodes)
+            print(
+                f"{green('✔')} saved {len(heard_nodes)} node(s) to {discover_store.path}"
+            )
+        elif not heard_nodes:
             print(f"  {dim('no announces heard in window')}")
         else:
-            print(f"{dim('heard')} {len(nodes)} node(s) (pass --save to remember)")
-            for node in nodes:
-                print(f"  {format_node_line(node)}")
+            print(
+                f"{dim('heard')} {len(heard_nodes)} node(s) (pass --save to remember)"
+            )
+            for heard in heard_nodes:
+                print(f"  {format_node_line(heard)}")
 
-        if args.scan and nodes:
-            if args.save:
-                targets = store.list()
-            else:
-                targets = nodes
-            print(f"{header('⤵ Scan')} {len(targets)} node(s) for Python packages")
+        if args.scan and heard_nodes:
+            scan_targets = discover_store.list_nodes() if args.save else heard_nodes
+            print(f"{header('⤵ Scan')} {len(scan_targets)} node(s) for Python packages")
             try:
-                pkgs = scan_nodes(
-                    targets,
+                scanned = scan_nodes(
+                    scan_targets,
                     reticulum_config=args.reticulum_config,
                     check_releases=not args.no_releases,
                     on_status=lambda m: print(f"  {dim(m)}"),
@@ -741,9 +760,9 @@ def main(argv: list[str] | None = None) -> None:
             except Exception as exc:
                 print(str(exc), file=sys.stderr)
                 raise SystemExit(1) from exc
-            store.merge_packages(pkgs)
-            _print_packages(store.list_packages())
-            if pkgs:
+            discover_store.merge_packages(scanned)
+            _print_packages(discover_store.list_packages())
+            if scanned:
                 print(f"{green('✔')} install with short name: pip-rns install <name>")
         return
 
@@ -764,26 +783,26 @@ def main(argv: list[str] | None = None) -> None:
         print("Use either --from-release or --from-source, not both.", file=sys.stderr)
         raise SystemExit(2)
 
-    install_kwargs = dict(
-        installer=inst,
-        editable=getattr(args, "editable", False),
-        extra_args=getattr(args, "extra", None) or None,
-        venv=venv,
-        ref=ref,
-        use_cache=use_cache,
-        from_release=from_release,
-        from_source=from_source,
-        verify_identity=verify_identity,
-        insecure=insecure,
-        offline=offline,
-        assume_yes=assume_yes,
-        require_release=require_release,
-        venv_explicit=venv is not None,
-        remember_venv=getattr(args, "remember_venv", False),
-        forget_venv=getattr(args, "forget_venv", False),
-        no_interactive=no_interactive,
-        config_dir=_config(args),
-    )
+    install_kwargs: _InstallKw = {
+        "installer": inst,
+        "editable": getattr(args, "editable", False),
+        "extra_args": getattr(args, "extra", None) or None,
+        "venv": venv,
+        "ref": ref,
+        "use_cache": use_cache,
+        "from_release": from_release,
+        "from_source": from_source,
+        "verify_identity": verify_identity,
+        "insecure": insecure,
+        "offline": offline,
+        "assume_yes": assume_yes,
+        "require_release": require_release,
+        "venv_explicit": venv is not None,
+        "remember_venv": getattr(args, "remember_venv", False),
+        "forget_venv": getattr(args, "forget_venv", False),
+        "no_interactive": no_interactive,
+        "config_dir": _config(args),
+    }
 
     if args.command == "install":
         try:

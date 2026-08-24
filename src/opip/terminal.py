@@ -3,7 +3,6 @@
 import os
 import sys
 
-
 _CODES = {
     "reset": "\033[0m",
     "bold": "\033[1m",
@@ -39,9 +38,7 @@ def _windows_color_host_ok():
     if _env_truthy("ANSICON") or _env_truthy("ConEmuANSI"):
         return True
     term = (os.environ.get("TERM") or "").strip().lower()
-    if term.startswith("xterm") or term in ("cygwin", "ansi", "mintty"):
-        return True
-    return False
+    return bool(term.startswith("xterm") or term in ("cygwin", "ansi", "mintty"))
 
 
 def enable_windows_vt():
@@ -181,4 +178,4 @@ def heading(text):
 
 
 def bullet(label, desc):
-    write_out("  {0}  {1}".format(cyan(label), desc))
+    write_out(f"  {cyan(label)}  {desc}")

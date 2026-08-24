@@ -1,5 +1,6 @@
 """Safe zip extraction with Zip Slip and zip-bomb guards."""
 
+import contextlib
 import os
 import stat
 import zipfile
@@ -24,13 +25,11 @@ def safe_member_path(dest_dir, member_name):
 
     name = member_name.replace("\\", "/")
     if name.startswith("/") or (len(name) > 1 and name[1] == ":"):
-        raise UnsafeZipError(
-            "Absolute zip member path rejected: {0}".format(member_name)
-        )
+        raise UnsafeZipError(f"Absolute zip member path rejected: {member_name}")
 
     parts = [p for p in name.split("/") if p not in ("", ".")]
     if any(p == ".." for p in parts):
-        raise UnsafeZipError("Path traversal in zip member: {0}".format(member_name))
+        raise UnsafeZipError(f"Path traversal in zip member: {member_name}")
     if not parts:
         return None
 
@@ -39,9 +38,9 @@ def safe_member_path(dest_dir, member_name):
     try:
         common = os.path.commonpath([dest_root, dest])
     except ValueError:
-        raise UnsafeZipError("Zip member escapes destination: {0}".format(member_name))
+        raise UnsafeZipError(f"Zip member escapes destination: {member_name}")
     if common != dest_root:
-        raise UnsafeZipError("Zip member escapes destination: {0}".format(member_name))
+        raise UnsafeZipError(f"Zip member escapes destination: {member_name}")
     return dest
 
 
@@ -73,21 +72,15 @@ def extract_zip_safe(
             if info.is_dir() or info.filename.endswith("/"):
                 continue
             if _is_symlink_member(info):
-                raise UnsafeZipError(
-                    "Symlink zip member rejected: {0}".format(info.filename)
-                )
+                raise UnsafeZipError(f"Symlink zip member rejected: {info.filename}")
             if info.file_size > max_member_bytes:
                 raise UnsafeZipError(
-                    "Zip member too large ({0} bytes): {1}".format(
-                        info.file_size, info.filename
-                    )
+                    f"Zip member too large ({info.file_size} bytes): {info.filename}"
                 )
             total += info.file_size
             if total > max_total_bytes:
                 raise UnsafeZipError(
-                    "Zip total uncompressed size exceeds limit ({0} bytes)".format(
-                        max_total_bytes
-                    )
+                    f"Zip total uncompressed size exceeds limit ({max_total_bytes} bytes)"
                 )
 
             dest = safe_member_path(dest_root, info.filename)
@@ -100,54 +93,38 @@ def extract_zip_safe(
                     os.makedirs(parent, exist_ok=True)
                 except OSError as exc:
                     raise UnsafeZipError(
-                        "Cannot create parent for zip member {0}: {1}".format(
-                            info.filename, exc
-                        )
+                        f"Cannot create parent for zip member {info.filename}: {exc}"
                     )
 
             if os.path.isdir(dest):
                 raise UnsafeZipError(
-                    "Zip member path is an existing directory: {0}".format(
-                        info.filename
-                    )
+                    f"Zip member path is an existing directory: {info.filename}"
                 )
             if os.path.lexists(dest) and os.path.islink(dest):
                 raise UnsafeZipError(
-                    "Refusing to overwrite symlink at zip member path: {0}".format(
-                        info.filename
-                    )
+                    f"Refusing to overwrite symlink at zip member path: {info.filename}"
                 )
 
             written = 0
             try:
-                out = open(dest, "wb")
+                with open(dest, "wb") as out:
+                    with zf.open(info, "r") as src:
+                        while True:
+                            chunk = src.read(CHUNK_SIZE)
+                            if not chunk:
+                                break
+                            written += len(chunk)
+                            if written > max_member_bytes:
+                                with contextlib.suppress(OSError):
+                                    os.remove(dest)
+                                raise UnsafeZipError(
+                                    f"Zip member exceeded size limit while reading: {info.filename}"
+                                )
+                            out.write(chunk)
             except OSError as exc:
                 raise UnsafeZipError(
-                    "Cannot open zip member destination {0}: {1}".format(
-                        info.filename, exc
-                    )
-                )
-            try:
-                with zf.open(info, "r") as src:
-                    while True:
-                        chunk = src.read(CHUNK_SIZE)
-                        if not chunk:
-                            break
-                        written += len(chunk)
-                        if written > max_member_bytes:
-                            out.close()
-                            try:
-                                os.remove(dest)
-                            except OSError:
-                                pass
-                            raise UnsafeZipError(
-                                "Zip member exceeded size limit while reading: {0}".format(
-                                    info.filename
-                                )
-                            )
-                        out.write(chunk)
-            finally:
-                out.close()
+                    f"Cannot open zip member destination {info.filename}: {exc}"
+                ) from exc
 
 
 def safe_artifact_name(filename):
@@ -163,11 +140,11 @@ def safe_artifact_name(filename):
         raise ValueError("Empty artifact filename")
     if "/" in name or "\\" in name:
         raise ValueError(
-            "Artifact filename must not contain path separators: {0}".format(filename)
+            f"Artifact filename must not contain path separators: {filename}"
         )
     base = os.path.basename(name)
     if base != name or base in (".", "..") or ".." in base:
-        raise ValueError("Unsafe artifact filename: {0}".format(filename))
+        raise ValueError(f"Unsafe artifact filename: {filename}")
     return base
 
 
@@ -183,14 +160,14 @@ def contain_path(root_dir, rel_path):
     normalized = str(rel_path).replace("\\", "/")
     parts = [p for p in normalized.split("/") if p not in ("", ".")]
     if any(p == ".." for p in parts):
-        raise ValueError("Path escapes root: {0}".format(rel_path))
+        raise ValueError(f"Path escapes root: {rel_path}")
     if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
-        raise ValueError("Absolute path rejected: {0}".format(rel_path))
+        raise ValueError(f"Absolute path rejected: {rel_path}")
     target = os.path.abspath(os.path.join(root, *parts))
     try:
         common = os.path.commonpath([root, target])
     except ValueError:
-        raise ValueError("Path escapes root: {0}".format(rel_path))
+        raise ValueError(f"Path escapes root: {rel_path}")
     if common != root:
-        raise ValueError("Path escapes root: {0}".format(rel_path))
+        raise ValueError(f"Path escapes root: {rel_path}")
     return target

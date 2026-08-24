@@ -54,20 +54,17 @@ def test_fail_closed_signed_unverified():
     with mock.patch(
         "pip_rns.releases.release_info",
         return_value={"tag": "v1", "artifacts": artifacts},
-    ):
-        with mock.patch(
-            "pip_rns.releases.fetch_release_artifact", return_value=fetched
-        ):
-            try:
-                install_from_release(
-                    "rns://aabbccddeeff00112233445566778899/g/repo",
-                    ref="v1",
-                    require_wheel=True,
-                    no_interactive=True,
-                )
-                raise AssertionError("expected fail-closed RuntimeError")
-            except RuntimeError as exc:
-                assert "fail closed" in str(exc).lower() or "Refuse" in str(exc)
+    ), mock.patch("pip_rns.releases.fetch_release_artifact", return_value=fetched):
+        try:
+            install_from_release(
+                "rns://aabbccddeeff00112233445566778899/g/repo",
+                ref="v1",
+                require_wheel=True,
+                no_interactive=True,
+            )
+            raise AssertionError("expected fail-closed RuntimeError")
+        except RuntimeError as exc:
+            assert "fail closed" in str(exc).lower() or "Refuse" in str(exc)
 
 
 def test_insecure_allows_unverified_signed():
@@ -86,19 +83,16 @@ def test_insecure_allows_unverified_signed():
     with mock.patch(
         "pip_rns.releases.release_info",
         return_value={"tag": "v1", "artifacts": artifacts},
+    ), mock.patch(
+        "pip_rns.releases.fetch_release_artifact", return_value=fetched
+    ), mock.patch("pip_rns.core.get_installer", return_value=FakeInst()), mock.patch(
+        "pip_rns.core._install_package",
+        return_value=(FakeInst(), None),
     ):
-        with mock.patch(
-            "pip_rns.releases.fetch_release_artifact", return_value=fetched
-        ):
-            with mock.patch("pip_rns.core.get_installer", return_value=FakeInst()):
-                with mock.patch(
-                    "pip_rns.core._install_package",
-                    return_value=(FakeInst(), None),
-                ):
-                    install_from_release(
-                        "rns://aabbccddeeff00112233445566778899/g/repo",
-                        ref="v1",
-                        require_wheel=True,
-                        insecure=True,
-                        no_interactive=True,
-                    )
+        install_from_release(
+            "rns://aabbccddeeff00112233445566778899/g/repo",
+            ref="v1",
+            require_wheel=True,
+            insecure=True,
+            no_interactive=True,
+        )

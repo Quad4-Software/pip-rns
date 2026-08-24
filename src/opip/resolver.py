@@ -10,10 +10,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from opip import pypi_cache
 from opip.wheel import parse_wheel_filename, pick_best_wheel
 
-
 PYPI_URL = "https://pypi.org/pypi/{package}/json"
 PYPI_RELEASE_URL = "https://pypi.org/pypi/{package}/{version}/json"
-USER_AGENT = "opip/{0} (+https://github.com/Quad4-Software/pip-rns)".format(
+USER_AGENT = "opip/{} (+https://github.com/Quad4-Software/pip-rns)".format(
     __import__("opip").__version__
 )
 
@@ -139,8 +138,8 @@ def fetch_pypi_json(package, timeout=60):
         data = _fetch_url(url, timeout=timeout)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            raise ResolutionError("Package not found on PyPI: {0}".format(package))
-        raise ResolutionError("PyPI error for {0}: {1}".format(package, exc))
+            raise ResolutionError(f"Package not found on PyPI: {package}")
+        raise ResolutionError(f"PyPI error for {package}: {exc}")
 
     pypi_cache.put(cache_key, data)
     return data
@@ -149,7 +148,7 @@ def fetch_pypi_json(package, timeout=60):
 def fetch_release_json(package, version, timeout=60):
     """Fetch version-specific metadata from PyPI."""
     package = normalize_name(package)
-    cache_key = "rel:{0}:{1}".format(package, version)
+    cache_key = f"rel:{package}:{version}"
     cached = pypi_cache.get(cache_key)
     if cached is not None:
         return cached
@@ -160,9 +159,7 @@ def fetch_release_json(package, version, timeout=60):
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return None
-        raise ResolutionError(
-            "PyPI error for {0} {1}: {2}".format(package, version, exc)
-        )
+        raise ResolutionError(f"PyPI error for {package} {version}: {exc}")
 
     if data is not None:
         pypi_cache.put(cache_key, data)
@@ -265,7 +262,7 @@ def select_wheel_url(pypi_data, req_info, py_version, platform_tag):
         if best:
             return best
     raise ResolutionError(
-        "No compatible wheel for {0} ({1}) on {2}/{3}".format(
+        "No compatible wheel for {} ({}) on {}/{}".format(
             name, spec or "any", py_version, platform_tag
         )
     )
@@ -324,13 +321,13 @@ def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
     merged = {}
     if progress:
         sys.stderr.write(
-            "Universal bundle across {0} platforms\n".format(len(UNIVERSAL_PLATFORMS))
+            f"Universal bundle across {len(UNIVERSAL_PLATFORMS)} platforms\n"
         )
         sys.stderr.flush()
 
     for plat in UNIVERSAL_PLATFORMS:
         if progress:
-            sys.stderr.write("  resolving for {0}...\n".format(plat))
+            sys.stderr.write(f"  resolving for {plat}...\n")
             sys.stderr.flush()
         specs = _resolve_single_platform(
             requirements,
@@ -344,7 +341,7 @@ def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
             merged[spec["filename"]] = spec
 
     if progress:
-        sys.stderr.write("Universal bundle: {0} unique wheels\n".format(len(merged)))
+        sys.stderr.write(f"Universal bundle: {len(merged)} unique wheels\n")
         sys.stderr.flush()
     return list(merged.values())
 
@@ -381,9 +378,7 @@ def _resolve_single_platform(
 
         if progress:
             sys.stderr.write(
-                "Resolving {0} packages ({1} done)...\n".format(
-                    len(pending), len(resolved)
-                )
+                f"Resolving {len(pending)} packages ({len(resolved)} done)...\n"
             )
             sys.stderr.flush()
 
@@ -417,7 +412,7 @@ def _resolve_single_platform(
                     except ResolutionError:
                         raise
 
-        for (req_info, raw, is_top), wheel in results:
+        for (req_info, _, _), wheel in results:
             if wheel is None:
                 continue
             name = req_info["name"]
@@ -442,14 +437,14 @@ def detect_platform():
         import struct
 
         bits = struct.calcsize("P") * 8
-        return "win_{0}".format("amd64" if bits == 64 else "32")
+        return "win_{}".format("amd64" if bits == 64 else "32")
     if sys.platform == "darwin":
         import platform as plat
 
         mac_ver = plat.mac_ver()[0].split(".")
         major = mac_ver[0] if mac_ver else "10"
         minor = mac_ver[1] if len(mac_ver) > 1 else "9"
-        return "macosx_{0}_{1}_x86_64".format(major, minor)
+        return f"macosx_{major}_{minor}_x86_64"
     import platform as plat
 
     machine = plat.machine().lower()
@@ -458,13 +453,13 @@ def detect_platform():
     if machine.startswith("aarch64") or machine.startswith("arm64"):
         return "manylinux2014_aarch64"
     if sys.platform.startswith("freebsd"):
-        return "freebsd_{0}".format(machine)
+        return f"freebsd_{machine}"
     if sys.platform.startswith("openbsd"):
-        return "openbsd_{0}".format(machine)
+        return f"openbsd_{machine}"
     if sys.platform.startswith("netbsd"):
-        return "netbsd_{0}".format(machine)
+        return f"netbsd_{machine}"
     return "any"
 
 
 def detect_python_version():
-    return "{0}.{1}".format(sys.version_info.major, sys.version_info.minor)
+    return f"{sys.version_info.major}.{sys.version_info.minor}"

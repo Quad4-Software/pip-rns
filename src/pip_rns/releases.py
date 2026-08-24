@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import os
 import re
@@ -9,8 +10,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import NamedTuple, Optional
-
+from typing import NamedTuple
 
 SIGNED_BY_RE = re.compile(
     r"signed by\s+<?([0-9a-fA-F]{32})>?",
@@ -120,7 +120,7 @@ def _parse_release_list(text: str) -> list[dict]:
     return releases
 
 
-def _pick_whl(artifacts: list[dict[str, str]]) -> Optional[str]:
+def _pick_whl(artifacts: list[dict[str, str]]) -> str | None:
     whls = [
         a["name"]
         for a in artifacts
@@ -138,7 +138,7 @@ def _pick_whl(artifacts: list[dict[str, str]]) -> Optional[str]:
 
 def _pick_opip(
     artifacts: list[dict[str, str]], pattern: str | None = None
-) -> Optional[str]:
+) -> str | None:
     names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
     if not names:
         return None
@@ -207,10 +207,8 @@ def _copy_sidecar_if_present(
     if fetched.path != rsg_dest:
         shutil.copy2(fetched.path, rsg_dest)
     if fetched.path != bundle_path and os.path.isfile(fetched.path):
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(fetched.path)
-        except OSError:
-            pass
 
 
 def fetch_release_bundle(

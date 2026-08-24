@@ -50,9 +50,7 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
     try:
         store = Store(data_dir=base)
         n = len(store.list_preferred_targets())
-        checks.append(
-            Check("dest-prefs", True, "{0} remembered destinations".format(n), "pass")
-        )
+        checks.append(Check("dest-prefs", True, f"{n} remembered destinations", "pass"))
     except Exception as exc:
         checks.append(Check("dest-prefs", False, str(exc), "warn"))
 
@@ -81,10 +79,9 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
         subprocess.run(
             [sys.executable, "-m", "pip", "--version"],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
-        checks.append(Check("pip", True, "{0} -m pip".format(sys.executable), "pass"))
+        checks.append(Check("pip", True, f"{sys.executable} -m pip", "pass"))
     except Exception:
         checks.append(Check("pip", False, "python -m pip unavailable", "warn"))
 
@@ -102,7 +99,5 @@ def print_doctor(checks: list[Check]) -> int:
             mark = terminal.red("FAIL")
             if not c.ok:
                 failed += 1
-        terminal.write_out(
-            "  [{0}] {1}: {2}".format(mark, c.name, terminal.dim(c.detail))
-        )
+        terminal.write_out(f"  [{mark}] {c.name}: {terminal.dim(c.detail)}")
     return 1 if failed else 0

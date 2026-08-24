@@ -12,7 +12,6 @@ from pip_rns.installer import (
     run_installer_cmd,
 )
 
-
 PEP668 = """
 error: externally-managed-environment
 
@@ -70,7 +69,7 @@ def test_run_installer_cmd_raises_classified_error():
     with mock.patch("pip_rns.installer.subprocess.run", return_value=fake):
         try:
             run_installer_cmd(["pip", "install", "x.whl"])
-            assert False, "expected InstallerError"
+            raise AssertionError("expected InstallerError")
         except InstallerError as exc:
             assert exc.kind == "externally_managed"
 
@@ -82,7 +81,7 @@ def test_run_installer_cmd_missing_binary():
     ):
         try:
             run_installer_cmd(["pip", "install", "x.whl"])
-            assert False, "expected InstallerError"
+            raise AssertionError("expected InstallerError")
         except InstallerError as exc:
             assert exc.kind == "missing_command"
 
@@ -128,15 +127,14 @@ def test_install_package_retries_with_venv():
         core,
         "_offer_managed_env_recovery",
         return_value=("pip", "/tmp/venv"),
-    ):
-        with mock.patch.object(core, "get_installer", return_value=retry):
-            inst, venv = core._install_package(
-                first,
-                pkg,
-                installer_name="pip",
-                venv=None,
-                no_interactive=False,
-            )
+    ), mock.patch.object(core, "get_installer", return_value=retry):
+        inst, venv = core._install_package(
+            first,
+            pkg,
+            installer_name="pip",
+            venv=None,
+            no_interactive=False,
+        )
     assert venv == "/tmp/venv"
     assert retry.install.called
 
@@ -156,15 +154,14 @@ def test_install_package_switches_to_uv_when_venv_lacks_pip():
         core,
         "_offer_managed_env_recovery",
         return_value=("uv", "/tmp/venv"),
-    ) as offer:
-        with mock.patch.object(core, "get_installer", return_value=retry):
-            _inst, venv = core._install_package(
-                first,
-                pkg,
-                installer_name="pip",
-                venv="/tmp/venv",
-                no_interactive=True,
-            )
+    ) as offer, mock.patch.object(core, "get_installer", return_value=retry):
+        _inst, venv = core._install_package(
+            first,
+            pkg,
+            installer_name="pip",
+            venv="/tmp/venv",
+            no_interactive=True,
+        )
     assert offer.called
     assert venv == "/tmp/venv"
     assert retry.install.called

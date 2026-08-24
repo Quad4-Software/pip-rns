@@ -45,6 +45,7 @@ packages = ["src/pip_rns", "src/opip", "scripts"]
 dev = [
     "hypothesis>=6.79.4",
     "mypy>=1.4.1",
+    "ruff>=0.9.0",
 ]
 
 [tool.mypy]
@@ -54,3 +55,23 @@ explicit_package_bases = true
 warn_return_any = true
 warn_unused_configs = true
 packages = ["pip_rns", "opip", "tests"]
+
+[[tool.mypy.overrides]]
+module = "RNS"
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py37"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "W"]
+ignore = [
+    "B904",
+    "E501",
+    "SIM117",
+]
+
+[tool.ruff.format]
+quote-style = "double"

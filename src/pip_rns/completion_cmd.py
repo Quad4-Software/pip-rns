@@ -6,7 +6,6 @@ import os
 import shutil
 from pathlib import Path
 
-
 COMPLETION_FILES = {
     "bash": ("completions/pip-rns.bash", "pip-rns"),
     "zsh": ("completions/_pip-rns", "_pip-rns"),
@@ -34,7 +33,7 @@ def _dest_dir(shell: str) -> Path:
         return home / ".local" / "share" / "zsh" / "site-functions"
     if shell == "fish":
         return home / ".local" / "share" / "fish" / "vendor_completions.d"
-    raise ValueError("Unsupported shell: {0} (use bash, zsh, or fish)".format(shell))
+    raise ValueError(f"Unsupported shell: {shell} (use bash, zsh, or fish)")
 
 
 def _find_source(rel: str) -> Path | None:
@@ -44,12 +43,6 @@ def _find_source(rel: str) -> Path | None:
         here.parents[1] / rel,
         Path.cwd() / rel,
     ]
-    try:
-        pass
-
-        # packaged layout may expose completions next to project root only
-    except Exception:
-        pass
     for path in candidates:
         if path.is_file():
             return path
@@ -68,18 +61,16 @@ def install_completions(
     """
     shell = detect_shell(shell)
     if shell not in COMPLETION_FILES:
-        raise ValueError("Unsupported shell: {0}".format(shell))
+        raise ValueError(f"Unsupported shell: {shell}")
     rel, dest_name = COMPLETION_FILES[shell]
     src = _find_source(rel)
     if src is None:
         raise FileNotFoundError(
-            "Completion file not found: {0}. Run from a source checkout or reinstall pip-rns.".format(
-                rel
-            )
+            f"Completion file not found: {rel}. Run from a source checkout or reinstall pip-rns."
         )
     dest_dir = _dest_dir(shell)
     dest = dest_dir / dest_name
-    lines = ["{0} -> {1}".format(src, dest)]
+    lines = [f"{src} -> {dest}"]
     if dry_run:
         return lines
     dest_dir.mkdir(parents=True, exist_ok=True)

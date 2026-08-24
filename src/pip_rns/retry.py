@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import time
-from typing import Callable, Type
+from typing import Callable
 
 
 def retry(
     max_attempts: int = 3,
     delay: float = 1.0,
     backoff: float = 2.0,
-    exceptions: tuple[Type[Exception], ...] = (Exception,),
+    exceptions: tuple[type[Exception], ...] = (Exception,),
 ) -> Callable:
     def decorator(fn: Callable) -> Callable:
         def wrapper(*args, **kwargs):

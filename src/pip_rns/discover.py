@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
 
 RNGIT_ASPECT = "git.repositories"
 
@@ -149,7 +149,7 @@ class DiscoverStore:
         self.save()
         return count
 
-    def list(self) -> list[DiscoveredNode]:
+    def list_nodes(self) -> list[DiscoveredNode]:
         return sorted(
             self._nodes.values(),
             key=lambda x: (-x.heard_at, x.destination_hash),
@@ -279,10 +279,8 @@ def discover_nodes(
     try:
         time.sleep(max(0.0, float(seconds)))
     finally:
-        try:
+        with contextlib.suppress(Exception):
             RNS.Transport.deregister_announce_handler(h)
-        except Exception:
-            pass
 
     return sorted(
         handler.found.values(),

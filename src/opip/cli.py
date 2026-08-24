@@ -4,14 +4,14 @@ import argparse
 import os
 import sys
 
-from opip import __version__
+from opip import __version__, terminal
 from opip.bundle import BundleError, bundle_info, create_bundle, read_requirements_file
 from opip.config import apply_defaults
 from opip.export import ExportError, export_bundle
 from opip.help_pages import interactive_help, show_command_help, show_main_help
 from opip.install import InstallError, install_from_source, uninstall_from_file
 from opip.interactive import is_noninteractive
-from opip.open_handler import OpenError, open_bundle
+from opip.keys import IdentityError, generate_identity, identity_hash
 from opip.listing import (
     format_bundle_table,
     format_install_table,
@@ -20,13 +20,12 @@ from opip.listing import (
     show_bundle_info,
 )
 from opip.manifest import BUNDLE_EXTENSION
+from opip.open_handler import OpenError, open_bundle
 from opip.project import ProjectError, detect_project, merge_optional_requirements
+from opip.signing import SigningError
 from opip.storage import Store
-from opip import terminal
 from opip.uninstall import UninstallError, uninstall_bundle
 from opip.update import UpdateError, update_bundle
-from opip.keys import IdentityError, generate_identity, identity_hash
-from opip.signing import SigningError
 from opip.verify import verify_bundle_file
 
 
@@ -41,7 +40,7 @@ def build_parser():
     parser.add_argument(
         "--version",
         action="version",
-        version="opip {0}".format(__version__),
+        version=f"opip {__version__}",
     )
     parser.add_argument(
         "--data-dir",
@@ -462,7 +461,7 @@ def _resolve_create_plan(args):
             project_info, project_dir, include_dev=args.with_dev
         )
         if project_info.source:
-            terminal.info("Using {0} from {1}".format(project_info.source, project_dir))
+            terminal.info(f"Using {project_info.source} from {project_dir}")
 
     if not reqs:
         raise BundleError(
@@ -490,9 +489,7 @@ def _resolve_include_project(args, project_info, project_dir):
         return False
     if args.include_project:
         return True
-    if project_info and project_info.source in ("setup.py", "pyproject.toml"):
-        return True
-    return False
+    return bool(project_info and project_info.source in ("setup.py", "pyproject.toml"))
 
 
 def _prompt_bundle_name(no_interactive):
@@ -536,9 +533,9 @@ def _dispatch(args, store):
             path,
             manifest,
         )
-        terminal.success("Created bundle: {0}".format(path))
+        terminal.success(f"Created bundle: {path}")
         terminal.write_out(
-            "  {0} wheels for Python {1} on {2}".format(
+            "  {} wheels for Python {} on {}".format(
                 len(manifest.get("wheels", [])),
                 manifest.get("python_version"),
                 manifest.get("platform"),
@@ -564,20 +561,20 @@ def _dispatch(args, store):
             forget_target=args.forget_target,
             no_interactive=args.no_interactive,
         )
-        terminal.success("Installed {0} packages from bundle.".format(len(packages)))
+        terminal.success(f"Installed {len(packages)} packages from bundle.")
         for pkg in packages:
-            terminal.write_out("  {0}".format(pkg))
+            terminal.write_out(f"  {pkg}")
         dest = args.target or ("user site" if args.user else "system/active")
         if args.no_verify:
             signer = "skipped (--no-verify)"
         elif args.signer:
-            signer = "verified {0}".format(args.signer)
+            signer = f"verified {args.signer}"
         else:
             signer = "auto (.rsg when present)"
-        terminal.write_out(terminal.dim("Resolved: {0}".format(args.source)))
+        terminal.write_out(terminal.dim(f"Resolved: {args.source}"))
         terminal.write_out(terminal.dim("Mode: opip bundle"))
-        terminal.write_out(terminal.dim("Dest: {0}".format(dest)))
-        terminal.write_out(terminal.dim("Signer: {0}".format(signer)))
+        terminal.write_out(terminal.dim(f"Dest: {dest}"))
+        terminal.write_out(terminal.dim(f"Signer: {signer}"))
         return 0
 
     if args.command == "dest":
@@ -590,9 +587,7 @@ def _dispatch(args, store):
             user=args.user,
             target=args.target,
         )
-        terminal.success(
-            "Uninstalled {0} packages from {1}.".format(len(packages), args.bundle)
-        )
+        terminal.success(f"Uninstalled {len(packages)} packages from {args.bundle}.")
         return 0
 
     if args.command == "uninstall-file":
@@ -602,7 +597,7 @@ def _dispatch(args, store):
             user=args.user,
             target=args.target,
         )
-        terminal.success("Uninstalled {0} packages.".format(len(packages)))
+        terminal.success(f"Uninstalled {len(packages)} packages.")
         return 0
 
     if args.command == "open":
@@ -615,14 +610,14 @@ def _dispatch(args, store):
             target_explicit=args.target is not None,
         )
         if packages:
-            terminal.success("Done. {0} packages affected.".format(len(packages)))
+            terminal.success(f"Done. {len(packages)} packages affected.")
         return 0
 
     if args.command == "export":
         out, manifest = export_bundle(args.source, args.output, store=store)
-        terminal.success("Exported bundle: {0}".format(out))
+        terminal.success(f"Exported bundle: {out}")
         terminal.write_out(
-            "  {0} wheels, Python {1}, {2}".format(
+            "  {} wheels, Python {}, {}".format(
                 len(manifest.get("wheels", [])),
                 manifest.get("python_version"),
                 manifest.get("platform"),
@@ -631,7 +626,7 @@ def _dispatch(args, store):
         return 0
 
     if args.command == "register-windows":
-        from opip.windows import register_windows, WindowsIntegrationError
+        from opip.windows import WindowsIntegrationError, register_windows
 
         try:
             register_windows()
@@ -642,7 +637,7 @@ def _dispatch(args, store):
         return 0
 
     if args.command == "unregister-windows":
-        from opip.windows import unregister_windows, WindowsIntegrationError
+        from opip.windows import WindowsIntegrationError, unregister_windows
 
         try:
             unregister_windows()
@@ -661,7 +656,7 @@ def _dispatch(args, store):
             user=args.user,
             target=args.target,
         )
-        terminal.success("Updated bundle: {0}".format(path))
+        terminal.success(f"Updated bundle: {path}")
         return 0
 
     if args.command == "verify":
@@ -672,9 +667,9 @@ def _dispatch(args, store):
             require_pypi_hash=args.require_pypi_hash,
         )
         if ok:
-            terminal.success("Bundle OK: {0}".format(args.bundle))
+            terminal.success(f"Bundle OK: {args.bundle}")
             terminal.write_out(
-                "  {0} wheels, Python {1}, {2}".format(
+                "  {} wheels, Python {}, {}".format(
                     len(manifest.get("wheels", [])),
                     manifest.get("python_version"),
                     manifest.get("platform"),
@@ -685,16 +680,16 @@ def _dispatch(args, store):
             return 0
         terminal.error("Bundle verification failed:")
         for err in errors:
-            terminal.write_err("  {0}".format(err))
+            terminal.write_err(f"  {err}")
         return 1
 
     if args.command == "keygen":
         generate_identity(args.output)
         signer = identity_hash(args.output)
-        terminal.success("Wrote identity: {0}".format(args.output))
-        terminal.write_out("  Identity hash: {0}".format(signer))
+        terminal.success(f"Wrote identity: {args.output}")
+        terminal.write_out(f"  Identity hash: {signer}")
         terminal.write_out(
-            "  Sign bundles with --identity. verify with --signer {0}".format(signer)
+            f"  Sign bundles with --identity. verify with --signer {signer}"
         )
         return 0
 
@@ -745,19 +740,17 @@ def _dispatch_dest(args, store):
             terminal.info("No remembered destinations.")
             return 0
         for name, path in rows:
-            terminal.write_out("{0}\t{1}".format(name, path))
+            terminal.write_out(f"{name}\t{path}")
         return 0
     if cmd == "set":
         store.set_preferred_target(args.name, args.path)
-        terminal.success(
-            "Remembered {0} -> {1}".format(args.name, os.path.abspath(args.path))
-        )
+        terminal.success(f"Remembered {args.name} -> {os.path.abspath(args.path)}")
         return 0
     if cmd == "forget":
         if store.forget_preferred_target(args.name):
-            terminal.success("Forgot destination for {0}.".format(args.name))
+            terminal.success(f"Forgot destination for {args.name}.")
         else:
-            terminal.warn("No remembered destination for {0}.".format(args.name))
+            terminal.warn(f"No remembered destination for {args.name}.")
         return 0
     terminal.error("Usage: opip dest list|set|forget")
     return 1

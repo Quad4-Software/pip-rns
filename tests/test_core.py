@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from pip_rns.retry import retry
 
 
@@ -44,7 +46,7 @@ def test_retry_exhausted():
 
     try:
         fn()
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except ValueError as e:
         assert "always fails" in str(e)
 
@@ -64,7 +66,7 @@ def test_retry_custom_exception_filter():
 
     try:
         fn()
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except OtherError:
         pass
 
@@ -89,10 +91,8 @@ def test_retry_backoff_increases():
             called += 1
             raise ValueError("fail")
 
-        try:
+        with contextlib.suppress(ValueError):
             fn()
-        except ValueError:
-            pass
 
         assert called == 4
         assert len(delays) == 3

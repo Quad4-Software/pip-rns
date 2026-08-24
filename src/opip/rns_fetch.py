@@ -50,7 +50,7 @@ def _clone_repo(remote, dest_dir, ref=None):
         subprocess.run(args, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as exc:
         err = (exc.stderr or exc.stdout or "").strip()
-        raise FetchError("RNS clone failed for {0}: {1}".format(remote, err))
+        raise FetchError(f"RNS clone failed for {remote}: {err}")
 
 
 def fetch_rns_bundle(source, dest_dir, verify_identity=None):
@@ -100,4 +100,4 @@ def fetch_rns_bundle(source, dest_dir, verify_identity=None):
                 copy_sidecar_from_dir(bundle_path, root)
                 return bundle_path
 
-    raise FetchError("No .opip bundle found at {0}".format(remote))
+    raise FetchError(f"No .opip bundle found at {remote}")

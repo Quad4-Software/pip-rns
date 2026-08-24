@@ -26,12 +26,12 @@ def get(key):
     if not os.path.isfile(path):
         return None
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             payload = json.load(fh)
         if time.time() - payload.get("fetched", 0) > CACHE_TTL:
             return None
         return payload.get("data")
-    except (IOError, ValueError, TypeError):
+    except (OSError, ValueError, TypeError):
         return None
 
 

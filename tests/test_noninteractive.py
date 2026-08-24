@@ -56,17 +56,17 @@ def test_create_fails_without_name_noninteractive():
 
     try:
         _prompt_bundle_name(True)
-        assert False, "expected BundleError"
+        raise AssertionError("expected BundleError")
     except BundleError as exc:
         assert "bundle name" in str(exc).lower() or "name" in str(exc).lower()
 
 
 def test_open_skips_menu_when_noninteractive():
-    from tests.test_opip import _make_test_bundle
+    import tempfile
+
     from opip.open_handler import open_bundle
     from opip.storage import Store
-
-    import tempfile
+    from tests.test_opip import _make_test_bundle
 
     with tempfile.TemporaryDirectory() as tmp:
         store = Store(data_dir=os.path.join(tmp, "state"))

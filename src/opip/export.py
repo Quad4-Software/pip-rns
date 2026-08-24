@@ -49,4 +49,4 @@ def _resolve_source(source, store):
         if os.path.isfile(path):
             return path
 
-    raise ExportError("Bundle not found: {0}".format(source))
+    raise ExportError(f"Bundle not found: {source}")

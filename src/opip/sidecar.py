@@ -1,5 +1,6 @@
 """Fetch .rsg signature sidecars alongside .opip bundles."""
 
+import contextlib
 import os
 import shutil
 
@@ -24,7 +25,5 @@ def fetch_sidecar_if_available(bundle_path, source_url=None, timeout=120):
         return
     if source_url.startswith(("http://", "https://", "ftp://")):
         sidecar_url = source_url + ".rsg"
-        try:
+        with contextlib.suppress(FetchError):
             fetch_file(sidecar_url, dest, timeout=timeout)
-        except FetchError:
-            pass

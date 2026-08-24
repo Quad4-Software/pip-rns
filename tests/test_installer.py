@@ -35,7 +35,7 @@ def test_get_poetry_installer():
 def test_get_unknown_installer_raises():
     try:
         get_installer("nonexistent")
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except ValueError as e:
         assert "nonexistent" in str(e)
 
@@ -62,6 +62,6 @@ def test_installer_inject_not_implemented():
     inst = get_installer("pip")
     try:
         inst.inject("venv", Path("/tmp/pkg"))
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except NotImplementedError:
         pass

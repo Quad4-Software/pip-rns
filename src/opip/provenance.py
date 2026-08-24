@@ -39,9 +39,7 @@ def build_wheel_record(wheel_path, spec=None, source="pypi", built_from=None):
         if pypi_sha:
             if bundled != pypi_sha:
                 raise ProvenanceError(
-                    "Wheel {0} hash {1} does not match PyPI digest {2}".format(
-                        filename, bundled[:16], pypi_sha[:16]
-                    )
+                    f"Wheel {filename} hash {bundled[:16]} does not match PyPI digest {pypi_sha[:16]}"
                 )
             record["provenance_verified"] = True
         else:
@@ -67,23 +65,22 @@ def verify_wheel_provenance(wheel_path, record, require_pypi_hash=False):
     actual = file_hash(wheel_path)
     expected = record.get("sha256")
     if actual != expected:
-        errors.append("Bundled hash mismatch for {0}".format(record.get("filename")))
+        errors.append("Bundled hash mismatch for {}".format(record.get("filename")))
 
     pypi_sha = record.get("pypi_sha256")
     source = record.get("source", "pypi")
 
     if source == "pypi" or source == "cache":
         if require_pypi_hash and not pypi_sha:
-            errors.append("Missing PyPI digest for {0}".format(record.get("package")))
+            errors.append("Missing PyPI digest for {}".format(record.get("package")))
         if pypi_sha and actual != pypi_sha:
-            errors.append("PyPI digest mismatch for {0}".format(record.get("package")))
+            errors.append("PyPI digest mismatch for {}".format(record.get("package")))
 
-    if source == "local":
-        if record.get("provenance_verified"):
-            errors.append(
-                "Local wheel {0} cannot have provenance_verified=true".format(
-                    record.get("filename")
-                )
+    if source == "local" and record.get("provenance_verified"):
+        errors.append(
+            "Local wheel {} cannot have provenance_verified=true".format(
+                record.get("filename")
             )
+        )
 
     return errors

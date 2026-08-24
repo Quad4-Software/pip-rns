@@ -21,9 +21,7 @@ def _windows_color_host_ok() -> bool:
     if _env_truthy("ANSICON") or _env_truthy("ConEmuANSI"):
         return True
     term = (os.environ.get("TERM") or "").strip().lower()
-    if term.startswith("xterm") or term in ("cygwin", "ansi", "mintty"):
-        return True
-    return False
+    return bool(term.startswith("xterm") or term in ("cygwin", "ansi", "mintty"))
 
 
 def should_enable_color(

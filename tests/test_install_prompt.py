@@ -40,12 +40,11 @@ def test_offer_install_options_master():
     with mock.patch(
         "pip_rns.install_prompt._read_line",
         side_effect=["2"],
+    ), mock.patch(
+        "pip_rns.install_prompt.is_noninteractive",
+        return_value=False,
     ):
-        with mock.patch(
-            "pip_rns.install_prompt.is_noninteractive",
-            return_value=False,
-        ):
-            choice = offer_install_options("rns://id/g/repo")
+        choice = offer_install_options("rns://id/g/repo")
     assert choice == InstallChoice(from_source=True, ref="master")
 
 
@@ -55,16 +54,15 @@ def test_offer_install_options_abort():
     with mock.patch(
         "pip_rns.install_prompt._read_line",
         side_effect=["6"],
+    ), mock.patch(
+        "pip_rns.install_prompt.is_noninteractive",
+        return_value=False,
     ):
-        with mock.patch(
-            "pip_rns.install_prompt.is_noninteractive",
-            return_value=False,
-        ):
-            try:
-                offer_install_options("rns://id/g/repo")
-                assert False, "expected UserCancelled"
-            except UserCancelled:
-                pass
+        try:
+            offer_install_options("rns://id/g/repo")
+            raise AssertionError("expected UserCancelled")
+        except UserCancelled:
+            pass
 
 
 def test_offer_install_options_eof_cancels():
@@ -73,16 +71,15 @@ def test_offer_install_options_eof_cancels():
     with mock.patch(
         "pip_rns.install_prompt._read_line",
         side_effect=UserCancelled("Cancelled."),
+    ), mock.patch(
+        "pip_rns.install_prompt.is_noninteractive",
+        return_value=False,
     ):
-        with mock.patch(
-            "pip_rns.install_prompt.is_noninteractive",
-            return_value=False,
-        ):
-            try:
-                offer_install_options("rns://id/g/repo")
-                assert False, "expected UserCancelled"
-            except UserCancelled:
-                pass
+        try:
+            offer_install_options("rns://id/g/repo")
+            raise AssertionError("expected UserCancelled")
+        except UserCancelled:
+            pass
 
 
 def test_bare_remote_prompts_then_clones_master():

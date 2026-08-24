@@ -20,11 +20,11 @@ def list_installed(store=None):
 def format_bundle_table(bundles):
     if not bundles:
         return "No bundles registered."
-    lines = ["{0:<24} {1:<8} {2:<12} {3}".format("NAME", "WHEELS", "PYTHON", "PATH")]
+    lines = ["{:<24} {:<8} {:<12} {}".format("NAME", "WHEELS", "PYTHON", "PATH")]
     lines.append("-" * 72)
     for b in bundles:
         lines.append(
-            "{0:<24} {1:<8} {2:<12} {3}".format(
+            "{:<24} {:<8} {:<12} {}".format(
                 b.get("name", "")[:24],
                 str(b.get("wheel_count", "")),
                 b.get("python_version", ""),
@@ -37,11 +37,11 @@ def format_bundle_table(bundles):
 def format_install_table(installs):
     if not installs:
         return "No bundle installs recorded."
-    lines = ["{0:<24} {1}".format("BUNDLE", "PACKAGES")]
+    lines = ["{:<24} {}".format("BUNDLE", "PACKAGES")]
     lines.append("-" * 56)
     for i in installs:
         pkgs = ", ".join(i.get("packages", []))
-        lines.append("{0:<24} {1}".format(i.get("bundle", "")[:24], pkgs))
+        lines.append("{:<24} {}".format(i.get("bundle", "")[:24], pkgs))
     return "\n".join(lines)
 
 
@@ -49,17 +49,17 @@ def show_bundle_info(bundle_path):
     """Return formatted info for a bundle file."""
     manifest = bundle_info(bundle_path)
     lines = [
-        "Name:     {0}".format(manifest.get("name")),
-        "Created:  {0}".format(manifest.get("created")),
-        "Python:   {0}".format(manifest.get("python_version")),
-        "Platform: {0}".format(manifest.get("platform")),
-        "Wheels:   {0}".format(len(manifest.get("wheels", []))),
-        "Manifest: v{0}".format(manifest.get("version", "?")),
+        "Name:     {}".format(manifest.get("name")),
+        "Created:  {}".format(manifest.get("created")),
+        "Python:   {}".format(manifest.get("python_version")),
+        "Platform: {}".format(manifest.get("platform")),
+        "Wheels:   {}".format(len(manifest.get("wheels", []))),
+        "Manifest: v{}".format(manifest.get("version", "?")),
     ]
     security = manifest.get("security")
     if security:
         lines.append(
-            "Security: integrity={0}, authenticity={1}".format(
+            "Security: integrity={}, authenticity={}".format(
                 security.get("integrity"), security.get("authenticity")
             )
         )
@@ -67,10 +67,10 @@ def show_bundle_info(bundle_path):
         lines.append("Signature: RSG sidecar present")
     platforms = manifest.get("platforms")
     if platforms and manifest.get("platform") == "universal":
-        lines.append("Includes: {0}".format(", ".join(platforms)))
+        lines.append("Includes: {}".format(", ".join(platforms)))
     lines.extend(["", "Requirements:"])
     for req in manifest.get("requirements", []):
-        lines.append("  {0}".format(req))
+        lines.append(f"  {req}")
     lines.append("")
     lines.append("Packages:")
     for w in manifest.get("wheels", []):
@@ -81,6 +81,6 @@ def show_bundle_info(bundle_path):
         elif w.get("source") == "local":
             prov = " local"
         lines.append(
-            "  {0} {1} ({2}{3})".format(w.get("package"), w.get("version"), src, prov)
+            "  {} {} ({}{})".format(w.get("package"), w.get("version"), src, prov)
         )
     return "\n".join(lines)

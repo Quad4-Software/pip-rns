@@ -1,5 +1,6 @@
 """Update bundles by re-fetching wheels and rebuilding."""
 
+import contextlib
 import os
 import shutil
 
@@ -29,11 +30,11 @@ def update_bundle(
     store = store or Store()
     entry = store.get_bundle(bundle_name)
     if entry is None:
-        raise UpdateError("Bundle not registered: {0}".format(bundle_name))
+        raise UpdateError(f"Bundle not registered: {bundle_name}")
 
     old_path = entry["path"]
     if not os.path.isfile(old_path):
-        raise UpdateError("Bundle file missing: {0}".format(old_path))
+        raise UpdateError(f"Bundle file missing: {old_path}")
 
     from opip.bundle import bundle_info
 
@@ -64,10 +65,8 @@ def update_bundle(
         store.register_bundle(bundle_name, output_path, new_manifest)
 
         if reinstall:
-            try:
+            with contextlib.suppress(Exception):
                 uninstall_bundle(bundle_name, store=store, user=user, target=target)
-            except Exception:
-                pass
             install_bundle(output_path, target=target, user=user, store=store)
 
         if os.path.isfile(backup):

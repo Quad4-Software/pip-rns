@@ -21,8 +21,7 @@ def _find_pip():
         subprocess.run(
             [sys.executable, "-m", "pip", "--version"],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -64,9 +63,7 @@ def _select_wheels_for_install(manifest, wheels_dir):
 
     if not selected:
         raise InstallError(
-            "No wheels in universal bundle match Python {0} on {1}".format(
-                py_version, platform_tag
-            )
+            f"No wheels in universal bundle match Python {py_version} on {platform_tag}"
         )
     return sorted(selected)
 
@@ -95,13 +92,9 @@ def install_via_pip(
     if user:
         cmd.append("--user")
     cmd.extend(wheel_paths if wheel_paths else ["-r", requirements_path])
-    result = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise InstallError(
-            "pip install failed:\n{0}".format(result.stderr or result.stdout)
-        )
+        raise InstallError(f"pip install failed:\n{result.stderr or result.stdout}")
     return result.stdout
 
 
@@ -156,7 +149,7 @@ def install_bundle(
             remembered = store.get_preferred_target(bundle_name)
             if remembered:
                 target = remembered
-                terminal.info("Using remembered target: {0}".format(target))
+                terminal.info(f"Using remembered target: {target}")
 
         if verify:
             errors = verify_bundle_contents(
@@ -229,14 +222,14 @@ def _maybe_remember_target(
 
     if remember_target:
         store.set_preferred_target(bundle_name, target)
-        terminal.info("Remembered target for {0}: {1}".format(bundle_name, target))
+        terminal.info(f"Remembered target for {bundle_name}: {target}")
         return
     if not target_explicit or no_interactive:
         return
     existing = store.get_preferred_target(bundle_name)
     if existing and os.path.abspath(existing) == os.path.abspath(target):
         return
-    sys.stdout.write("Remember {0} for {1}? [y/N] ".format(target, bundle_name))
+    sys.stdout.write(f"Remember {target} for {bundle_name}? [y/N] ")
     sys.stdout.flush()
     try:
         answer = input().strip().lower()
@@ -244,7 +237,7 @@ def _maybe_remember_target(
         answer = ""
     if answer in ("y", "yes"):
         store.set_preferred_target(bundle_name, target)
-        terminal.info("Remembered target for {0}: {1}".format(bundle_name, target))
+        terminal.info(f"Remembered target for {bundle_name}: {target}")
 
 
 def _default_install_target(user):
@@ -278,7 +271,6 @@ def install_from_source(
 ):
     """Acquire bundle from any source and install."""
     from opip.sources import acquire_bundle
-
     from opip.storage import default_cache_dir
 
     cache_dir = cache_dir or os.path.join(default_cache_dir(), "acquired")

@@ -11,11 +11,12 @@ from .completion_cmd import install_completions
 from .core import inject, install, list_packages, uninstall
 from .core import update as update_fn
 from .doctor import print_doctor, run_doctor
+from .errors import UserCancelled
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
-from .errors import UserCancelled
 from .resolver import OfflineError
-from .ui import header, init as ui_init
+from .ui import header
+from .ui import init as ui_init
 from .version import __version__
 
 
@@ -35,7 +36,7 @@ def main() -> None:
     parser.add_argument(
         "--version",
         action="version",
-        version="pipx-rns {0}".format(__version__),
+        version=f"pipx-rns {__version__}",
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable colored output"

@@ -9,13 +9,13 @@ Resolution order: local aliases -> indexes -> raw path.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import subprocess
 from pathlib import Path
 
 from .retry import retry
-
 
 _manager: IndexManager | None = None
 
@@ -125,14 +125,12 @@ class IndexManager:
             dest = self._data_dir / "repos" / key
 
             if dest.exists():
-                try:
+                with contextlib.suppress(Exception):
                     subprocess.run(
                         ["git", "-C", str(dest), "pull"],
                         check=True,
                         capture_output=True,
                     )
-                except Exception:
-                    pass
             else:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 try:

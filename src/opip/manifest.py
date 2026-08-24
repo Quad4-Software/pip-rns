@@ -3,7 +3,6 @@
 import json
 from datetime import datetime, timezone
 
-
 MANIFEST_VERSION = "2"
 MANIFEST_VERSION_LEGACY = "1"
 BUNDLE_EXTENSION = ".opip"
@@ -43,7 +42,7 @@ def load_manifest(data):
         data = json.loads(data)
     version = data.get("version")
     if version not in SUPPORTED_VERSIONS:
-        raise ValueError("Unsupported manifest version: {0}".format(version))
+        raise ValueError(f"Unsupported manifest version: {version}")
     return data
 
 

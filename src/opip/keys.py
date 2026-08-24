@@ -28,7 +28,7 @@ def generate_identity(path):
     )
     if result.returncode != 0:
         err = (result.stderr or result.stdout or "").strip()
-        raise IdentityError("rnid identity generation failed: {0}".format(err))
+        raise IdentityError(f"rnid identity generation failed: {err}")
     return path
 
 
@@ -45,7 +45,7 @@ def identity_hash(identity):
     )
     if result.returncode != 0:
         err = (result.stderr or result.stdout or "").strip()
-        raise IdentityError("Failed to read identity: {0}".format(err))
+        raise IdentityError(f"Failed to read identity: {err}")
     for line in result.stdout.splitlines():
         if "Identity Hash" in line:
             match = IDENTITY_HASH_RE.search(line)

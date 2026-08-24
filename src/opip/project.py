@@ -3,7 +3,6 @@
 import os
 import re
 
-
 REQUIREMENTS_CANDIDATES = (
     "requirements.txt",
     "requirements/prod.txt",
@@ -26,7 +25,7 @@ class ProjectError(Exception):
     pass
 
 
-class ProjectInfo(object):
+class ProjectInfo:
     """Detected metadata from a Python project directory."""
 
     def __init__(self, name=None, requirements=None, source=None, project_dir=None):
@@ -44,7 +43,7 @@ def detect_project(project_dir="."):
     """
     project_dir = os.path.abspath(project_dir)
     if not os.path.isdir(project_dir):
-        raise ProjectError("Not a directory: {0}".format(project_dir))
+        raise ProjectError(f"Not a directory: {project_dir}")
 
     pyproject_path = os.path.join(project_dir, PYPROJECT)
     if os.path.isfile(pyproject_path):
@@ -77,9 +76,7 @@ def detect_project(project_dir="."):
             return info
 
     raise ProjectError(
-        "No pyproject.toml, setup.py, or requirements file found in {0}".format(
-            project_dir
-        )
+        f"No pyproject.toml, setup.py, or requirements file found in {project_dir}"
     )
 
 
@@ -103,7 +100,7 @@ def _name_from_dir(project_dir):
 
 def _read_requirements(path):
     reqs = []
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -115,7 +112,7 @@ def _read_requirements(path):
 
 
 def _from_pyproject(path, project_dir):
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         text = fh.read()
 
     data = _parse_toml_subset(text)
@@ -166,7 +163,7 @@ def _from_setup_cfg(path, project_dir):
     section = None
     in_requires = False
 
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         for raw in fh:
             line = raw.strip()
             if not line or line.startswith("#") or line.startswith(";"):
@@ -175,9 +172,8 @@ def _from_setup_cfg(path, project_dir):
                 section = line[1:-1].strip().lower()
                 in_requires = False
                 continue
-            if section == "metadata":
-                if line.lower().startswith("name"):
-                    name = line.split("=", 1)[1].strip()
+            if section == "metadata" and line.lower().startswith("name"):
+                name = line.split("=", 1)[1].strip()
             if section == "options":
                 if line.lower().startswith("install_requires"):
                     rest = line.split("=", 1)[1].strip()
@@ -197,7 +193,7 @@ def _from_setup_cfg(path, project_dir):
 
 
 def _from_setup_py(path, project_dir):
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         text = fh.read()
 
     name = None
@@ -375,11 +371,11 @@ def _poetry_dependencies(deps):
             continue
         if isinstance(spec, dict):
             version = spec.get("version", "*")
-            result.append("{0}{1}".format(name, _poetry_spec(version)))
+            result.append(f"{name}{_poetry_spec(version)}")
         elif spec is None:
             result.append(name)
         else:
-            result.append("{0}{1}".format(name, _poetry_spec(str(spec))))
+            result.append(f"{name}{_poetry_spec(str(spec))}")
     return result
 
 
@@ -389,11 +385,11 @@ def _poetry_spec(spec):
         return ""
     if spec.startswith(("^", "~", ">=", "<=", "==", "!=", ">")):
         if spec.startswith("^"):
-            return ">={0}".format(spec[1:])
+            return f">={spec[1:]}"
         if spec.startswith("~"):
-            return ">={0}".format(spec[1:])
+            return f">={spec[1:]}"
         return spec
-    return "=={0}".format(spec)
+    return f"=={spec}"
 
 
 def _normalize_name(name):

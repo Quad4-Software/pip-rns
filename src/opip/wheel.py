@@ -4,7 +4,6 @@ import os
 import re
 import zipfile
 
-
 WHEEL_FILENAME_RE = re.compile(
     r"^(?P<name>[^-]+)-(?P<version>[^-]+)"
     r"(?:-(?P<build>\d[^-]*))?"
@@ -34,7 +33,7 @@ def read_wheel_metadata(wheel_path):
     """Extract name, version, requires-dist from a wheel file."""
     info = parse_wheel_filename(wheel_path)
     if info is None:
-        raise ValueError("Invalid wheel filename: {0}".format(wheel_path))
+        raise ValueError(f"Invalid wheel filename: {wheel_path}")
 
     requires_dist = []
     with zipfile.ZipFile(wheel_path, "r") as zf:
@@ -62,7 +61,7 @@ def read_wheel_metadata(wheel_path):
 
 def _python_tag(version):
     major, minor = version.split(".")[:2]
-    return "cp{0}{1}".format(major, minor)
+    return f"cp{major}{minor}"
 
 
 def _cp_tag_number(tag):
@@ -75,8 +74,8 @@ def _cp_tag_number(tag):
 def _pyver_matches(wheel_py, py_version, abi):
     major, minor = py_version.split(".")[:2]
     universal = {
-        "py{0}{1}".format(major, minor),
-        "py{0}".format(major),
+        f"py{major}{minor}",
+        f"py{major}",
         "py2.py3",
         "py3",
         "py2",
@@ -102,9 +101,7 @@ def _abi_matches(abi, py_version):
     if "abi3" in abi:
         return True
     target = _python_tag(py_version)
-    if abi == target or abi.startswith(target + "-"):
-        return True
-    return False
+    return bool(abi == target or abi.startswith(target + "-"))
 
 
 def _arch_tokens(tag):

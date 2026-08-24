@@ -40,7 +40,7 @@ class BundleError(Exception):
 def read_requirements_file(path):
     """Read requirements from a text file, one per line."""
     reqs = []
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
             if line and not line.startswith("#"):
@@ -62,13 +62,12 @@ def build_project_wheel(project_dir, wheels_dir):
             "--no-deps",
         ],
         cwd=project_dir,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise BundleError(
-            "Failed to build project wheel:\n{0}".format(result.stderr or result.stdout)
+            f"Failed to build project wheel:\n{result.stderr or result.stdout}"
         )
     for name in os.listdir(wheels_dir):
         if name.endswith(".whl"):
@@ -119,7 +118,7 @@ def create_bundle(
         for spec in wheels_specs:
             if "sha256" not in (spec.get("digests") or {}):
                 raise BundleError(
-                    "PyPI provides no sha256 for {0}. cannot satisfy --require-pypi-hash".format(
+                    "PyPI provides no sha256 for {}. cannot satisfy --require-pypi-hash".format(
                         spec.get("filename")
                     )
                 )
@@ -160,12 +159,12 @@ def create_bundle(
                 )
             )
             meta = read_wheel_metadata(project_wheel)
-            pkg_req = "{0}=={1}".format(meta["name"], meta["version"])
+            pkg_req = "{}=={}".format(meta["name"], meta["version"])
             if pkg_req not in install_reqs:
                 install_reqs.append(pkg_req)
 
         pinned_reqs = [
-            "{0}=={1}".format(w["package"], w["version"]) for w in wheel_entries
+            "{}=={}".format(w["package"], w["version"]) for w in wheel_entries
         ]
 
         req_path = os.path.join(tmpdir, "requirements.txt")
@@ -249,7 +248,7 @@ def write_bundle_zip(output_path, source_dir):
 def extract_bundle(bundle_path, dest_dir=None):
     """Extract bundle to dest_dir. Returns bundle context dict."""
     if not os.path.isfile(bundle_path):
-        raise BundleError("Bundle not found: {0}".format(bundle_path))
+        raise BundleError(f"Bundle not found: {bundle_path}")
 
     dest_dir = dest_dir or tempfile.mkdtemp(prefix="opip-extract-")
     try:
@@ -265,9 +264,9 @@ def extract_bundle(bundle_path, dest_dir=None):
     if not os.path.isfile(integrity_path):
         raise BundleError("Invalid bundle: missing integrity.json")
 
-    with open(manifest_path, "r", encoding="utf-8") as fh:
+    with open(manifest_path, encoding="utf-8") as fh:
         manifest = load_manifest(fh.read())
-    with open(integrity_path, "r", encoding="utf-8") as fh:
+    with open(integrity_path, encoding="utf-8") as fh:
         try:
             integrity = load_integrity(fh.read())
         except ValueError as exc:
@@ -276,7 +275,7 @@ def extract_bundle(bundle_path, dest_dir=None):
     publisher = None
     pub_path = os.path.join(dest_dir, PUBLISHER_FILE)
     if os.path.isfile(pub_path):
-        with open(pub_path, "r", encoding="utf-8") as fh:
+        with open(pub_path, encoding="utf-8") as fh:
             publisher = json.load(fh)
 
     return {
@@ -319,7 +318,7 @@ def verify_bundle_contents(
             continue
         whl = os.path.join(wheels_dir, filename)
         if not record.get("sha256"):
-            errors.append("Missing sha256 for wheel: {0}".format(filename))
+            errors.append(f"Missing sha256 for wheel: {filename}")
         if os.path.isfile(whl):
             errors.extend(
                 verify_wheel_provenance(
@@ -327,7 +326,7 @@ def verify_bundle_contents(
                 )
             )
         else:
-            errors.append("Missing wheel file: {0}".format(filename))
+            errors.append(f"Missing wheel file: {filename}")
 
     return errors
 

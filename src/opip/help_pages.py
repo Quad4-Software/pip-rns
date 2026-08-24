@@ -3,14 +3,13 @@
 import argparse
 import sys
 
-from opip import __version__
+from opip import __version__, terminal
 from opip.config import COMMAND_SUMMARY, ENV_HELP, EXAMPLES
-from opip import terminal
 
 
 def show_main_help():
     """Print the main colored help overview."""
-    terminal.heading("opip {0}".format(__version__))
+    terminal.heading(f"opip {__version__}")
     terminal.write_out(
         terminal.dim("Offline Python wheel bundles with integrity verification.")
     )
@@ -41,12 +40,12 @@ def show_command_help(parser, command_name):
             subparsers_action = action
             break
     if subparsers_action is None or command_name not in subparsers_action.choices:
-        terminal.error("Unknown command: {0}".format(command_name))
+        terminal.error(f"Unknown command: {command_name}")
         terminal.info("Run opip help for a list of commands.")
         return 1
 
     subparser = subparsers_action.choices[command_name]
-    terminal.heading("opip {0}".format(command_name))
+    terminal.heading(f"opip {command_name}")
     terminal.write_out("")
     help_text = subparser.format_help()
     terminal.write_out(_colorize_help_text(help_text))
@@ -86,7 +85,7 @@ def interactive_help(parser, no_interactive=False):
     terminal.info("Enter a command name or number for details, or q to quit.")
     while True:
         for idx, name in enumerate(names, 1):
-            terminal.write_out("  {0}. {1}".format(idx, terminal.cyan(name)))
+            terminal.write_out(f"  {idx}. {terminal.cyan(name)}")
         terminal.write_out("")
         sys.stdout.write(terminal.dim("help> "))
         sys.stdout.flush()
@@ -114,4 +113,4 @@ def interactive_help(parser, no_interactive=False):
             terminal.write_out("")
             continue
 
-        terminal.warn("Unknown choice: {0}".format(choice))
+        terminal.warn(f"Unknown choice: {choice}")

@@ -6,7 +6,6 @@ import os
 import shutil
 from pathlib import Path
 
-
 COMPLETION_FILES = {
     "bash": ("completions/opip.bash", "opip"),
     "zsh": ("completions/_opip", "_opip"),
@@ -34,7 +33,7 @@ def _dest_dir(shell: str) -> Path:
         return home / ".local" / "share" / "zsh" / "site-functions"
     if shell == "fish":
         return home / ".local" / "share" / "fish" / "vendor_completions.d"
-    raise ValueError("Unsupported shell: {0} (use bash, zsh, or fish)".format(shell))
+    raise ValueError(f"Unsupported shell: {shell} (use bash, zsh, or fish)")
 
 
 def _find_source(rel: str) -> Path | None:
@@ -55,18 +54,16 @@ def install_completions(
 ) -> list[str]:
     shell = detect_shell(shell)
     if shell not in COMPLETION_FILES:
-        raise ValueError("Unsupported shell: {0}".format(shell))
+        raise ValueError(f"Unsupported shell: {shell}")
     rel, dest_name = COMPLETION_FILES[shell]
     src = _find_source(rel)
     if src is None:
         raise FileNotFoundError(
-            "Completion file not found: {0}. Run from a source checkout or reinstall.".format(
-                rel
-            )
+            f"Completion file not found: {rel}. Run from a source checkout or reinstall."
         )
     dest_dir = _dest_dir(shell)
     dest = dest_dir / dest_name
-    lines = ["{0} -> {1}".format(src, dest)]
+    lines = [f"{src} -> {dest}"]
     if dry_run:
         return lines
     dest_dir.mkdir(parents=True, exist_ok=True)

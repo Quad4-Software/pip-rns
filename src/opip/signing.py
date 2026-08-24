@@ -52,7 +52,7 @@ def sign_bundle(bundle_path, identity_path):
     )
     if result.returncode != 0:
         err = (result.stderr or result.stdout or "").strip()
-        raise SigningError("Bundle signing failed: {0}".format(err))
+        raise SigningError(f"Bundle signing failed: {err}")
     return sig_path
 
 
@@ -116,11 +116,9 @@ def verify_bundle_signature_info(bundle_path, signer=None):
                 "Legacy .rsg requires --signer IDENTITY or OPIP_SIGNER "
                 "to verify authenticity."
             ], None
-        return [
-            "Signature check failed for {0}: {1}".format(bundle_path, err)
-        ], identity
+        return [f"Signature check failed for {bundle_path}: {err}"], identity
 
     if not SIGNATURE_VALID_RE.search(output):
-        return ["Signature check failed for {0}".format(bundle_path)], identity
+        return [f"Signature check failed for {bundle_path}"], identity
 
     return [], identity

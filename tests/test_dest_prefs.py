@@ -32,8 +32,8 @@ def test_list_preferred_targets_sorted():
 
 
 def test_install_uses_remembered_target():
-    from tests.test_opip import _make_test_bundle
     from opip.install import install_bundle
+    from tests.test_opip import _make_test_bundle
 
     with tempfile.TemporaryDirectory() as tmp:
         store = Store(data_dir=os.path.join(tmp, "state"))
@@ -61,8 +61,8 @@ def test_install_uses_remembered_target():
 
 
 def test_remember_target_flag_saves_without_prompt():
-    from tests.test_opip import _make_test_bundle
     from opip.install import install_bundle
+    from tests.test_opip import _make_test_bundle
 
     with tempfile.TemporaryDirectory() as tmp:
         store = Store(data_dir=os.path.join(tmp, "state"))
@@ -90,8 +90,8 @@ def test_remember_target_flag_saves_without_prompt():
 
 
 def test_no_prompt_when_noninteractive():
-    from tests.test_opip import _make_test_bundle
     from opip.install import install_bundle
+    from tests.test_opip import _make_test_bundle
 
     with tempfile.TemporaryDirectory() as tmp:
         store = Store(data_dir=os.path.join(tmp, "state"))

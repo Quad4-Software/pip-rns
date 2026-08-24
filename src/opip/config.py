@@ -37,11 +37,11 @@ def apply_defaults(args):
         if getattr(args, "identity", None) is None:
             args.identity = env_str("OPIP_IDENTITY")
 
-    if getattr(args, "command", None) in ("verify", "install") or getattr(
-        args, "bundle_command", None
-    ) in ("verify", "install"):
-        if getattr(args, "signer", None) is None:
-            args.signer = env_str("OPIP_SIGNER")
+    if (
+        getattr(args, "command", None) in ("verify", "install")
+        or getattr(args, "bundle_command", None) in ("verify", "install")
+    ) and getattr(args, "signer", None) is None:
+        args.signer = env_str("OPIP_SIGNER")
 
     return args
 

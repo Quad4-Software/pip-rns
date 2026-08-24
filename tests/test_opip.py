@@ -6,6 +6,8 @@ import os
 import tempfile
 import zipfile
 
+from opip import fetch as opip_fetch
+from opip import resolver as opip_resolver
 from opip.bundle import verify_bundle, write_bundle_zip
 from opip.integrity import (
     build_integrity,
@@ -21,23 +23,19 @@ from opip.remote_resolve import resolve_remote_source
 from opip.sidecar import copy_sidecar_from_dir, fetch_sidecar_if_available
 from opip.signing import signature_path
 from opip.sources import is_rns_source, parse_git_source
-from opip import fetch as opip_fetch
-from opip import resolver as opip_resolver
 from pip_rns.aliases import AliasManager
 
 
 def _make_minimal_wheel(path: str, name: str = "pkg", version: str = "1.0.0") -> None:
-    metadata = ("Metadata-Version: 2.1\nName: {0}\nVersion: {1}\n").format(
-        name, version
-    )
+    metadata = f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("{0}/__init__.py".format(name), "")
+        zf.writestr(f"{name}/__init__.py", "")
         zf.writestr(
-            "{0}-{1}.dist-info/METADATA".format(name, version),
+            f"{name}-{version}.dist-info/METADATA",
             metadata,
         )
         zf.writestr(
-            "{0}-{1}.dist-info/WHEEL".format(name, version),
+            f"{name}-{version}.dist-info/WHEEL",
             "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
         )
 
@@ -168,8 +166,8 @@ def test_resolve_remote_source_alias():
 
 
 def test_user_agent_version():
-    from pip_rns.version import __version__
     import opip
+    from pip_rns.version import __version__
 
     assert __version__ in opip_fetch.USER_AGENT
     assert "Quad4-Software/pip-rns" in opip_fetch.USER_AGENT

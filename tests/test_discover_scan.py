@@ -5,17 +5,16 @@ from __future__ import annotations
 import tempfile
 from unittest import mock
 
-from pip_rns.discover import DiscoverStore, DiscoveredNode
+from pip_rns.discover import DiscoveredNode, DiscoverStore
 from pip_rns.discover_scan import (
     DiscoveredPackage,
     format_package_line,
     install_hint,
+    package_name_for,
     parse_nomad_groups,
     parse_nomad_repos,
-    package_name_for,
     remote_for,
 )
-
 
 SAMPLE_INDEX = """
 > Groups

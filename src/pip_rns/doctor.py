@@ -58,8 +58,7 @@ def run_doctor(
                 subprocess.run(
                     [sys.executable, "-m", "pip", "--version"],
                     check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                 )
                 checks.append(Check("pip", True, f"{sys.executable} -m pip", "pass"))
             except Exception:
@@ -143,7 +142,7 @@ def run_doctor(
     from .discover import DiscoverStore
 
     discovered = DiscoverStore(cfg)
-    dnodes = discovered.list()
+    dnodes = discovered.list_nodes()
     checks.append(
         Check(
             "discover",

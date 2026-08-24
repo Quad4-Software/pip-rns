@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from unittest import mock
 
 from pip_rns.releases import (
@@ -61,10 +62,8 @@ def test_fetch_passes_no_signer_by_default():
         ):
             with mock.patch("pip_rns.releases.shutil.rmtree"):
                 with mock.patch("pip_rns.progress.RnsWait"):
-                    try:
+                    with contextlib.suppress(Exception):
                         fetch_release_artifact("rns://aabb/g/r", "v1", "pkg.whl")
-                    except Exception:
-                        pass
     assert run.called
     cmd = run.call_args[0][0]
     assert cmd[0] == "rngit"
@@ -88,15 +87,13 @@ def test_fetch_pins_signer_when_verify_identity_set():
         ):
             with mock.patch("pip_rns.releases.shutil.rmtree"):
                 with mock.patch("pip_rns.progress.RnsWait"):
-                    try:
+                    with contextlib.suppress(Exception):
                         fetch_release_artifact(
                             "rns://aabb/g/r",
                             "v1",
                             "pkg.whl",
                             verify_identity="e46112d44649266d71fe2193e00a4710",
                         )
-                    except Exception:
-                        pass
     cmd = run.call_args[0][0]
     assert "-s" in cmd
     assert "e46112d44649266d71fe2193e00a4710" in cmd

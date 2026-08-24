@@ -1,9 +1,7 @@
 """Windows shell integration: file association and context menus."""
 
-import sys
-
-
 import subprocess
+import sys
 
 
 class WindowsIntegrationError(Exception):
@@ -24,7 +22,7 @@ def _require_windows():
 def _launcher(prefix_args):
     exe = sys.executable
     module = "-m opip"
-    return '"{0}" {1} {2} "%1"'.format(exe, module, prefix_args)
+    return f'"{exe}" {module} {prefix_args} "%1"'
 
 
 def register_windows():
@@ -43,13 +41,11 @@ def register_windows():
     ) as ext_key:
         winreg.SetValue(ext_key, None, winreg.REG_SZ, PROG_ID)
 
-    base = "Software\\Classes\\{0}".format(PROG_ID)
+    base = f"Software\\Classes\\{PROG_ID}"
     with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base) as prog_key:
         winreg.SetValue(prog_key, None, winreg.REG_SZ, "opip offline bundle")
         with winreg.CreateKey(prog_key, "DefaultIcon") as icon_key:
-            winreg.SetValue(
-                icon_key, None, winreg.REG_SZ, "{0},0".format(sys.executable)
-            )
+            winreg.SetValue(icon_key, None, winreg.REG_SZ, f"{sys.executable},0")
         with winreg.CreateKey(prog_key, "shell\\open\\command") as open_key:
             winreg.SetValue(open_key, None, winreg.REG_SZ, open_cmd)
 
@@ -66,15 +62,14 @@ def unregister_windows():
     _require_windows()
 
     keys = [
-        r"HKCU\Software\Classes\{0}\shell".format(PROG_ID),
-        r"HKCU\Software\Classes\{0}".format(PROG_ID),
-        r"HKCU\Software\Classes\{0}".format(EXT),
+        rf"HKCU\Software\Classes\{PROG_ID}\shell",
+        rf"HKCU\Software\Classes\{PROG_ID}",
+        rf"HKCU\Software\Classes\{EXT}",
     ]
     for key in keys:
         subprocess.run(
             ["reg", "delete", key, "/f"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
     return True
 
@@ -82,7 +77,7 @@ def unregister_windows():
 def _set_verb(base, verb, label, command):
     import winreg
 
-    path = "{0}\\shell\\{1}".format(base, verb)
+    path = f"{base}\\shell\\{verb}"
     with winreg.CreateKey(winreg.HKEY_CURRENT_USER, path) as verb_key:
         winreg.SetValue(verb_key, None, winreg.REG_SZ, label)
         with winreg.CreateKey(verb_key, "command") as cmd_key:

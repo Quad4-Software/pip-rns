@@ -16,13 +16,9 @@ def _pip_uninstall(packages, user=False):
     cmd = [sys.executable, "-m", "pip", "uninstall", "-y"] + packages
     if user:
         cmd.append("--user")
-    result = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise UninstallError(
-            "pip uninstall failed:\n{0}".format(result.stderr or result.stdout)
-        )
+        raise UninstallError(f"pip uninstall failed:\n{result.stderr or result.stdout}")
 
 
 def _manual_uninstall(packages, target_dir):
@@ -54,7 +50,7 @@ def uninstall_bundle(bundle_name, store=None, user=False, target=None):
     store = store or Store()
     record = store.get_install(bundle_name)
     if record is None:
-        raise UninstallError("No install record for bundle: {0}".format(bundle_name))
+        raise UninstallError(f"No install record for bundle: {bundle_name}")
 
     packages = record.get("packages", [])
     install_target = target or record.get("target")
@@ -64,8 +60,7 @@ def uninstall_bundle(bundle_name, store=None, user=False, target=None):
         subprocess.run(
             [sys.executable, "-m", "pip", "--version"],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         _pip_uninstall(packages, user=user)
         pip_ok = True

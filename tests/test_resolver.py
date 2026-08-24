@@ -81,25 +81,24 @@ def test_repo_hash_different_urls_differ():
 def test_rns_source_defaults_to_cache_and_updates():
     from unittest import mock
 
-    from pip_rns.resolver import Resolver, CACHE_DIR, repo_hash
+    from pip_rns.resolver import CACHE_DIR, Resolver, repo_hash
 
     url = "rns://aabb/g/repo"
     dest = CACHE_DIR / repo_hash(f"{url}@master")
     fake = mock.Mock()
-    with mock.patch("pip_rns.resolver.get_resolver", return_value=fake):
-        with mock.patch(
-            "pip_rns.resolver._ensure_clone", return_value="updated"
-        ) as ensure:
-            path = Resolver().resolve(url, ref="master")
+    with mock.patch("pip_rns.resolver.get_resolver", return_value=fake), mock.patch(
+        "pip_rns.resolver._ensure_clone", return_value="updated"
+    ) as ensure:
+        path = Resolver().resolve(url, ref="master")
     assert path == dest
     assert ensure.called
     assert ensure.call_args.kwargs.get("update_existing") is True
 
 
 def test_ensure_clone_updates_existing_git_checkout():
-    from unittest import mock
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
+    from unittest import mock
 
     from pip_rns.resolver import _ensure_clone
 
@@ -117,9 +116,9 @@ def test_ensure_clone_updates_existing_git_checkout():
 
 
 def test_ensure_clone_cleans_partial_on_interrupt():
-    from unittest import mock
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
+    from unittest import mock
 
     from pip_rns.resolver import _ensure_clone
 
@@ -136,7 +135,7 @@ def test_ensure_clone_cleans_partial_on_interrupt():
             _ensure_clone(
                 fake, "rns://id/g/r", dest, ref="master", update_existing=True
             )
-            assert False, "expected KeyboardInterrupt"
+            raise AssertionError("expected KeyboardInterrupt")
         except KeyboardInterrupt:
             pass
         assert not dest.exists()

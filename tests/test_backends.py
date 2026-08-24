@@ -12,8 +12,6 @@ import sys
 from pathlib import Path
 from unittest import mock
 
-from tests.support import SkipTest
-
 from pip_rns.installer import (
     PipInstaller,
     PipxInstaller,
@@ -21,7 +19,7 @@ from pip_rns.installer import (
     UvInstaller,
     get_installer,
 )
-
+from tests.support import SkipTest
 
 PKG = Path("/tmp/example-pkg")
 
@@ -36,7 +34,7 @@ def _patch_run():
 
 def _require(binary: str) -> None:
     if shutil.which(binary) is None:
-        raise SkipTest("{0} not on PATH".format(binary))
+        raise SkipTest(f"{binary} not on PATH")
 
 
 def _help_text(cmd: list[str]) -> str:
@@ -169,7 +167,7 @@ def test_inject_unsupported_on_pip_uv_poetry():
     for name in ("pip", "uv", "poetry"):
         try:
             get_installer(name).inject("v", PKG)
-            assert False, "expected NotImplementedError for {0}".format(name)
+            raise AssertionError(f"expected NotImplementedError for {name}")
         except NotImplementedError:
             pass
 
@@ -197,7 +195,7 @@ def test_live_pipx_supports_install_inject_runpip():
     _require("pipx")
     for sub in ("install", "inject", "runpip", "uninstall", "list"):
         result = subprocess.run(["pipx", sub, "--help"], capture_output=True, text=True)
-        assert result.returncode == 0, "pipx {0} --help failed".format(sub)
+        assert result.returncode == 0, f"pipx {sub} --help failed"
 
 
 def test_live_uv_supports_reinstall_and_pip_subcommands():
@@ -208,7 +206,7 @@ def test_live_uv_supports_reinstall_and_pip_subcommands():
         result = subprocess.run(
             ["uv", "pip", sub, "--help"], capture_output=True, text=True
         )
-        assert result.returncode == 0, "uv pip {0} --help failed".format(sub)
+        assert result.returncode == 0, f"uv pip {sub} --help failed"
 
 
 def test_live_poetry_supports_add_remove_show():
@@ -219,7 +217,7 @@ def test_live_poetry_supports_add_remove_show():
         result = subprocess.run(
             ["poetry", sub, "--help"], capture_output=True, text=True
         )
-        assert result.returncode == 0, "poetry {0} --help failed".format(sub)
+        assert result.returncode == 0, f"poetry {sub} --help failed"
 
 
 def test_noninteractive_pip_uninstall_still_passes_yes():

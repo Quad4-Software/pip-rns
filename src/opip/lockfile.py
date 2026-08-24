@@ -68,7 +68,7 @@ def make_sbom(manifest, wheel_entries, publisher=None):
                     "pypi_sha256": pkg.get("pypi_sha256"),
                 },
                 "source": pkg.get("source"),
-                "purl": "pkg:pypi/{0}@{1}".format(pkg["name"], pkg["version"]),
+                "purl": "pkg:pypi/{}@{}".format(pkg["name"], pkg["version"]),
             }
         )
     return sbom

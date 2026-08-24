@@ -14,7 +14,7 @@ from opip.integrity import file_hash
 from opip.safe_zip import contain_path, safe_artifact_name
 from opip.wheel_cache import lookup_wheel, store_wheel
 
-USER_AGENT = "opip/{0} (+https://github.com/Quad4-Software/pip-rns)".format(
+USER_AGENT = "opip/{} (+https://github.com/Quad4-Software/pip-rns)".format(
     __import__("opip").__version__
 )
 CHUNK_SIZE = 65536
@@ -43,16 +43,14 @@ def download_url(url, dest_path, timeout=120, expected_hash=None):
                         break
                     out.write(chunk)
     except urllib.error.URLError as exc:
-        raise FetchError("Download failed for {0}: {1}".format(url, exc))
+        raise FetchError(f"Download failed for {url}: {exc}")
 
     if expected_hash:
         actual = file_hash(dest_path)
         if actual != expected_hash:
             os.remove(dest_path)
             raise FetchError(
-                "Hash mismatch for {0}: expected {1}, got {2}".format(
-                    url, expected_hash[:16], actual[:16]
-                )
+                f"Hash mismatch for {url}: expected {expected_hash[:16]}, got {actual[:16]}"
             )
     return dest_path
 
@@ -73,9 +71,7 @@ def download_wheel(
         expected = digests["sha256"]
     elif require_pypi_hash:
         raise FetchError(
-            "PyPI provides no sha256 digest for {0}. use without --require-pypi-hash".format(
-                filename
-            )
+            f"PyPI provides no sha256 digest for {filename}. use without --require-pypi-hash"
         )
 
     if use_cache:
@@ -128,7 +124,7 @@ def download_wheels_parallel(
             try:
                 paths.append(future.result())
             except FetchError as exc:
-                errors.append("{0}: {1}".format(spec.get("filename"), exc))
+                errors.append("{}: {}".format(spec.get("filename"), exc))
     if errors:
         raise FetchError("Wheel download failures:\n" + "\n".join(errors))
     return paths
@@ -171,7 +167,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
         raw = "https://" + raw[6:]
 
     parsed = urlparse(raw)
-    repo_url = "{0}://{1}{2}".format(parsed.scheme, parsed.netloc, parsed.path)
+    repo_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     if repo_url.endswith(".git"):
         pass
     elif parsed.path and not parsed.path.endswith("/"):
@@ -189,8 +185,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
         subprocess.run(
             cmd,
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=timeout,
         )
     except FileNotFoundError:
@@ -201,7 +196,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
     except subprocess.CalledProcessError as exc:
         shutil.rmtree(tmp_parent, ignore_errors=True)
         stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else ""
-        raise FetchError("git clone failed: {0}".format(stderr.strip()))
+        raise FetchError(f"git clone failed: {stderr.strip()}")
 
     if subpath:
         try:
@@ -214,7 +209,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
 
     if not os.path.exists(target):
         shutil.rmtree(tmp_parent, ignore_errors=True)
-        raise FetchError("Path not found in repository: {0}".format(subpath))
+        raise FetchError(f"Path not found in repository: {subpath}")
 
     return target, tmp_parent
 
@@ -235,4 +230,4 @@ def fetch_file(source, dest_path, timeout=120):
         shutil.copy2(source, dest_path)
         return dest_path
 
-    raise FetchError("Unsupported or missing source: {0}".format(source))
+    raise FetchError(f"Unsupported or missing source: {source}")

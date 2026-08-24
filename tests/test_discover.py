@@ -46,12 +46,12 @@ def test_discover_store_roundtrip():
         )
         store.merge([n])
         store2 = DiscoverStore(tmp)
-        rows = store2.list()
+        rows = store2.list_nodes()
         assert len(rows) == 1
         assert rows[0].destination_hash == "aa" * 16
         assert rows[0].node_name == "n1"
         assert store2.clear() == 1
-        assert store2.list() == []
+        assert store2.list_nodes() == []
 
 
 def test_format_node_line():

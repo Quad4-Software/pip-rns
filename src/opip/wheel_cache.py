@@ -18,7 +18,7 @@ def cache_path(filename, expected_hash=None):
     base = wheel_cache_dir()
     safe_name = safe_artifact_name(filename)
     if expected_hash:
-        return os.path.join(base, "{0}-{1}".format(expected_hash[:16], safe_name))
+        return os.path.join(base, f"{expected_hash[:16]}-{safe_name}")
     return os.path.join(base, safe_name)
 
 

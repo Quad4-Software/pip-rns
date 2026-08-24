@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
 import shutil
 import subprocess
@@ -15,7 +16,6 @@ from typing import Any, Callable
 from .discover import DiscoveredNode, _import_rns
 from .indexes import _parse_plain
 from .releases import _pick_whl, list_releases, release_info
-
 
 GROUP_LINK_RE = re.compile(r"/page/group\.mu`[^]]*g=([^|\]]+)")
 REPO_LINK_RE = re.compile(r"/page/repo\.mu`[^]]*g=([^|]+)\|r=([^|\]]+)")
@@ -153,7 +153,7 @@ def _await_path(RNS, dest_hash: bytes, timeout: float) -> bool:
         if RNS.Transport.has_path(dest_hash):
             return True
         time.sleep(0.05)
-    return RNS.Transport.has_path(dest_hash)
+    return bool(RNS.Transport.has_path(dest_hash))
 
 
 def _await_link(link, timeout: float) -> bool:
@@ -164,7 +164,7 @@ def _await_link(link, timeout: float) -> bool:
         if link.status == link.CLOSED:
             return False
         time.sleep(0.05)
-    return link.status == link.ACTIVE
+    return bool(link.status == link.ACTIVE)
 
 
 def _link_request(link, path: str, data=None, timeout: float = 30.0) -> bytes | None:
@@ -262,10 +262,8 @@ def fetch_nomad_catalog(
     )
     link = RNS.Link(dest)
     if not _await_link(link, link_timeout):
-        try:
+        with contextlib.suppress(Exception):
             link.teardown()
-        except Exception:
-            pass
         return []
 
     try:
@@ -295,10 +293,8 @@ def fetch_nomad_catalog(
                     repos.append(pair)
         return repos
     finally:
-        try:
+        with contextlib.suppress(Exception):
             link.teardown()
-        except Exception:
-            pass
 
 
 def probe_packages_indexes(

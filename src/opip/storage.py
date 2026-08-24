@@ -41,7 +41,7 @@ class Store:
 
     def _load(self, path, default):
         if os.path.isfile(path):
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 return json.load(fh)
         return default
 

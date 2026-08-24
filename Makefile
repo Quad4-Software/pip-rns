@@ -7,7 +7,7 @@ TAG ?= v$(VERSION)
 PREFIX ?= /usr/local
 RELEASE_DIR := dist/release
 
-.PHONY: all clean build sign upload publish-pypi release release-rns tag retag test typecheck install install-user
+.PHONY: all clean build sign upload publish-pypi release release-rns tag retag test typecheck lint install install-user
 
 all: build
 
@@ -66,6 +66,10 @@ test:
 
 typecheck:
 	uv run mypy
+
+lint:
+	uv run ruff format
+	uv run ruff check --fix
 
 install:
 	pip install --break-system-packages .

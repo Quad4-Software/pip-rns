@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 import zipfile
 
-from hypothesis import HealthCheck, given, settings, strategies as st
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from opip.bundle import extract_bundle, verify_bundle, write_bundle_zip
 from opip.integrity import (
@@ -25,7 +27,6 @@ from opip.safe_zip import (
     safe_artifact_name,
     safe_member_path,
 )
-
 
 # Path segment that cannot introduce traversal or absolute forms.
 _SAFE_SEGMENT = st.from_regex(
@@ -54,20 +55,20 @@ _TRAVERSAL_NAME = st.one_of(
 
 
 def _make_minimal_wheel(path: str, name: str = "pkg", version: str = "1.0.0") -> None:
-    metadata = "Metadata-Version: 2.1\nName: {0}\nVersion: {1}\n".format(name, version)
+    metadata = f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("{0}/__init__.py".format(name), b"# ok\n")
+        zf.writestr(f"{name}/__init__.py", b"# ok\n")
         zf.writestr(
-            "{0}-{1}.dist-info/METADATA".format(name, version),
+            f"{name}-{version}.dist-info/METADATA",
             metadata.encode("utf-8"),
         )
         zf.writestr(
-            "{0}-{1}.dist-info/WHEEL".format(name, version),
+            f"{name}-{version}.dist-info/WHEEL",
             b"Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
         )
         zf.writestr(
-            "{0}-{1}.dist-info/RECORD".format(name, version),
-            "{0}/__init__.py,,\n".format(name).encode("utf-8"),
+            f"{name}-{version}.dist-info/RECORD",
+            f"{name}/__init__.py,,\n".encode(),
         )
 
 
@@ -243,7 +244,7 @@ def test_safe_artifact_name_accepts_basename(name):
 def test_safe_artifact_name_rejects_unsafe(name):
     try:
         safe_artifact_name(name)
-        assert False, "expected ValueError for {0!r}".format(name)
+        raise AssertionError(f"expected ValueError for {name!r}")
     except ValueError:
         pass
 
@@ -264,7 +265,7 @@ def test_contain_path_rejects_escape(path):
     with tempfile.TemporaryDirectory() as root:
         try:
             contain_path(root, path)
-            assert False, "expected ValueError for {0!r}".format(path)
+            raise AssertionError(f"expected ValueError for {path!r}")
         except ValueError:
             pass
 
@@ -379,8 +380,8 @@ def test_fuzz_random_member_names_never_escape_dest():
         with open(outside, "wb") as fh:
             fh.write(b"untouched")
         for i, name in enumerate(samples):
-            dest = os.path.join(tmpdir, "out-{0}".format(i))
-            zip_path = os.path.join(tmpdir, "fuzz-{0}.zip".format(i))
+            dest = os.path.join(tmpdir, f"out-{i}")
+            zip_path = os.path.join(tmpdir, f"fuzz-{i}.zip")
             try:
                 with zipfile.ZipFile(zip_path, "w") as zf:
                     zf.writestr("keep.txt", b"keep")
@@ -388,10 +389,8 @@ def test_fuzz_random_member_names_never_escape_dest():
                         zf.writestr(name, b"payload")
             except (ValueError, OSError):
                 continue
-            try:
+            with contextlib.suppress(UnsafeZipError):
                 extract_zip_safe(zip_path, dest)
-            except UnsafeZipError:
-                pass
             with open(outside, "rb") as fh:
                 assert fh.read() == b"untouched"
             if os.path.isdir(dest):
@@ -413,6 +412,6 @@ def test_extract_rejects_file_dir_conflict():
             zf.writestr("pkg", b"not-a-dir")
         try:
             extract_zip_safe(zip_path, dest)
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError as exc:
             assert "directory" in str(exc).lower() or "destination" in str(exc).lower()

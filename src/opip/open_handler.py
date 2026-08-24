@@ -31,7 +31,7 @@ def open_bundle(
     """
     bundle_path = os.path.abspath(bundle_path)
     if not os.path.isfile(bundle_path):
-        raise OpenError("Bundle not found: {0}".format(bundle_path))
+        raise OpenError(f"Bundle not found: {bundle_path}")
 
     store = store or Store()
     manifest = bundle_info(bundle_path)
@@ -51,9 +51,9 @@ def open_bundle(
     if is_noninteractive(no_interactive):
         return install_bundle(bundle_path, **install_kwargs)
 
-    sys.stdout.write("Bundle: {0}\n".format(name))
+    sys.stdout.write(f"Bundle: {name}\n")
     sys.stdout.write(
-        "Python {0} on {1}, {2} wheels\n".format(
+        "Python {} on {}, {} wheels\n".format(
             manifest.get("python_version"),
             manifest.get("platform"),
             len(manifest.get("wheels", [])),

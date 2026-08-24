@@ -35,12 +35,12 @@ def test_safe_member_path_rejects_traversal():
     with tempfile.TemporaryDirectory() as tmp:
         try:
             safe_member_path(tmp, "../outside.txt")
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError:
             pass
         try:
             safe_member_path(tmp, "foo/../../outside.txt")
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError:
             pass
 
@@ -49,7 +49,7 @@ def test_safe_member_path_rejects_absolute():
     with tempfile.TemporaryDirectory() as tmp:
         try:
             safe_member_path(tmp, "/etc/passwd")
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError:
             pass
 
@@ -70,7 +70,7 @@ def test_extract_zip_safe_rejects_zip_slip():
         os.makedirs(dest)
         try:
             extract_zip_safe(evil, dest)
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError:
             pass
         assert not os.path.isfile(outside)
@@ -98,7 +98,7 @@ def test_extract_zip_safe_rejects_oversized_member():
         dest = os.path.join(tmp, "out")
         try:
             extract_zip_safe(zpath, dest, max_member_bytes=100, max_total_bytes=10**9)
-            assert False, "expected UnsafeZipError"
+            raise AssertionError("expected UnsafeZipError")
         except UnsafeZipError as exc:
             assert "too large" in str(exc).lower() or "size" in str(exc).lower()
 
@@ -106,12 +106,12 @@ def test_extract_zip_safe_rejects_oversized_member():
 def test_safe_artifact_name_rejects_separators():
     try:
         safe_artifact_name("../evil.whl")
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
     try:
         safe_artifact_name("foo/bar.whl")
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
     assert (
@@ -122,7 +122,7 @@ def test_safe_artifact_name_rejects_separators():
 def test_cache_path_rejects_traversal():
     try:
         cache_path("../evil.whl")
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 
@@ -131,7 +131,7 @@ def test_contain_path_rejects_escape():
     with tempfile.TemporaryDirectory() as tmp:
         try:
             contain_path(tmp, "../../etc")
-            assert False, "expected ValueError"
+            raise AssertionError("expected ValueError")
         except ValueError:
             pass
         ok = contain_path(tmp, "dist/bundle.opip")
@@ -165,7 +165,7 @@ def test_verify_integrity_detects_unlisted_file():
 def test_load_integrity_rejects_bad_algorithm():
     try:
         load_integrity({"algorithm": "md5", "files": {}})
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 
@@ -185,7 +185,7 @@ def test_extract_bundle_rejects_zip_slip():
         )
         try:
             extract_bundle(bundle, dest_dir=os.path.join(tmp, "out"))
-            assert False, "expected BundleError"
+            raise AssertionError("expected BundleError")
         except BundleError:
             pass
 
@@ -331,7 +331,7 @@ def test_install_wheel_manual_rejects_zip_slip():
         os.makedirs(dest)
         try:
             install_wheel_manual(whl, dest)
-            assert False, "expected InstallError"
+            raise AssertionError("expected InstallError")
         except InstallError:
             pass
         assert not os.path.isfile(os.path.join(tmp, "escape.txt"))

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from pip_rns.releases import (
+    _parse_release_list,
+    _parse_release_view,
     _parse_rns_url,
     _pick_opip,
     _pick_whl,
-    _parse_release_view,
-    _parse_release_list,
     _rsg_name_for_artifact,
     release_has_signatures,
 )
@@ -36,7 +36,7 @@ def test_parse_rns_url_strips_whitespace():
 def test_parse_rns_url_invalid_protocol():
     try:
         _parse_rns_url("https://example.com/repo/foo/bar")
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except ValueError as e:
         assert "Invalid URL components" in str(e)
 
@@ -44,7 +44,7 @@ def test_parse_rns_url_invalid_protocol():
 def test_parse_rns_url_invalid_components():
     try:
         _parse_rns_url("rns://aabbccdd/missing")
-        assert False, "should have raised"
+        raise AssertionError("should have raised")
     except ValueError as e:
         assert "Invalid URL components" in str(e)
 
@@ -184,7 +184,7 @@ def test_live_download_and_verify():
     if not os.environ.get("PIP_RNS_TEST_LIVE"):
         raise SkipTest("set PIP_RNS_TEST_LIVE=1 to run")
     try:
-        from pip_rns.releases import release_info, fetch_release_artifact, _pick_whl
+        from pip_rns.releases import _pick_whl, fetch_release_artifact, release_info
     except ImportError:
         raise SkipTest("pip-rns not installed in current Python")
 

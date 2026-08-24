@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 
-
 ALGORITHM = "sha256"
 CHUNK_SIZE = 65536
 
@@ -52,32 +51,30 @@ def load_integrity(data):
     if isinstance(data, str):
         data = json.loads(data)
     if data.get("algorithm") != ALGORITHM:
-        raise ValueError(
-            "Unsupported hash algorithm: {0}".format(data.get("algorithm"))
-        )
+        raise ValueError("Unsupported hash algorithm: {}".format(data.get("algorithm")))
     return data
 
 
 def _resolve_integrity_path(base_dir, rel_path):
     """Resolve rel_path under base_dir or return an error string."""
     if not rel_path or not isinstance(rel_path, str):
-        return None, "Invalid integrity path: {0}".format(rel_path)
+        return None, f"Invalid integrity path: {rel_path}"
     normalized = rel_path.replace("\\", "/")
     if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
-        return None, "Absolute integrity path rejected: {0}".format(rel_path)
+        return None, f"Absolute integrity path rejected: {rel_path}"
     parts = [p for p in normalized.split("/") if p not in ("", ".")]
     if any(p == ".." for p in parts):
-        return None, "Path traversal in integrity entry: {0}".format(rel_path)
+        return None, f"Path traversal in integrity entry: {rel_path}"
     if not parts:
-        return None, "Empty integrity path: {0}".format(rel_path)
+        return None, f"Empty integrity path: {rel_path}"
     base = os.path.abspath(base_dir)
     full = os.path.abspath(os.path.join(base, *parts))
     try:
         common = os.path.commonpath([base, full])
     except ValueError:
-        return None, "Integrity path escapes base: {0}".format(rel_path)
+        return None, f"Integrity path escapes base: {rel_path}"
     if common != base:
-        return None, "Integrity path escapes base: {0}".format(rel_path)
+        return None, f"Integrity path escapes base: {rel_path}"
     return full, None
 
 
@@ -97,24 +94,22 @@ def verify_integrity(base_dir, integrity, all_files=None):
             continue
         listed.add(os.path.relpath(full, base_dir).replace("\\", "/"))
         if not expected:
-            errors.append("Empty hash for {0}".format(rel_path))
+            errors.append(f"Empty hash for {rel_path}")
             continue
         if not os.path.isfile(full):
-            errors.append("Missing file: {0}".format(rel_path))
+            errors.append(f"Missing file: {rel_path}")
             continue
         actual = file_hash(full)
         if actual != expected:
             errors.append(
-                "Hash mismatch for {0}: expected {1}, got {2}".format(
-                    rel_path, expected[:16], actual[:16]
-                )
+                f"Hash mismatch for {rel_path}: expected {expected[:16]}, got {actual[:16]}"
             )
 
     if all_files is not None:
         for full in all_files:
             rel = os.path.relpath(full, base_dir).replace("\\", "/")
             if rel not in listed:
-                errors.append("Unlisted file present: {0}".format(rel))
+                errors.append(f"Unlisted file present: {rel}")
 
     return errors
 

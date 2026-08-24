@@ -94,13 +94,11 @@ def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
             if bundle:
                 copy_sidecar_from_dir(bundle, os.path.dirname(bundle))
                 return bundle
-            raise FetchError(
-                "No {0} bundle found in git repository".format(BUNDLE_EXTENSION)
-            )
+            raise FetchError(f"No {BUNDLE_EXTENSION} bundle found in git repository")
 
         basename = os.path.basename(source.split("?")[0].split("#")[0])
         if not basename.endswith(BUNDLE_EXTENSION):
-            basename = "bundle{0}".format(BUNDLE_EXTENSION)
+            basename = f"bundle{BUNDLE_EXTENSION}"
         dest = os.path.join(dest_dir, basename)
         fetch_file(source, dest, timeout=timeout)
         fetch_sidecar_if_available(dest, source_url=source, timeout=timeout)
