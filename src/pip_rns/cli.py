@@ -9,8 +9,11 @@ from typing import TypedDict
 
 from .aliases import get_manager as get_alias_mgr
 from .aliases import init as alias_init
+from .browse import run_browse
 from .bundle_cmd import dispatch as bundle_dispatch
 from .bundle_cmd import register_parsers as register_bundle_parsers
+from .catalog import offer_package_picker
+from .catalog import search as catalog_search
 from .completion_cmd import install_completions
 from .core import install, list_packages, uninstall
 from .core import update as update_fn
@@ -168,6 +171,9 @@ _COMMANDS = frozenset(
         "trust",
         "export",
         "discover",
+        "browse",
+        "search",
+        "help",
     }
 )
 
@@ -269,7 +275,9 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("install", help="Install a package from a remote")
     p.add_argument(
         "remote",
-        help="Remote path, rns:// URL, alias name, or index package",
+        nargs="?",
+        default=None,
+        help="Remote path, rns:// URL, alias name, index package, or local .whl",
     )
     _add_common_install_args(p)
     p.add_argument("--venv", metavar="PATH", help="Install into a virtualenv at PATH")
@@ -424,7 +432,69 @@ def main(argv: list[str] | None = None) -> None:
         help="Reticulum config directory (default: ~/.reticulum)",
     )
 
+    p = sub.add_parser(
+        "browse",
+        help="Listen, scan, and browse Python packages on the mesh",
+    )
+    p.add_argument(
+        "--seconds",
+        type=float,
+        default=60.0,
+        metavar="N",
+        help="Listen duration in seconds (default: 60)",
+    )
+    p.add_argument(
+        "--install",
+        action="store_true",
+        help="Pick a package and install after scan",
+    )
+    p.add_argument(
+        "--auto-alias",
+        action="store_true",
+        help="Create aliases for discovered packages without prompting",
+    )
+    p.add_argument(
+        "--no-listen",
+        action="store_true",
+        help="Skip listen step (use saved nodes only)",
+    )
+    p.add_argument(
+        "--no-scan",
+        action="store_true",
+        help="Skip scan step (show saved catalog only)",
+    )
+    p.add_argument(
+        "--no-releases",
+        action="store_true",
+        help="Skip rngit release wheel checks during scan",
+    )
+    p.add_argument(
+        "--reticulum-config",
+        metavar="DIR",
+        default=None,
+        help="Reticulum config directory (default: ~/.reticulum)",
+    )
+
+    p = sub.add_parser(
+        "search", help="Search packages across aliases, indexes, discovery"
+    )
+    p.add_argument("query", nargs="?", default="", help="Substring to match")
+
+    p = sub.add_parser("help", help="Show help (interactive on TTY)")
+    p.add_argument("topic", nargs="?", default=None, help="Command name")
+    p.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="Interactive command browser",
+    )
+
     p = sub.add_parser("doctor", help="Check pip-rns environment health")
+    p.add_argument(
+        "--fix",
+        action="store_true",
+        help="Show suggested fix commands for failed checks",
+    )
     p.add_argument(
         "--online",
         action="store_true",
@@ -538,9 +608,66 @@ def main(argv: list[str] | None = None) -> None:
                 online=args.online,
                 online_remote=args.remote,
                 config_dir=_config(args),
-            )
+            ),
+            show_fix=getattr(args, "fix", False),
         )
         raise SystemExit(code)
+
+    if args.command == "search":
+        _boot(args)
+        hits = catalog_search(args.query or "", _config(args))
+        if not hits:
+            print(f"  no packages match {bold(repr(args.query or ''))}")
+            print(dim("Try: pip-rns browse"))
+            return
+        print(f"{header('⤵ Search')} {len(hits)} result(s)")
+        for entry in hits:
+            wheel = (
+                f"wheel:{entry.latest_tag}"
+                if entry.has_wheel and entry.latest_tag
+                else ("wheel" if entry.has_wheel else "no-wheel")
+            )
+            print(
+                f"  {bold(entry.name)}  {dim(entry.source)}  {dim(wheel)}  {dim(entry.remote)}"
+            )
+        return
+
+    if args.command == "help":
+        from .help_pages import interactive_help, show_command_help, show_main_help
+
+        if args.topic:
+            code = show_command_help(parser, args.topic)
+            raise SystemExit(code or 0)
+        show_main_help()
+        if args.interactive or (not no_interactive and sys.stdin.isatty()):
+            code = interactive_help(parser)
+            raise SystemExit(code or 0)
+        return
+
+    if args.command == "browse":
+        _boot(args)
+        try:
+            run_browse(
+                config_dir=_config(args),
+                seconds=args.seconds,
+                reticulum_config=args.reticulum_config,
+                no_listen=args.no_listen,
+                no_scan=args.no_scan,
+                check_releases=not args.no_releases,
+                auto_alias=args.auto_alias,
+                do_install=args.install,
+                no_interactive=no_interactive,
+            )
+        except UserCancelled as exc:
+            print(str(exc) or "Cancelled.", file=sys.stderr)
+            raise SystemExit(130) from exc
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            raise SystemExit(130)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
+        return
 
     if args.command == "completion":
         if args.completion_command == "install":
@@ -805,8 +932,21 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     if args.command == "install":
+        remote = args.remote
+        if remote is None:
+            try:
+                remote = offer_package_picker(
+                    _config(args),
+                    no_interactive=no_interactive,
+                )
+            except UserCancelled as exc:
+                print(str(exc) or "Cancelled.", file=sys.stderr)
+                raise SystemExit(130) from exc
+            except RuntimeError as exc:
+                print(str(exc), file=sys.stderr)
+                raise SystemExit(2) from exc
         try:
-            install(args.remote, **install_kwargs)
+            install(remote, **install_kwargs)
         except UserCancelled as exc:
             print(str(exc) or "Cancelled.", file=sys.stderr)
             raise SystemExit(130) from exc

@@ -29,18 +29,23 @@ opip export ./pkg.opip -o /media/usb/pkg.opip
 opip verify /media/usb/pkg.opip --require-signature
 opip install /media/usb/pkg.opip
 
-# Mirror a release for sneakernet
+# Mirror a release wheel for sneakernet
 pip-rns export rns://identity/group/repo --ref v1.0.0 -o /media/usb/mirror
+pip-rns install /media/usb/mirror/pkg-1.0.0-py3-none-any.whl
 
-# Online: prefer release, pin or remember publisher
+# Online: browse mesh, install by short name
+pip-rns browse --install
+pip-rns install lxmfy
+pip-rns search lxm
+
+# Or step by step
+pip-rns discover --seconds 60 --save --scan
+pip-rns install lxmfy
+
+# Pin or remember publisher
 pip-rns trust add rns://identity/group/repo e46112d44649266d71fe2193e00a4710
 pip-rns install --from-release rns://identity/group/repo --ref v1.0.0
 pip-rns install --offline rns://identity/group/repo   # cache hit only
-
-# Hear announced rngit repository nodes (passive, needs RNS)
-pip-rns discover --seconds 60 --save --scan
-pip-rns discover packages
-pip-rns install lxmfy
 ```
 
 ## pip-rns
@@ -59,6 +64,9 @@ pip-rns install lxmfy
 - **Aliases** - short names for long remote paths
 - **Indexes** - opt-in sync of package listings from remotes you register
 - **Discover** - listen for announced rngit nodes (`git.repositories`) on the mesh
+- **Browse** - one command to listen, scan, alias, and install (`pip-rns browse`)
+- **Search** - find packages across aliases, indexes, and discovery
+- **Local wheels** - install exported `.whl` files from USB paths
 
 ### Requirements
 
@@ -105,7 +113,7 @@ rnid -i e46112d44649266d71fe2193e00a4710 -V pip_rns-*.rsg
 
 ```bash
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
-# or 
+# or
 pipx-rns install 06a54b505bb67b25ef3f8097e8001edc/public/LXMFy@v1.6.3
 # branch (clones source. no release probe)
 pip-rns install rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum@master
@@ -129,6 +137,9 @@ pip-rns [install] <identity/group/repo> [--from-release|--from-source|-s] [--req
         [--offline] [--insecure] [--verify IDENTITY] [--yes|-y]
         [--pipx] [--uv] [--poetry] [--ref TAG] [--editable] [--use-cache]
         [--venv PATH] [--remember-venv] [-- <tool flags>]
+pip-rns browse [--seconds N] [--install] [--auto-alias] [--no-listen] [--no-scan]
+pip-rns search <query>
+pip-rns help [COMMAND] [-i]
 pip-rns update <remote> [options]
 pip-rns export <remote> -o DIR [--ref TAG] [--verify IDENTITY] [--all]
 pip-rns list [--pipx] [--uv] [--poetry]
@@ -140,7 +151,7 @@ pip-rns index add|rm|ls|sync|list|search
 pip-rns release list|view
 pip-rns venv list|set|forget
 pip-rns bundle install|verify
-pip-rns doctor [--online --remote RNS_URL]
+pip-rns doctor [--fix] [--online --remote RNS_URL]
 pip-rns completion install [--shell bash|zsh|fish]
 ```
 

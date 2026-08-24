@@ -89,7 +89,7 @@ def test_bare_remote_prompts_then_clones_master():
     prefs.resolve.return_value = None
     choice = InstallChoice(from_source=True, ref="master")
 
-    with mock.patch.object(core, "_probe_release_wheel") as probe:
+    with mock.patch.object(core, "_probe_release_wheel", return_value=None):
         with mock.patch.object(core, "_run") as run:
             with mock.patch.object(
                 core,
@@ -114,5 +114,4 @@ def test_bare_remote_prompts_then_clones_master():
                                 no_interactive=False,
                             )
     assert run.called
-    assert not probe.called
     assert run.call_args.kwargs.get("ref") == "master"

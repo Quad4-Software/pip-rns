@@ -1,60 +1,39 @@
 # Changelog
 
+## 1.3.2
+
+- `pip-rns browse` — listen, save, scan, and optionally install in one flow
+- `pip-rns search` across aliases, indexes, and discovered packages
+- Interactive `help` and empty `install` (package picker) on TTY
+- Local `.whl` install from file or export directory
+- `pip-rns doctor --fix` suggests fix commands
+- Auto-alias prompt after browse/discover scan
+- Install hints and defaults use short package names
+- Trust prompt when remote is unpinned
+- Branch installs hint when a release wheel exists
+
 ## 1.3.1
 
-### Added
-
-- Trust store for release publishers (`pip-rns trust add|rm|ls|set-default`)
-- Default and per-remote signer pins used when `--verify` is unset
-- `--offline` installs from local cache / paths only (no RNS fetch)
-- `--insecure` opt-out of fail-closed signature confirmation
-- `--require-release` to refuse anonymous source tips
-- `--yes` / `-y` to skip expensive RNS clone confirmation
-- `pip-rns export` to mirror release wheels and signatures for sneakernet
-- Doctor checks for trust store and source cache
-- `pip-rns discover` listens for announced rngit nodes (`git.repositories`)
-- Discover store (`discover ls` / `clear`) and doctor checks for RNS + heard nodes
-- `pip-rns discover scan` catalogs Python packages (Nomad pages, packages indexes, release wheels)
-- Short-name install from discovered packages (`pip-rns install lxmfy`)
-- Single-source version in `src/pip_rns/version.py` (hatch dynamic version)
-
-### Changed
-
-- Signed releases fail closed when verification is not confirmed (unless `--insecure`)
-- Branch-like refs (`@master`, `@main`) clone from source without a release probe
-- Bare remotes prompt for install mode on a TTY (`pip-rns rns://…` works as install shorthand)
-- RNS source installs reuse a local cache and fetch/update instead of full recloning
-- Interactive warning before first expensive RNS source clone
-- Ctrl-C and prompt cancel exit cleanly (status 130)
-- README leads with user-chosen sources and sneakernet, indexes as opt-in peers
+- Trust store for release publishers (`trust add|rm|ls|set-default`)
+- `--offline`, `--insecure`, `--require-release`, and `--yes` install flags
+- `pip-rns export` for sneakernet wheel mirrors
+- `pip-rns discover` — listen, store, and scan announced RNS nodes
+- Short-name install from discovered packages
+- Signed releases fail closed unless verified or `--insecure`
+- RNS source installs use a local cache instead of full reclones
+- Bare remotes prompt for install mode on TTY
+- Ctrl-C and prompt cancel exit cleanly
 
 ## 1.3.0
 
-### Added
-
-- Remembered install destinations for opip bundles (dest list set forget)
-- Remembered virtualenvs for pip-rns (venv list set forget)
-- doctor commands for pip-rns and opip
-- completion install for bash zsh and fish
-- Non-interactive mode for automation and CI
-- Reticulum wait spinner on real terminals
-- Install summary showing remote mode artifact dest and signer status
-- Auto use of a release wheel when one exists (from-source and from-release overrides)
-- Backend contract tests for pip pipx uv and poetry
-
-### Changed
-
-- Safer zip extract and wheel install (path escape and size limits)
-- Integrity verify rejects escaped paths and unlisted files
-- Artifact names sanitized for cache and download paths
-- Present `.rsg` sidecars are verified by default via embedded pubkey (`--signer` pins identity)
-- Release `.rsm`/`.rsg` verification is default via rngit (`--verify` pins identity)
-- Installer failures (PEP 668, permissions, missing pip) show recovery hints and can prompt for a venv
-- Clearer signature error text
-- Colors off on classic Windows cmd PowerShell and CI unless forced
-- uv update uses reinstall
-- poetry editable add flag order fixed
-- doctor online check requires a remote you pass (no default destination)
+- Remembered install destinations and virtualenvs
+- `doctor` and shell completion for pip-rns and opip
+- Non-interactive mode for CI
+- Auto-select release wheels when available
+- Signature verification by default (`.rsg` sidecars and `.rsm`/`.rsg` via rngit)
+- Safer zip/wheel extract and artifact path handling
+- Clearer install failure recovery (PEP 668, permissions, venv prompts)
+- Backend contract tests for pip, pipx, uv, and poetry
 
 ### Removed
 
@@ -62,13 +41,9 @@
 
 ## 1.2.0
 
-### Added
-
-- opip offline wheel bundles (create verify install export update uninstall)
-- Integrity hashes lock and SBOM in bundles
+- opip offline wheel bundles (create, verify, install, export, update, uninstall)
+- Integrity hashes, lock, and SBOM in bundles
 - Reticulum identity signing and verify
-- Install from local files HTTP FTP git or rns remotes
-- Windows Explorer open for .opip files
+- Install from local files, HTTP, FTP, git, or RNS remotes
 - pip-rns bundle install and verify
-- Alias resolve for rns sources from opip
-- Shell completions and man pages for pip-rns pipx-rns and opip
+- Shell completions and man pages for pip-rns, pipx-rns, and opip

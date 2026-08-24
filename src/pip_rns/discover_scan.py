@@ -16,6 +16,7 @@ from typing import Any, Callable
 from .discover import DiscoveredNode, _import_rns
 from .indexes import _parse_plain
 from .releases import _pick_whl, list_releases, release_info
+from .ui import dim
 
 GROUP_LINK_RE = re.compile(r"/page/group\.mu`[^]]*g=([^|\]]+)")
 REPO_LINK_RE = re.compile(r"/page/repo\.mu`[^]]*g=([^|]+)\|r=([^|\]]+)")
@@ -474,6 +475,62 @@ def format_package_line(pkg: DiscoveredPackage) -> str:
 
 
 def install_hint(pkg: DiscoveredPackage) -> str:
-    if pkg.has_wheel and pkg.latest_tag:
-        return f"pip-rns install --from-release {pkg.remote} --ref {pkg.latest_tag}"
-    return f"pip-rns install {pkg.remote}"
+    return f"pip-rns install {pkg.name}"
+
+
+def maybe_auto_alias(
+    packages: list[DiscoveredPackage],
+    alias_mgr,
+    *,
+    auto: bool = False,
+    no_interactive: bool = False,
+) -> int:
+    """
+    Create aliases for discovered packages without conflicting names.
+
+    Returns count of aliases created.
+    """
+    from opip.interactive import is_noninteractive
+
+    if is_noninteractive(no_interactive):
+        return 0 if not auto else _apply_auto_aliases(packages, alias_mgr)
+
+    candidates: list[DiscoveredPackage] = []
+    for pkg in packages:
+        existing = alias_mgr.get(pkg.name)
+        if existing and existing != pkg.remote:
+            print(f"  {dim(f'skip alias {pkg.name}: points elsewhere')}")
+            continue
+        if existing == pkg.remote:
+            continue
+        candidates.append(pkg)
+
+    if not candidates:
+        return 0
+
+    if not auto:
+        try:
+            answer = (
+                input(f"Alias {len(candidates)} discovered package(s)? [Y/n]: ")
+                .strip()
+                .lower()
+            )
+        except (EOFError, KeyboardInterrupt):
+            return 0
+        if answer in ("n", "no"):
+            return 0
+
+    return _apply_auto_aliases(candidates, alias_mgr)
+
+
+def _apply_auto_aliases(packages: list[DiscoveredPackage], alias_mgr) -> int:
+    count = 0
+    for pkg in packages:
+        existing = alias_mgr.get(pkg.name)
+        if existing and existing != pkg.remote:
+            continue
+        if existing == pkg.remote:
+            continue
+        alias_mgr.set(pkg.name, pkg.remote)
+        count += 1
+    return count

@@ -158,12 +158,19 @@ class DiscoverStore:
     def list_packages(self) -> list[dict[str, Any]]:
         return [self._packages[k] for k in sorted(self._packages.keys())]
 
-    def resolve_package(self, name: str) -> str | None:
-        """Resolve a short package name to an rns:// remote."""
+    def get_package(self, name: str) -> dict[str, Any] | None:
+        """Return full package metadata for a short name, or None."""
         key = name.strip().lower()
         if not key:
             return None
         item = self._packages.get(key)
+        if not item:
+            return None
+        return dict(item)
+
+    def resolve_package(self, name: str) -> str | None:
+        """Resolve a short package name to an rns:// remote."""
+        item = self.get_package(name)
         if not item:
             return None
         remote = item.get("remote")

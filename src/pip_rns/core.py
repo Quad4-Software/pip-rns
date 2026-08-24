@@ -342,11 +342,14 @@ def _run(
                 cache_key = repo_hash(f"{url}@{ref}" if ref else url)
                 dest = CACHE_DIR / cache_key
             if not (dest / ".git").exists():
+                print(f"  {dim('first clone (no local cache yet)')}")
                 confirm_expensive_rns_clone(
                     resolved,
                     no_interactive=no_interactive,
                     assume_yes=assume_yes,
                 )
+            else:
+                print(f"  {dim(f'cache hit: {dest}')}")
 
     inst = get_installer(installer, venv=venv)
     resolver = Resolver()
@@ -427,6 +430,21 @@ def install(
     config_dir: str | None = None,
 ) -> None:
     """Install a package from a remote (prefer release wheel when available)."""
+    from .local_wheel import install_local_wheel, is_wheel_source
+
+    if is_wheel_source(remote):
+        install_local_wheel(
+            remote,
+            installer=installer,
+            extra_args=extra_args,
+            venv=venv,
+            verify_identity=verify_identity,
+            insecure=insecure,
+            no_interactive=no_interactive,
+            config_dir=config_dir,
+        )
+        return
+
     if from_release and from_source:
         raise ValueError("Use either --from-release or --from-source, not both")
     if require_release:
@@ -437,6 +455,7 @@ def install(
             )
 
     remote_base, embedded_ref = parse_ref(remote)
+    input_name = remote_base.strip().lower()
     if ref is None:
         ref = embedded_ref
     explicit_from_source = from_source
@@ -478,8 +497,32 @@ def install(
     if signer and not verify_identity:
         print(f"  {dim('Using trusted signer:')} {signer}")
 
+    skip_bare_menu = False
+    if "/" not in remote_base and "://" not in remote_base:
+        from .discover import DiscoverStore
+
+        discover_meta = DiscoverStore(config_dir).get_package(input_name)
+        if (
+            discover_meta
+            and discover_meta.get("has_wheel")
+            and discover_meta.get("latest_tag")
+            and ref is None
+            and not from_source
+            and not from_release
+            and not editable
+        ):
+            ref = str(discover_meta["latest_tag"])
+            skip_bare_menu = True
+            print(f"  {dim('Using discovered release')} {bold(ref)}")
+
     # Bare remote (no ref / mode): offer interactive choices
-    if not ref and not from_source and not from_release and not editable:
+    if (
+        not skip_bare_menu
+        and not ref
+        and not from_source
+        and not from_release
+        and not editable
+    ):
         from .install_prompt import offer_install_options
 
         choice = offer_install_options(resolved, no_interactive=no_interactive)
@@ -496,6 +539,14 @@ def install(
             raise ValueError(
                 "--from-release cannot be combined with --editable/--from-source"
             )
+        if explicit_from_source and ref and ref_implies_source(ref):
+            hit = _probe_release_wheel(resolved, None)
+            if hit:
+                tag, _whl = hit
+                hint = input_name if "/" not in remote_base else resolved
+                print(
+                    f"  {dim(f'A release wheel exists ({tag}). Faster: pip-rns install {hint}')}"
+                )
         if explicit_from_source:
             print(f"  {dim('Cloning source (--from-source)')}")
         elif ref:
@@ -759,7 +810,7 @@ def install_from_release(
         and not is_noninteractive(no_interactive)
     ):
         store = TrustStore(config_dir)
-        if not store.get_remote(remote) and not store.get_default():
+        if not store.get_remote(remote):
             _maybe_remember_signer(store, remote, fetched.signer)
 
     inst = get_installer(installer, venv=venv)

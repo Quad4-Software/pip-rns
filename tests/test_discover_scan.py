@@ -59,8 +59,7 @@ def test_install_hint_prefers_release():
         latest_tag="v1.0.0",
     )
     hint = install_hint(pkg)
-    assert "--from-release" in hint
-    assert "--ref v1.0.0" in hint
+    assert hint == "pip-rns install lxmfy"
 
 
 def test_store_packages_resolve():
@@ -118,3 +117,21 @@ def test_core_resolve_uses_discovered_packages():
         with mock.patch("pip_rns.discover.DiscoverStore", return_value=store):
             resolved = _resolve_remote_label("demo")
         assert resolved.endswith("/public/Demo")
+
+
+def test_maybe_auto_alias():
+    from pip_rns.aliases import AliasManager
+    from pip_rns.discover_scan import maybe_auto_alias
+
+    with tempfile.TemporaryDirectory() as tmp:
+        amgr = AliasManager(tmp)
+        pkg = DiscoveredPackage(
+            name="lxmfy",
+            remote="rns://aa/public/LXMFy",
+            destination_hash="aa",
+            group="public",
+            repo="LXMFy",
+        )
+        n = maybe_auto_alias([pkg], amgr, auto=True, no_interactive=True)
+        assert n == 1
+        assert amgr.get("lxmfy") == "rns://aa/public/LXMFy"

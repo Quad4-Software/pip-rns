@@ -16,6 +16,7 @@ class Check:
     ok: bool
     detail: str
     level: str = "fail"  # fail | warn | pass
+    fix: str | None = None
 
 
 def _which(name: str) -> str | None:
@@ -47,7 +48,17 @@ def run_doctor(
                 if tool in ("rngit", "rnid")
                 else "Install git"
             )
-            checks.append(Check(tool, False, f"not on PATH ({hint})", level))
+            checks.append(
+                Check(
+                    tool,
+                    False,
+                    f"not on PATH ({hint})",
+                    level,
+                    fix="pip install rns"
+                    if tool in ("rngit", "rnid")
+                    else "install git",
+                )
+            )
 
     for backend in ("pip", "pipx", "uv", "poetry"):
         path = _which(backend)
@@ -62,7 +73,15 @@ def run_doctor(
                 )
                 checks.append(Check("pip", True, f"{sys.executable} -m pip", "pass"))
             except Exception:
-                checks.append(Check("pip", False, "python -m pip unavailable", "fail"))
+                checks.append(
+                    Check(
+                        "pip",
+                        False,
+                        "python -m pip unavailable",
+                        "fail",
+                        fix="python -m venv .venv && source .venv/bin/activate",
+                    )
+                )
         elif path:
             checks.append(Check(backend, True, path, "pass"))
         else:
@@ -90,6 +109,7 @@ def run_doctor(
                 True,
                 f"{n} registered ({_config_dir()}) (opt-in only)",
                 "pass" if n else "warn",
+                fix=None if n else "pip-rns index add rns://identity/group/index",
             )
         )
     except Exception as exc:
@@ -111,6 +131,7 @@ def run_doctor(
                 True,
                 f"empty ({trust.path}). use pip-rns trust add",
                 "warn",
+                fix="pip-rns trust add rns://id/group/repo IDENTITY",
             )
         )
 
@@ -153,6 +174,7 @@ def run_doctor(
                 else f"empty ({discovered.path}). pip-rns discover --save"
             ),
             "pass" if dnodes else "warn",
+            fix=None if dnodes else "pip-rns browse",
         )
     )
 
@@ -169,6 +191,7 @@ def run_doctor(
                 False,
                 "RNS not importable. pip install rns (needed for discover)",
                 "warn",
+                fix="pip install rns",
             )
         )
 
@@ -220,7 +243,7 @@ def run_doctor(
     return checks
 
 
-def print_doctor(checks: list[Check]) -> int:
+def print_doctor(checks: list[Check], *, show_fix: bool = False) -> int:
     """Print checks. Return 1 if any fail-level failure."""
     failed = 0
     for c in checks:
@@ -233,4 +256,6 @@ def print_doctor(checks: list[Check]) -> int:
             if not c.ok and c.level == "fail":
                 failed += 1
         print(f"  [{mark}] {c.name}: {dim(c.detail)}")
+        if show_fix and c.fix and (not c.ok or c.level == "warn"):
+            print(f"       fix: {dim(c.fix)}")
     return 1 if failed else 0
