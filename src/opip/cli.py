@@ -309,9 +309,24 @@ def build_parser():
     )
     p_update.add_argument("bundle", help="Registered bundle name.")
     p_update.add_argument("-o", "--output", default=None)
-    p_update.add_argument("--no-reinstall", action="store_true")
+    p_update.add_argument(
+        "--no-reinstall",
+        action="store_true",
+        help="Only rebuild the .opip file; do not reinstall packages.",
+    )
     p_update.add_argument("--user", action="store_true")
     p_update.add_argument("--target", default=None)
+    p_update.add_argument(
+        "--venv",
+        default=None,
+        metavar="PATH",
+        help="Reinstall into this virtualenv (overrides remembered dest).",
+    )
+    p_update.add_argument(
+        "--identity",
+        default=None,
+        help="Reticulum identity to re-sign the updated bundle.",
+    )
 
     p_verify = sub.add_parser(
         "verify",
@@ -662,6 +677,9 @@ def _dispatch(args, store):
         return 0
 
     if args.command == "update":
+        if args.venv and (args.target or args.user):
+            terminal.error("use --venv alone, not with --target or --user.")
+            return 1
         path = update_bundle(
             args.bundle,
             output_path=args.output,
@@ -669,6 +687,9 @@ def _dispatch(args, store):
             reinstall=not args.no_reinstall,
             user=args.user,
             target=args.target,
+            venv=args.venv,
+            no_interactive=args.no_interactive,
+            identity_path=args.identity,
         )
         terminal.success(f"Updated bundle: {path}")
         return 0
