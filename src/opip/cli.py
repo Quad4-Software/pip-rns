@@ -193,6 +193,12 @@ def build_parser():
         help="Install into directory instead of site-packages.",
     )
     p_install.add_argument(
+        "--venv",
+        default=None,
+        metavar="PATH",
+        help="Create/use a virtualenv at PATH and install into it.",
+    )
+    p_install.add_argument(
         "--user",
         action="store_true",
         help="Install to user site-packages and user Scripts/bin.",
@@ -547,6 +553,9 @@ def _dispatch(args, store):
         if args.system and args.user:
             terminal.error("use either --user or --system, not both.")
             return 1
+        if args.venv and (args.target or args.user):
+            terminal.error("use --venv alone, not with --target or --user.")
+            return 1
         packages = install_from_source(
             args.source,
             target=args.target,
@@ -560,11 +569,16 @@ def _dispatch(args, store):
             remember_target=args.remember_target,
             forget_target=args.forget_target,
             no_interactive=args.no_interactive,
+            venv=args.venv,
         )
         terminal.success(f"Installed {len(packages)} packages from bundle.")
         for pkg in packages:
             terminal.write_out(f"  {pkg}")
-        dest = args.target or ("user site" if args.user else "system/active")
+        dest = getattr(packages, "dest", None) or (
+            args.target
+            or (f"venv {args.venv}" if args.venv else None)
+            or ("user site" if args.user else "system/active")
+        )
         if args.no_verify:
             signer = "skipped (--no-verify)"
         elif args.signer:

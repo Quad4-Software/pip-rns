@@ -91,5 +91,6 @@ EXAMPLES = [
     ("opip create -r req.txt --platform win_amd64 --python 3.12", "Windows bundle"),
     ("opip create --platform universal --python 3.12", "Multi-OS bundle"),
     ("opip install ./my-bundle.opip --user", "User install offline"),
+    ("opip install ./my-bundle.opip --venv .venv", "Install into a venv (PEP 668)"),
     ("opip export my-bundle -o /media/usb/pkg.opip", "Copy to USB"),
 ]

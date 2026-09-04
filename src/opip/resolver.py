@@ -387,9 +387,7 @@ def select_wheel_url(pypi_data, req_info, py_version, platform_tag):
                 continue
             if spec and not version_matches(version, spec):
                 continue
-            best = _pick_wheel_for_version(
-                pypi_data, version, py_version, platform_tag
-            )
+            best = _pick_wheel_for_version(pypi_data, version, py_version, platform_tag)
             if best:
                 return best
         return None
