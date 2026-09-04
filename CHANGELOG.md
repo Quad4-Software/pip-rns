@@ -12,6 +12,9 @@
 - Trust prompt when a remote is unpinned
 - Branch installs hint when a release wheel already exists
 - opip prefers stable PyPI releases over prereleases (PEP 440 compare)
+- opip install prompts to recover from PEP 668 (venv, --user, or --target)
+- opip --user retries with --break-system-packages on Arch-style PEP 668
+- opip refuses or recreates a venv when its Python version mismatches the bundle
 
 ## 1.3.1 — 2026-07-23 [released]
 

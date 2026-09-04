@@ -6,6 +6,8 @@ You pick every source. There is no default vendor index. Indexes and aliases are
 
 rngit page (optional peer docs): `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
+Read the [docs](docs/README.md)
+
 ## Tools
 
 | Tool | Purpose |
