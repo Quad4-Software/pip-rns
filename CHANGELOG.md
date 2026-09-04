@@ -1,36 +1,37 @@
 # Changelog
 
-## 1.3.2
+## 1.3.2 — Unreleased
 
-- `pip-rns browse` — listen, save, scan, and optionally install in one flow
-- `pip-rns search` across aliases, indexes, and discovered packages
-- Interactive `help` and empty `install` (package picker) on TTY
-- Local `.whl` install from file or export directory
-- `pip-rns doctor --fix` suggests fix commands
-- Auto-alias prompt after browse/discover scan
+- Browse can listen, save, scan, and optionally install in one flow
+- Search across aliases, indexes, and discovered packages
+- Interactive help and package picker when you run install with no arguments
+- Install local wheels from a file or export directory
+- Doctor --fix suggests commands to repair your setup
+- Auto-alias prompt after browse or discover scan
 - Install hints and defaults use short package names
-- Trust prompt when remote is unpinned
-- Branch installs hint when a release wheel exists
+- Trust prompt when a remote is unpinned
+- Branch installs hint when a release wheel already exists
+- opip prefers stable PyPI releases over prereleases (PEP 440 compare)
 
-## 1.3.1
+## 1.3.1 — 2026-07-23 [released]
 
-- Trust store for release publishers (`trust add|rm|ls|set-default`)
-- `--offline`, `--insecure`, `--require-release`, and `--yes` install flags
-- `pip-rns export` for sneakernet wheel mirrors
-- `pip-rns discover` — listen, store, and scan announced RNS nodes
-- Short-name install from discovered packages
-- Signed releases fail closed unless verified or `--insecure`
+- Trust store for release publishers (add, remove, list, set default)
+- Offline, insecure, require-release, and yes flags for install
+- Export for sneakernet wheel mirrors
+- Discover listens, stores, and scans announced RNS nodes
+- Install by short name from discovered packages
+- Signed releases fail closed unless verified or insecure mode is on
 - RNS source installs use a local cache instead of full reclones
-- Bare remotes prompt for install mode on TTY
+- Bare remotes ask for install mode when run in a terminal
 - Ctrl-C and prompt cancel exit cleanly
 
-## 1.3.0
+## 1.3.0 — 2026-07-23 [released]
 
 - Remembered install destinations and virtualenvs
-- `doctor` and shell completion for pip-rns and opip
+- Doctor and shell completion for pip-rns and opip
 - Non-interactive mode for CI
 - Auto-select release wheels when available
-- Signature verification by default (`.rsg` sidecars and `.rsm`/`.rsg` via rngit)
+- Signature verification by default (rsg sidecars and rsm/rsg via rngit)
 - Safer zip/wheel extract and artifact path handling
 - Clearer install failure recovery (PEP 668, permissions, venv prompts)
 - Backend contract tests for pip, pipx, uv, and poetry
@@ -39,7 +40,7 @@
 
 - First-run prompt that offered a vendor package index
 
-## 1.2.0
+## 1.2.0 — 2026-06-14 [released]
 
 - opip offline wheel bundles (create, verify, install, export, update, uninstall)
 - Integrity hashes, lock, and SBOM in bundles
