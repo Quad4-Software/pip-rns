@@ -97,16 +97,17 @@ jobs:
         run: uv run mypy
 
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     strategy:
-      fail-fast: true
-      max-parallel: 3
+      fail-fast: false
+      max-parallel: 6
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.12", "3.13"]
     steps:
       - name: Checkout
@@ -118,10 +119,11 @@ jobs:
         uses: ./.github/actions/setup-uv-project
         with:
           python-version: ${{ matrix.python-version }}
-          cache-suffix: test
+          cache-suffix: test-${{ matrix.os }}
 
       - name: Run tests
         run: uv run python -m tests.test_runner
+        shell: bash
 
   dependency-review:
     name: Dependency review
