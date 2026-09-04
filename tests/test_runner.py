@@ -45,6 +45,10 @@ def _stdout_supports(chars: str) -> bool:
 
 
 def main() -> int:
+    from pip_rns.ui import configure_stdio
+
+    configure_stdio()
+
     verbose = "-v" in sys.argv
     filt = None
     if "-f" in sys.argv:

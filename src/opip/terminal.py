@@ -1,5 +1,6 @@
 """Terminal colors and styling (stdlib only, Linux/macOS/Windows)."""
 
+import contextlib
 import os
 import sys
 
@@ -18,6 +19,19 @@ _CODES = {
 
 _enabled = False
 _initialized = False
+
+
+def configure_stdio():
+    """Prefer UTF-8 on stdout/stderr so styled output works on classic Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            with contextlib.suppress(Exception):
+                reconfigure(errors="replace")
 
 
 def _env_truthy(name):

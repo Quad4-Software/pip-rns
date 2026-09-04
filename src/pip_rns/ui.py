@@ -2,10 +2,24 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 
 _show_color = False
+
+
+def configure_stdio() -> None:
+    """Prefer UTF-8 on stdout/stderr so UI glyphs do not crash classic Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            with contextlib.suppress(Exception):
+                reconfigure(errors="replace")
 
 
 def _env_truthy(name: str) -> bool:

@@ -36,7 +36,7 @@ from .installer import InstallerError, format_installer_error
 from .releases import list_releases, release_info
 from .resolver import OfflineError
 from .trust import TrustStore
-from .ui import bold, dim, green, header
+from .ui import bold, configure_stdio, dim, green, header
 from .ui import init as ui_init
 from .venv_prefs import VenvPrefs
 from .version import __version__
@@ -231,6 +231,7 @@ def _inject_install_command(argv: list[str]) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> None:
+    configure_stdio()
     argv = sys.argv[1:] if argv is None else list(argv)
     argv = _inject_install_command(argv)
 

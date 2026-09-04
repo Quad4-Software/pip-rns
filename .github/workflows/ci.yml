@@ -124,6 +124,9 @@ jobs:
       - name: Run tests
         run: uv run python -m tests.test_runner
         shell: bash
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: utf-8
 
   dependency-review:
     name: Dependency review

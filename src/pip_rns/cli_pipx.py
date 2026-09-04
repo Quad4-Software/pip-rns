@@ -15,12 +15,13 @@ from .errors import UserCancelled
 from .indexes import init as index_init
 from .installer import InstallerError, format_installer_error
 from .resolver import OfflineError
-from .ui import header
+from .ui import configure_stdio, header
 from .ui import init as ui_init
 from .version import __version__
 
 
 def main() -> None:
+    configure_stdio()
     parser = argparse.ArgumentParser(
         prog="pipx-rns",
         description="Install Python packages from Reticulum (rns://) via pipx",

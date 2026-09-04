@@ -1,6 +1,7 @@
 """Command-line interface for opip."""
 
 import argparse
+import json
 import os
 import sys
 
@@ -13,17 +14,22 @@ from opip.install import InstallError, install_from_source, uninstall_from_file
 from opip.interactive import is_noninteractive
 from opip.keys import IdentityError, generate_identity, identity_hash
 from opip.listing import (
+    bundle_info_dict,
+    bundles_as_json,
     format_bundle_table,
     format_install_table,
+    installs_as_json,
     list_bundles,
     list_installed,
     show_bundle_info,
+    verify_result_dict,
 )
 from opip.manifest import BUNDLE_EXTENSION
 from opip.open_handler import OpenError, open_bundle
 from opip.project import ProjectError, detect_project, merge_optional_requirements
 from opip.signing import SigningError
 from opip.storage import Store
+from opip.trust_cmd import dispatch_trust, resolve_signer
 from opip.uninstall import UninstallError, uninstall_bundle
 from opip.update import UpdateError, update_bundle
 from opip.verify import verify_bundle_file
@@ -62,6 +68,23 @@ def build_parser():
         "--yes",
         action="store_true",
         help="Assume yes / non-interactive (alias for --no-interactive).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Machine-readable JSON on stdout for verify, info, list, trust ls.",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Suppress success stdout (errors still on stderr).",
+    )
+    parser.add_argument(
+        "--config",
+        default=None,
+        metavar="DIR",
+        help="pip-rns config directory for trust store (env: PIP_RNS_CONFIG).",
     )
 
     sub = parser.add_subparsers(dest="command", help="Available commands")
@@ -382,6 +405,24 @@ def build_parser():
         help="What to list (default: bundles).",
     )
 
+    p_trust = sub.add_parser(
+        "trust",
+        help="Trusted publisher identities (shared pip-rns trust store).",
+    )
+    tp = p_trust.add_subparsers(dest="trust_command", help="trust actions")
+    t_add = tp.add_parser("add", help="Trust a signer for a remote (or set default).")
+    t_add.add_argument(
+        "remote_or_default",
+        help="Remote rns:// URL, identity hex, or 'default'.",
+    )
+    t_add.add_argument("identity", help="32-hex Reticulum identity hash.")
+    t_rm = tp.add_parser("rm", help="Forget a trusted signer.")
+    t_rm.add_argument("remote_or_default", help="Remote rns:// URL or 'default'.")
+    tp.add_parser("ls", help="List trusted publishers.")
+    t_sd = tp.add_parser("set-default", help="Set default signer identity.")
+    t_sd.add_argument("identity")
+    tp.add_parser("forget-default", help="Clear default signer.")
+
     sub.add_parser(
         "doctor",
         help="Check opip environment health.",
@@ -411,6 +452,7 @@ def build_parser():
 
 
 def main(argv=None):
+    terminal.configure_stdio()
     argv = argv if argv is not None else sys.argv[1:]
     parser = build_parser()
 
@@ -571,6 +613,12 @@ def _dispatch(args, store):
         if args.venv and (args.target or args.user):
             terminal.error("use --venv alone, not with --target or --user.")
             return 1
+        signer = resolve_signer(
+            args.source,
+            explicit=args.signer,
+            insecure=False,
+            config_dir=getattr(args, "config", None),
+        )
         packages = install_from_source(
             args.source,
             target=args.target,
@@ -578,7 +626,7 @@ def _dispatch(args, store):
             replace=args.replace,
             store=store,
             verify=not args.no_verify,
-            signer=args.signer,
+            signer=signer,
             require_signature=args.require_signature,
             target_explicit=args.target is not None,
             remember_target=args.remember_target,
@@ -586,24 +634,25 @@ def _dispatch(args, store):
             no_interactive=args.no_interactive,
             venv=args.venv,
         )
-        terminal.success(f"Installed {len(packages)} packages from bundle.")
-        for pkg in packages:
-            terminal.write_out(f"  {pkg}")
-        dest = getattr(packages, "dest", None) or (
-            args.target
-            or (f"venv {args.venv}" if args.venv else None)
-            or ("user site" if args.user else "system/active")
-        )
-        if args.no_verify:
-            signer = "skipped (--no-verify)"
-        elif args.signer:
-            signer = f"verified {args.signer}"
-        else:
-            signer = "auto (.rsg when present)"
-        terminal.write_out(terminal.dim(f"Resolved: {args.source}"))
-        terminal.write_out(terminal.dim("Mode: opip bundle"))
-        terminal.write_out(terminal.dim(f"Dest: {dest}"))
-        terminal.write_out(terminal.dim(f"Signer: {signer}"))
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Installed {len(packages)} packages from bundle.")
+            for pkg in packages:
+                terminal.write_out(f"  {pkg}")
+            dest = getattr(packages, "dest", None) or (
+                args.target
+                or (f"venv {args.venv}" if args.venv else None)
+                or ("user site" if args.user else "system/active")
+            )
+            if args.no_verify:
+                signer_label = "skipped (--no-verify)"
+            elif signer:
+                signer_label = f"verified {signer}"
+            else:
+                signer_label = "auto (.rsg when present)"
+            terminal.write_out(terminal.dim(f"Resolved: {args.source}"))
+            terminal.write_out(terminal.dim("Mode: opip bundle"))
+            terminal.write_out(terminal.dim(f"Dest: {dest}"))
+            terminal.write_out(terminal.dim(f"Signer: {signer_label}"))
         return 0
 
     if args.command == "dest":
@@ -695,23 +744,34 @@ def _dispatch(args, store):
         return 0
 
     if args.command == "verify":
+        signer = resolve_signer(
+            args.bundle,
+            explicit=args.signer,
+            insecure=False,
+            config_dir=getattr(args, "config", None),
+        )
         ok, errors, manifest = verify_bundle_file(
             args.bundle,
-            signer=args.signer,
+            signer=signer,
             require_signature=args.require_signature,
             require_pypi_hash=args.require_pypi_hash,
         )
+        if getattr(args, "json", False):
+            payload = verify_result_dict(ok, args.bundle, errors, manifest)
+            terminal.write_out(json.dumps(payload, indent=2, sort_keys=True))
+            return 0 if ok else 1
         if ok:
-            terminal.success(f"Bundle OK: {args.bundle}")
-            terminal.write_out(
-                "  {} wheels, Python {}, {}".format(
-                    len(manifest.get("wheels", [])),
-                    manifest.get("python_version"),
-                    manifest.get("platform"),
+            if not getattr(args, "quiet", False):
+                terminal.success(f"Bundle OK: {args.bundle}")
+                terminal.write_out(
+                    "  {} wheels, Python {}, {}".format(
+                        len(manifest.get("wheels", [])),
+                        manifest.get("python_version"),
+                        manifest.get("platform"),
+                    )
                 )
-            )
-            if manifest.get("version") == "2":
-                terminal.write_out("  manifest v2 (integrity + provenance)")
+                if manifest.get("version") == "2":
+                    terminal.write_out("  manifest v2 (integrity + provenance)")
             return 0
         terminal.error("Bundle verification failed:")
         for err in errors:
@@ -721,23 +781,47 @@ def _dispatch(args, store):
     if args.command == "keygen":
         generate_identity(args.output)
         signer = identity_hash(args.output)
-        terminal.success(f"Wrote identity: {args.output}")
-        terminal.write_out(f"  Identity hash: {signer}")
-        terminal.write_out(
-            f"  Sign bundles with --identity. verify with --signer {signer}"
-        )
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Wrote identity: {args.output}")
+            terminal.write_out(f"  Identity hash: {signer}")
+            terminal.write_out(
+                f"  Sign bundles with --identity. verify with --signer {signer}"
+            )
         return 0
 
     if args.command == "info":
-        terminal.write_out(show_bundle_info(args.bundle))
+        if getattr(args, "json", False):
+            terminal.write_out(
+                json.dumps(bundle_info_dict(args.bundle), indent=2, sort_keys=True)
+            )
+            return 0
+        if not getattr(args, "quiet", False):
+            terminal.write_out(show_bundle_info(args.bundle))
         return 0
 
     if args.command == "list":
         if args.what == "installed":
-            terminal.write_out(format_install_table(list_installed(store)))
+            rows = list_installed(store)
+            if getattr(args, "json", False):
+                terminal.write_out(installs_as_json(rows))
+            elif not getattr(args, "quiet", False):
+                terminal.write_out(format_install_table(rows))
         else:
-            terminal.write_out(format_bundle_table(list_bundles(store)))
+            rows = list_bundles(store)
+            if getattr(args, "json", False):
+                terminal.write_out(bundles_as_json(rows))
+            elif not getattr(args, "quiet", False):
+                terminal.write_out(format_bundle_table(rows))
         return 0
+
+    if args.command == "trust":
+        return dispatch_trust(
+            args,
+            write_out=terminal.write_out,
+            success=terminal.success,
+            warn=terminal.warn,
+            error=terminal.error,
+        )
 
     if args.command == "doctor":
         from opip.doctor import print_doctor, run_doctor
