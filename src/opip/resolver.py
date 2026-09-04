@@ -69,6 +69,142 @@ def parse_requirement(req):
     return {"name": name, "spec": spec, "extras": extras, "raw": req}
 
 
+_PRE_LABEL_ORDER = {
+    "a": 0,
+    "alpha": 0,
+    "b": 1,
+    "beta": 1,
+    "c": 2,
+    "rc": 2,
+    "preview": 2,
+}
+
+# Release / pre / post / dev subset of PEP 440 (stdlib only).
+_VERSION_RE = re.compile(
+    r"""
+    ^
+    (?:(?P<epoch>\d+)!)?
+    (?P<release>\d+(?:\.\d+)*)
+    (?:
+        (?P<pre_l>alpha|beta|preview|a|b|c|rc)
+        (?P<pre_n>\d+)?
+    )?
+    (?:
+        \.(?P<post_l>post|rev|r)(?P<post_n>\d+)?
+        |
+        -(?P<post_n_legacy>\d+)
+    )?
+    (?:
+        \.(?P<dev_l>dev)(?P<dev_n>\d+)?
+    )?
+    (?:\+(?P<local>[a-z0-9]+(?:[._-][a-z0-9]+)*))?
+    $
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _normalize_version_string(version):
+    """Strip local tags noise and legacy separators before parse."""
+    v = version.strip().lstrip("vV")
+    # 1.0-rc1 / 1.0_rc1 -> 1.0rc1
+    v = re.sub(
+        r"[-_](?=(a|b|c|rc|alpha|beta|preview|post|rev|r|dev)\d*)",
+        "",
+        v,
+        flags=re.IGNORECASE,
+    )
+    return v
+
+
+def _parse_version(version):
+    """
+    Parse a version into comparable fields.
+
+    Returns (epoch, release_tuple, pre, post, dev) or None.
+    pre is (label_rank, num) or None. post/dev are ints or None.
+    """
+    m = _VERSION_RE.match(_normalize_version_string(version))
+    if not m:
+        return None
+    epoch = int(m.group("epoch") or 0)
+    release = tuple(int(x) for x in m.group("release").split("."))
+    pre = None
+    if m.group("pre_l"):
+        label = m.group("pre_l").lower()
+        pre = (_PRE_LABEL_ORDER.get(label, 0), int(m.group("pre_n") or 0))
+    post = None
+    if m.group("post_l") or m.group("post_n_legacy") is not None:
+        post = int(m.group("post_n") or m.group("post_n_legacy") or 0)
+    dev = None
+    if m.group("dev_l"):
+        dev = int(m.group("dev_n") or 0)
+    return epoch, release, pre, post, dev
+
+
+def _is_prerelease(version):
+    """True for PEP 440 pre-releases and developmental releases."""
+    parsed = _parse_version(version)
+    if parsed is None:
+        return bool(
+            re.search(
+                r"(?:^|[.\-_])?(?:a|b|c|rc|alpha|beta|preview|dev)\d*",
+                version,
+                re.IGNORECASE,
+            )
+        )
+    _epoch, _release, pre, _post, dev = parsed
+    return pre is not None or dev is not None
+
+
+def _spec_allows_prerelease(spec):
+    """True when the requirement explicitly pins a pre-release version."""
+    if not spec:
+        return False
+    for part in spec.strip().strip("()").split(","):
+        part = part.strip().strip("()")
+        for prefix in ("==", ">=", "<=", "!=", "~=", ">", "<"):
+            if part.startswith(prefix):
+                target = part[len(prefix) :].strip()
+                if target and _is_prerelease(target):
+                    return True
+                break
+    return False
+
+
+def _version_sort_key(version):
+    """
+    Sort key aligned with PEP 440 ordering.
+
+    Examples: 1.0.dev1 < 1.0a1 < 1.0b1 < 1.0rc1 < 1.0 < 1.0.post1
+    """
+    parsed = _parse_version(version)
+    if parsed is None:
+        return (0, (0,), (2, 0, 0), (0, 0), (1, 0), version)
+
+    epoch, release, pre, post, dev = parsed
+
+    # Developmental releases without a pre segment sort before alphas.
+    if pre is None and post is None and dev is not None:
+        pre_key = (0, 0, 0)
+    elif pre is not None:
+        pre_key = (1, pre[0], pre[1])
+    else:
+        pre_key = (2, 0, 0)
+
+    post_key = (0, 0) if post is None else (1, post)
+
+    if pre is None and post is None and dev is not None:
+        # Exclusive .devN: order among themselves by N, still before alphas.
+        dev_key = (0, dev)
+    elif dev is None:
+        dev_key = (1, 0)
+    else:
+        dev_key = (0, dev)
+
+    return (epoch, release, pre_key, post_key, dev_key, version)
+
+
 def version_matches(version, spec):
     """Check if version satisfies a simple spec (==, >=, <=, ~=, !=)."""
     if not spec:
@@ -103,19 +239,11 @@ def version_matches(version, spec):
 
 def _cmp_version(a, b):
     """Compare two version strings. Returns -1, 0, or 1."""
-
-    def parts(v):
-        return [int(x) if x.isdigit() else x for x in re.split(r"[.\-]", v)]
-
-    pa, pb = parts(a), parts(b)
-    for i in range(max(len(pa), len(pb))):
-        xa = pa[i] if i < len(pa) else 0
-        xb = pb[i] if i < len(pb) else 0
-        if xa == xb:
-            continue
-        if isinstance(xa, int) and isinstance(xb, int):
-            return -1 if xa < xb else 1
-        return -1 if str(xa) < str(xb) else 1
+    ka, kb = _version_sort_key(a), _version_sort_key(b)
+    if ka < kb:
+        return -1
+    if ka > kb:
+        return 1
     return 0
 
 
@@ -180,18 +308,6 @@ def release_requires_dist(package, version, pypi_data=None):
     return info.get("requires_dist") or []
 
 
-def _version_sort_key(version):
-    parts = []
-    for piece in re.split(r"[.\-_]", version):
-        if not piece:
-            continue
-        if piece.isdigit():
-            parts.append((0, int(piece)))
-        else:
-            parts.append((1, piece))
-    return parts
-
-
 def get_release_urls(pypi_data, version):
     """Return list of download URLs for a specific release version."""
     releases = pypi_data.get("releases", {})
@@ -241,26 +357,48 @@ def _skip_runtime_dep(name, is_top):
     return False
 
 
+def _pick_wheel_for_version(pypi_data, version, py_version, platform_tag):
+    files = get_release_urls(pypi_data, version)
+    candidates = []
+    for f in files:
+        parsed = parse_wheel_filename(f.get("filename", ""))
+        if parsed:
+            parsed["url"] = f.get("url")
+            parsed["digests"] = f.get("digests", {})
+            candidates.append(parsed)
+    return pick_best_wheel(candidates, py_version, platform_tag)
+
+
 def select_wheel_url(pypi_data, req_info, py_version, platform_tag):
-    """Pick the best wheel URL for a package requirement."""
+    """Pick the best wheel URL for a package requirement.
+
+    Prefers final releases. Pre-releases are used only when the requirement
+    explicitly asks for one, or when no final release matches.
+    """
     name = req_info["name"]
     spec = req_info["spec"]
     releases = pypi_data.get("releases", {})
     versions = sorted(releases.keys(), key=_version_sort_key, reverse=True)
-    for version in versions:
-        if spec and not version_matches(version, spec):
-            continue
-        files = get_release_urls(pypi_data, version)
-        candidates = []
-        for f in files:
-            parsed = parse_wheel_filename(f.get("filename", ""))
-            if parsed:
-                parsed["url"] = f.get("url")
-                parsed["digests"] = f.get("digests", {})
-                candidates.append(parsed)
-        best = pick_best_wheel(candidates, py_version, platform_tag)
-        if best:
-            return best
+    allow_pre = _spec_allows_prerelease(spec)
+
+    def _try(include_prerelease):
+        for version in versions:
+            if not include_prerelease and _is_prerelease(version):
+                continue
+            if spec and not version_matches(version, spec):
+                continue
+            best = _pick_wheel_for_version(
+                pypi_data, version, py_version, platform_tag
+            )
+            if best:
+                return best
+        return None
+
+    best = _try(include_prerelease=allow_pre)
+    if best is None and not allow_pre:
+        best = _try(include_prerelease=True)
+    if best:
+        return best
     raise ResolutionError(
         "No compatible wheel for {} ({}) on {}/{}".format(
             name, spec or "any", py_version, platform_tag
