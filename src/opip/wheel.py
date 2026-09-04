@@ -159,8 +159,7 @@ def _plat_compatible(wheel_plat, target_plat):
 
 
 def wheel_matches_platform(wheel_info, py_version, platform_tag):
-    """
-    Check if a wheel is compatible with the target Python and platform.
+    """Check if a wheel is compatible with the target Python and platform.
 
     py_version: e.g. '3.8'
     platform_tag: e.g. 'win_amd64' or 'any'

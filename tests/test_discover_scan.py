@@ -72,8 +72,8 @@ def test_store_packages_resolve():
                     identity_hash="bb" * 16,
                     node_name="n1",
                     heard_at=1.0,
-                )
-            ]
+                ),
+            ],
         )
         store.merge_packages(
             [
@@ -86,13 +86,13 @@ def test_store_packages_resolve():
                     has_wheel=True,
                     latest_tag="v1.2.0",
                     source="nomad",
-                )
-            ]
+                ),
+            ],
         )
         assert store.resolve_package("LXMFy") == f"rns://{'aa' * 16}/public/LXMFy"
         assert store.resolve_package("missing") is None
         line = format_package_line(
-            DiscoveredPackage.from_dict(store.list_packages()[0])
+            DiscoveredPackage.from_dict(store.list_packages()[0]),
         )
         assert "lxmfy" in line
         assert "wheel:v1.2.0" in line
@@ -111,8 +111,8 @@ def test_core_resolve_uses_discovered_packages():
                     destination_hash="aabbccddeeff00112233445566778899",
                     group="public",
                     repo="Demo",
-                )
-            ]
+                ),
+            ],
         )
         with mock.patch("pip_rns.discover.DiscoverStore", return_value=store):
             resolved = _resolve_remote_label("demo")

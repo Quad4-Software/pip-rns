@@ -22,8 +22,8 @@ def test_get_package_roundtrip():
                     "has_wheel": True,
                     "latest_tag": "v1.2.0",
                     "source": "scan",
-                }
-            ]
+                },
+            ],
         )
         pkg = store.get_package("lxmfy")
         assert pkg is not None
@@ -45,8 +45,8 @@ def test_install_uses_discovered_release_tag():
                     "has_wheel": True,
                     "latest_tag": "v1.2.0",
                     "source": "scan",
-                }
-            ]
+                },
+            ],
         )
 
         with mock.patch(

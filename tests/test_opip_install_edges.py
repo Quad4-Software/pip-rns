@@ -117,7 +117,7 @@ def test_compressed_wheel_tag_parses_and_matches_linux():
     assert "manylinux2014_x86_64" in parsed["plat"]
     # Should match a manylinux target for this arch
     assert wheel_matches_platform(
-        parsed, detect_python_version(), "manylinux2014_x86_64"
+        parsed, detect_python_version(), "manylinux2014_x86_64",
     )
 
 

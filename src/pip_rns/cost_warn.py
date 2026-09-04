@@ -14,8 +14,7 @@ def confirm_expensive_rns_clone(
     no_interactive: bool = False,
     assume_yes: bool = False,
 ) -> None:
-    """
-    Interactive warning before a full RNS source clone.
+    """Interactive warning before a full RNS source clone.
 
     Skipped when non-interactive or assume_yes. Raises UserCancelled on no.
     """
@@ -36,7 +35,7 @@ def confirm_expensive_rns_clone(
         f"  Prefer a release wheel when available "
         f"({bold('--from-release')}), or "
         f"{bold('pip-rns export')} + sneakernet.\n"
-        f"  Remote: {dim(remote)}"
+        f"  Remote: {dim(remote)}",
     )
     try:
         answer = input("Continue with source clone? [y/N]: ").strip().lower()

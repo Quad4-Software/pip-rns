@@ -36,8 +36,7 @@ class ProjectInfo:
 
 
 def detect_project(project_dir="."):
-    """
-    Detect project name and dependencies from pyproject.toml or requirements files.
+    """Detect project name and dependencies from pyproject.toml or requirements files.
 
     Checks pyproject.toml first, then requirements.txt and common variants.
     """
@@ -76,7 +75,7 @@ def detect_project(project_dir="."):
             return info
 
     raise ProjectError(
-        f"No pyproject.toml, setup.py, or requirements file found in {project_dir}"
+        f"No pyproject.toml, setup.py, or requirements file found in {project_dir}",
     )
 
 
@@ -217,8 +216,7 @@ def _from_setup_py(path, project_dir):
 
 
 def _parse_toml_subset(text):
-    """
-    Minimal TOML parser for pyproject fields used by opip.
+    """Minimal TOML parser for pyproject fields used by opip.
 
     Supports sections, key = value, inline arrays, and multiline arrays.
     """

@@ -12,8 +12,9 @@ from opip.wheel import parse_wheel_filename, pick_best_wheel
 
 PYPI_URL = "https://pypi.org/pypi/{package}/json"
 PYPI_RELEASE_URL = "https://pypi.org/pypi/{package}/{version}/json"
+DEFAULT_INDEX_URL = "https://pypi.org/pypi"
 USER_AGENT = "opip/{} (+https://github.com/Quad4-Software/pip-rns)".format(
-    __import__("opip").__version__
+    __import__("opip").__version__,
 )
 
 UNIVERSAL_PLATFORMS = (
@@ -48,8 +49,7 @@ def normalize_name(name):
 
 
 def parse_requirement(req):
-    """
-    Parse a simple requirement string into name and optional version spec.
+    """Parse a simple requirement string into name and optional version spec.
 
     Supports: package, package==1.0, package>=1.0, package[extra]
     """
@@ -118,8 +118,7 @@ def _normalize_version_string(version):
 
 
 def _parse_version(version):
-    """
-    Parse a version into comparable fields.
+    """Parse a version into comparable fields.
 
     Returns (epoch, release_tuple, pre, post, dev) or None.
     pre is (label_rank, num) or None. post/dev are ints or None.
@@ -151,7 +150,7 @@ def _is_prerelease(version):
                 r"(?:^|[.\-_])?(?:a|b|c|rc|alpha|beta|preview|dev)\d*",
                 version,
                 re.IGNORECASE,
-            )
+            ),
         )
     _epoch, _release, pre, _post, dev = parsed
     return pre is not None or dev is not None
@@ -173,8 +172,7 @@ def _spec_allows_prerelease(spec):
 
 
 def _version_sort_key(version):
-    """
-    Sort key aligned with PEP 440 ordering.
+    """Sort key aligned with PEP 440 ordering.
 
     Examples: 1.0.dev1 < 1.0a1 < 1.0b1 < 1.0rc1 < 1.0 < 1.0.post1
     """
@@ -247,61 +245,88 @@ def _cmp_version(a, b):
     return 0
 
 
+def _index_base(index_url=None):
+    base = (index_url or DEFAULT_INDEX_URL).rstrip("/")
+    if base.endswith("/json"):
+        base = base[: -len("/json")]
+    return base
+
+
+def _pkg_json_url(package, index_url=None):
+    return f"{_index_base(index_url)}/{package}/json"
+
+
+def _rel_json_url(package, version, index_url=None):
+    return f"{_index_base(index_url)}/{package}/{version}/json"
+
+
 def _fetch_url(url, timeout=60):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def fetch_pypi_json(package, timeout=60):
-    """Fetch package metadata from PyPI."""
+def fetch_pypi_json(package, timeout=60, index_url=None, offline=False):
+    """Fetch package metadata from a Warehouse-compatible JSON index."""
     package = normalize_name(package)
-    cache_key = "pkg:" + package
+    base = _index_base(index_url)
+    cache_key = f"pkg:{base}:{package}"
     cached = pypi_cache.get(cache_key)
     if cached is not None:
         return cached
 
-    url = PYPI_URL.format(package=package)
+    if offline:
+        raise ResolutionError(
+            f"Offline create: no cached metadata for {package} on {base}",
+        )
+
+    url = _pkg_json_url(package, index_url)
     try:
         data = _fetch_url(url, timeout=timeout)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            raise ResolutionError(f"Package not found on PyPI: {package}")
-        raise ResolutionError(f"PyPI error for {package}: {exc}")
+            raise ResolutionError(f"Package not found on index: {package}")
+        raise ResolutionError(f"Index error for {package}: {exc}")
 
     pypi_cache.put(cache_key, data)
     return data
 
 
-def fetch_release_json(package, version, timeout=60):
-    """Fetch version-specific metadata from PyPI."""
+def fetch_release_json(package, version, timeout=60, index_url=None, offline=False):
+    """Fetch version-specific metadata from index."""
     package = normalize_name(package)
-    cache_key = f"rel:{package}:{version}"
+    base = _index_base(index_url)
+    cache_key = f"rel:{base}:{package}:{version}"
     cached = pypi_cache.get(cache_key)
     if cached is not None:
         return cached
 
-    url = PYPI_RELEASE_URL.format(package=package, version=version)
+    if offline:
+        return None
+
+    url = _rel_json_url(package, version, index_url)
     try:
         data = _fetch_url(url, timeout=timeout)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return None
-        raise ResolutionError(f"PyPI error for {package} {version}: {exc}")
+        raise ResolutionError(f"Index error for {package} {version}: {exc}")
 
     if data is not None:
         pypi_cache.put(cache_key, data)
     return data
 
 
-def release_requires_dist(package, version, pypi_data=None):
+def release_requires_dist(
+    package, version, pypi_data=None, index_url=None, offline=False,
+):
     """Return Requires-Dist list for a package version."""
     if pypi_data is not None:
         info = pypi_data.get("info", {})
         if info.get("version") == version:
             return info.get("requires_dist") or []
 
-    data = fetch_release_json(package, version)
+    data = fetch_release_json(package, version, index_url=index_url, offline=offline)
     if data is None:
         return []
     info = data.get("info", {})
@@ -399,20 +424,38 @@ def select_wheel_url(pypi_data, req_info, py_version, platform_tag):
         return best
     raise ResolutionError(
         "No compatible wheel for {} ({}) on {}/{}".format(
-            name, spec or "any", py_version, platform_tag
-        )
+            name, spec or "any", py_version, platform_tag,
+        ),
     )
 
 
-def _resolve_one(req_info, raw, is_top, py_version, platform_tag):
+def _resolve_one(
+    req_info,
+    raw,
+    is_top,
+    py_version,
+    platform_tag,
+    index_url=None,
+    find_links=None,
+    offline=False,
+):
     name = req_info["name"]
     if not _dep_applies(raw, platform_tag, py_version):
         return None
     if _skip_runtime_dep(name, is_top):
         return None
 
+    if find_links:
+        from opip.find_links import pick_local_wheel, scan_wheels
+
+        local = pick_local_wheel(
+            scan_wheels(find_links), req_info, py_version, platform_tag,
+        )
+        if local:
+            return local
+
     try:
-        pypi_data = fetch_pypi_json(name)
+        pypi_data = fetch_pypi_json(name, index_url=index_url, offline=offline)
         wheel = select_wheel_url(pypi_data, req_info, py_version, platform_tag)
     except ResolutionError:
         if is_top:
@@ -420,7 +463,11 @@ def _resolve_one(req_info, raw, is_top, py_version, platform_tag):
         return None
 
     wheel["requires_dist"] = release_requires_dist(
-        name, wheel["version"], pypi_data=pypi_data
+        name,
+        wheel["version"],
+        pypi_data=pypi_data,
+        index_url=index_url,
+        offline=offline,
     )
     wheel["_pypi_data"] = pypi_data
     return wheel
@@ -437,27 +484,53 @@ def resolve_requirements(
     include_deps=True,
     jobs=8,
     progress=False,
+    index_url=None,
+    find_links=None,
+    offline=False,
 ):
-    """
-    Resolve requirements to a list of wheel download specs.
+    """Resolve requirements to a list of wheel download specs.
 
     When platform_tag is ``universal``, wheels for all UNIVERSAL_PLATFORMS are
     merged into one bundle. Install picks compatible wheels on each machine.
     """
     if is_universal_platform(platform_tag):
         return _resolve_universal(
-            requirements, py_version, include_deps, jobs, progress
+            requirements,
+            py_version,
+            include_deps,
+            jobs,
+            progress,
+            index_url=index_url,
+            find_links=find_links,
+            offline=offline,
         )
     return _resolve_single_platform(
-        requirements, py_version, platform_tag, include_deps, jobs, progress
+        requirements,
+        py_version,
+        platform_tag,
+        include_deps,
+        jobs,
+        progress,
+        index_url=index_url,
+        find_links=find_links,
+        offline=offline,
     )
 
 
-def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
+def _resolve_universal(
+    requirements,
+    py_version,
+    include_deps,
+    jobs,
+    progress,
+    index_url=None,
+    find_links=None,
+    offline=False,
+):
     merged = {}
     if progress:
         sys.stderr.write(
-            f"Universal bundle across {len(UNIVERSAL_PLATFORMS)} platforms\n"
+            f"Universal bundle across {len(UNIVERSAL_PLATFORMS)} platforms\n",
         )
         sys.stderr.flush()
 
@@ -472,6 +545,9 @@ def _resolve_universal(requirements, py_version, include_deps, jobs, progress):
             include_deps,
             jobs,
             progress=False,
+            index_url=index_url,
+            find_links=find_links,
+            offline=offline,
         )
         for spec in specs:
             merged[spec["filename"]] = spec
@@ -489,6 +565,9 @@ def _resolve_single_platform(
     include_deps=True,
     jobs=8,
     progress=False,
+    index_url=None,
+    find_links=None,
+    offline=False,
 ):
     resolved = {}
     queue = []
@@ -514,7 +593,7 @@ def _resolve_single_platform(
 
         if progress:
             sys.stderr.write(
-                f"Resolving {len(pending)} packages ({len(resolved)} done)...\n"
+                f"Resolving {len(pending)} packages ({len(resolved)} done)...\n",
             )
             sys.stderr.flush()
 
@@ -523,7 +602,16 @@ def _resolve_single_platform(
             results = [
                 (
                     item,
-                    _resolve_one(item[0], item[1], item[2], py_version, platform_tag),
+                    _resolve_one(
+                        item[0],
+                        item[1],
+                        item[2],
+                        py_version,
+                        platform_tag,
+                        index_url=index_url,
+                        find_links=find_links,
+                        offline=offline,
+                    ),
                 )
                 for item in pending
             ]
@@ -538,6 +626,9 @@ def _resolve_single_platform(
                         is_top,
                         py_version,
                         platform_tag,
+                        index_url,
+                        find_links,
+                        offline,
                     ): (req_info, raw, is_top)
                     for req_info, raw, is_top in pending
                 }

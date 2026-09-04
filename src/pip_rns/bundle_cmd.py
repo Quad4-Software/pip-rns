@@ -86,6 +86,14 @@ def dispatch(args, config_dir: str | None) -> None:
     if args.bundle_command == "install":
         print(f"{header('⤵ Bundle')} {bold(args.source)}")
         store = Store(data_dir=getattr(args, "data_dir", None))
+        from opip.trust_cmd import resolve_signer
+
+        signer = resolve_signer(
+            args.source,
+            explicit=args.signer or os.environ.get("OPIP_SIGNER"),
+            insecure=False,
+            config_dir=config_dir,
+        )
         try:
             packages = install_from_source(
                 args.source,
@@ -94,7 +102,7 @@ def dispatch(args, config_dir: str | None) -> None:
                 replace=args.replace,
                 store=store,
                 verify=not args.no_verify,
-                signer=args.signer or os.environ.get("OPIP_SIGNER"),
+                signer=signer,
                 require_signature=args.require_signature,
                 target_explicit=args.target is not None,
                 remember_target=getattr(args, "remember_target", False),
@@ -109,9 +117,17 @@ def dispatch(args, config_dir: str | None) -> None:
         return
 
     if args.bundle_command == "verify":
+        from opip.trust_cmd import resolve_signer
+
+        signer = resolve_signer(
+            args.bundle,
+            explicit=args.signer or os.environ.get("OPIP_SIGNER"),
+            insecure=False,
+            config_dir=config_dir,
+        )
         ok, errors, _manifest = verify_bundle_file(
             args.bundle,
-            signer=args.signer or os.environ.get("OPIP_SIGNER"),
+            signer=signer,
             require_signature=args.require_signature,
         )
         if not ok:

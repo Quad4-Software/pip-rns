@@ -84,7 +84,7 @@ def test_insecure_allows_unverified_signed():
         "pip_rns.releases.release_info",
         return_value={"tag": "v1", "artifacts": artifacts},
     ), mock.patch(
-        "pip_rns.releases.fetch_release_artifact", return_value=fetched
+        "pip_rns.releases.fetch_release_artifact", return_value=fetched,
     ), mock.patch("pip_rns.core.get_installer", return_value=FakeInst()), mock.patch(
         "pip_rns.core._install_package",
         return_value=(FakeInst(), None),

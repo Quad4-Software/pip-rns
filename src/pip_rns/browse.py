@@ -34,8 +34,7 @@ def run_browse(
     on_status: Callable[[str], None] | None = None,
     install_kwargs: dict | None = None,
 ) -> list[DiscoveredPackage]:
-    """
-    Listen for rngit nodes, scan for Python packages, optionally alias and install.
+    """Listen for rngit nodes, scan for Python packages, optionally alias and install.
 
     Returns cataloged packages after scan (may be empty).
     """
@@ -54,7 +53,7 @@ def run_browse(
             print(
                 f"{header('Browse')} listening for "
                 f"{bold('git.repositories')} "
-                f"{dim(f'({seconds:g}s)')}"
+                f"{dim(f'({seconds:g}s)')}",
             )
 
             def _on_node(node):
@@ -78,20 +77,19 @@ def run_browse(
             pkg = DiscoveredPackage.from_dict(raw)
             if pkg is not None:
                 pkgs.append(pkg)
+    elif not nodes:
+        if noninteractive:
+            raise RuntimeError("No saved nodes. Run pip-rns browse on a TTY first.")
+        print(f"  {dim('no nodes to scan')}")
     else:
-        if not nodes:
-            if noninteractive:
-                raise RuntimeError("No saved nodes. Run pip-rns browse on a TTY first.")
-            print(f"  {dim('no nodes to scan')}")
-        else:
-            print(f"{header('Scan')} {len(nodes)} node(s) for Python packages")
-            pkgs = scan_nodes(
-                nodes,
-                reticulum_config=reticulum_config,
-                check_releases=check_releases,
-                on_status=status,
-            )
-            store.merge_packages(pkgs)
+        print(f"{header('Scan')} {len(nodes)} node(s) for Python packages")
+        pkgs = scan_nodes(
+            nodes,
+            reticulum_config=reticulum_config,
+            check_releases=check_releases,
+            on_status=status,
+        )
+        store.merge_packages(pkgs)
 
     if pkgs:
         amgr = get_alias_mgr()

@@ -30,7 +30,7 @@ def test_pip_rns_doctor_online_requires_remote():
 
 def test_pip_rns_doctor_online_failure_recorded():
     with mock.patch(
-        "pip_rns.releases.list_releases", side_effect=RuntimeError("offline")
+        "pip_rns.releases.list_releases", side_effect=RuntimeError("offline"),
     ):
         checks = run_doctor(online=True, online_remote="rns://aabb/g/r")
     online = [c for c in checks if c.name == "online"]

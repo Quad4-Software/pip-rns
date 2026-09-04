@@ -32,8 +32,7 @@ def _read_line(prompt: str) -> str:
 
 
 def all_entries(config_dir: str | None = None) -> list[CatalogEntry]:
-    """
-    Merge aliases, indexes, and discovered packages.
+    """Merge aliases, indexes, and discovered packages.
 
     Priority on name collision: alias > index > discover.
     """
@@ -96,14 +95,13 @@ def offer_package_picker(
     *,
     no_interactive: bool = False,
 ) -> str:
-    """
-    Interactive numbered picker. Returns selected package name.
+    """Interactive numbered picker. Returns selected package name.
 
     Raises UserCancelled on abort. Raises RuntimeError when non-interactive.
     """
     if is_noninteractive(no_interactive):
         raise RuntimeError(
-            "No package specified. Use: pip-rns install <name> or pip-rns browse --install"
+            "No package specified. Use: pip-rns install <name> or pip-rns browse --install",
         )
 
     entries = all_entries(config_dir)

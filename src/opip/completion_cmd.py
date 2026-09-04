@@ -50,7 +50,7 @@ def _find_source(rel: str) -> Path | None:
 
 
 def install_completions(
-    *, shell: str | None = None, dry_run: bool = False
+    *, shell: str | None = None, dry_run: bool = False,
 ) -> list[str]:
     shell = detect_shell(shell)
     if shell not in COMPLETION_FILES:
@@ -59,7 +59,7 @@ def install_completions(
     src = _find_source(rel)
     if src is None:
         raise FileNotFoundError(
-            f"Completion file not found: {rel}. Run from a source checkout or reinstall."
+            f"Completion file not found: {rel}. Run from a source checkout or reinstall.",
         )
     dest_dir = _dest_dir(shell)
     dest = dest_dir / dest_name
@@ -70,7 +70,7 @@ def install_completions(
     shutil.copy2(src, dest)
     if shell == "zsh":
         lines.append(
-            "Ensure ~/.local/share/zsh/site-functions is on fpath, then reopen the shell."
+            "Ensure ~/.local/share/zsh/site-functions is on fpath, then reopen the shell.",
         )
     elif shell == "bash":
         lines.append("Reopen the shell (bash-completion must be enabled).")

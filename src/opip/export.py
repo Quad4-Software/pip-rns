@@ -13,8 +13,7 @@ class ExportError(Exception):
 
 
 def export_bundle(source, output_path, store=None):
-    """
-    Copy a verified bundle to output_path for sharing.
+    """Copy a verified bundle to output_path for sharing.
 
     source: registered bundle name or path to .opip file.
     """

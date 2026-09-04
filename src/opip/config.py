@@ -36,9 +36,27 @@ def apply_defaults(args):
             args.publisher = env_str("OPIP_PUBLISHER")
         if getattr(args, "identity", None) is None:
             args.identity = env_str("OPIP_IDENTITY")
+        if getattr(args, "index_url", None) is None:
+            args.index_url = env_str("OPIP_INDEX_URL")
+        if getattr(args, "find_links", None) is None:
+            args.find_links = env_str("OPIP_FIND_LINKS")
+        if not getattr(args, "offline", False):
+            args.offline = bool(env_str("OPIP_OFFLINE"))
+
+    if getattr(args, "command", None) == "update":
+        if getattr(args, "index_url", None) is None:
+            args.index_url = env_str("OPIP_INDEX_URL")
+        if getattr(args, "find_links", None) is None:
+            args.find_links = env_str("OPIP_FIND_LINKS")
+        if not getattr(args, "offline", False):
+            args.offline = bool(env_str("OPIP_OFFLINE"))
+
+    if getattr(args, "command", None) == "install":
+        if getattr(args, "backend", None) is None:
+            args.backend = env_str("OPIP_BACKEND")
 
     if (
-        getattr(args, "command", None) in ("verify", "install")
+        getattr(args, "command", None) in ("verify", "install", "extract")
         or getattr(args, "bundle_command", None) in ("verify", "install")
     ) and getattr(args, "signer", None) is None:
         args.signer = env_str("OPIP_SIGNER")
@@ -58,24 +76,32 @@ ENV_HELP = [
     ("OPIP_NO_COLOR", "Disable color when set (non-empty)"),
     ("OPIP_FORCE_COLOR", "Force color when set (non-empty)"),
     ("OPIP_NO_INTERACTIVE", "Disable prompts when set (non-empty)"),
+    ("OPIP_INDEX_URL", "Warehouse JSON index base (default https://pypi.org/pypi)"),
+    ("OPIP_FIND_LINKS", "Local wheel directory for create (air-gap)"),
+    ("OPIP_OFFLINE", "Refuse network during create when set"),
+    ("OPIP_BACKEND", "Install backend: pip or uv"),
     ("NO_COLOR", "Standard. Disables color when set"),
     ("FORCE_COLOR", "Standard. Enables color when set"),
     ("CI", "When set, disables prompts and color (unless FORCE_COLOR)"),
-    ("PIP_RNS_CONFIG", "pip-rns config directory. aliases resolve for rns:// installs"),
+    ("PIP_RNS_CONFIG", "pip-rns config directory. aliases and trust store"),
 ]
 
 COMMAND_SUMMARY = [
     ("create", "Build an offline .opip bundle from PyPI wheels"),
     ("install", "Install a bundle from file, rns://, URL, FTP, or git"),
     ("export", "Copy a verified bundle for sneakernet sharing"),
+    ("extract", "Unpack wheels for pip/uv hand-off"),
     ("verify", "Check integrity, authenticity, and provenance"),
     ("info", "Show bundle metadata"),
     ("update", "Rebuild a registered bundle from PyPI"),
+    ("delta", "Build a thin .opipd patch between two bundles"),
+    ("apply", "Apply a .opipd patch onto a base bundle"),
     ("uninstall", "Remove packages from a registered bundle name"),
     ("uninstall-file", "Uninstall using a .opip file path"),
     ("open", "Interactive install menu (Windows double-click)"),
     ("dest", "Remembered install destinations per bundle"),
     ("list", "List registered bundles or installs"),
+    ("trust", "Trusted publishers (shared pip-rns trust.json)"),
     ("doctor", "Check opip environment health"),
     ("completion", "Install shell completions"),
     ("register-windows", "Explorer file association and context menus"),

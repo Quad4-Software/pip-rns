@@ -17,8 +17,7 @@ def is_ci():
 
 
 def is_noninteractive(flag=False):
-    """
-    Return True when prompts must not be shown.
+    """Return True when prompts must not be shown.
 
     flag: explicit --no-interactive / --yes from CLI.
     """

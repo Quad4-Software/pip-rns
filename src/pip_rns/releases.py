@@ -83,7 +83,7 @@ def _parse_release_view(text: str) -> dict:
             m = re.match(r" - (.+) \(([0-9.]+) (B|KB|MB|GB)\)", line)
             if m:
                 artifacts.append(
-                    {"name": m.group(1).strip(), "size": m.group(2) + " " + m.group(3)}
+                    {"name": m.group(1).strip(), "size": m.group(2) + " " + m.group(3)},
                 )
         elif in_artifacts and line.startswith("="):
             continue
@@ -115,7 +115,7 @@ def _parse_release_list(text: str) -> list[dict]:
                     "tag": parts[0],
                     "status": parts[1],
                     "created": parts[2] + " " + parts[3],
-                }
+                },
             )
     return releases
 
@@ -137,7 +137,7 @@ def _pick_whl(artifacts: list[dict[str, str]]) -> str | None:
 
 
 def _pick_opip(
-    artifacts: list[dict[str, str]], pattern: str | None = None
+    artifacts: list[dict[str, str]], pattern: str | None = None,
 ) -> str | None:
     names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
     if not names:
@@ -248,8 +248,7 @@ def fetch_release_artifact(
     *,
     verify_identity: str | None = None,
 ) -> ArtifactFetch:
-    """
-    Download a release artifact via rngit release fetch.
+    """Download a release artifact via rngit release fetch.
 
     rngit always validates the release .rsm and per-artifact .rsg data when
     present. Pass verify_identity to pin the expected signer hash (-s).
@@ -269,7 +268,7 @@ def fetch_release_artifact(
 
         with RnsWait("Waiting on Reticulum (release fetch)"):
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=workdir, timeout=7200
+                cmd, capture_output=True, text=True, cwd=workdir, timeout=7200,
             )
         if result.returncode != 0:
             err = result.stderr.strip() or result.stdout.strip()

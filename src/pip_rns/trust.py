@@ -23,8 +23,7 @@ def _default_config_dir(config_dir: str | None = None) -> Path:
 
 
 class TrustStore:
-    """
-    JSON trust store: default signer + per-remote trusted identities.
+    """JSON trust store: default signer + per-remote trusted identities.
 
     File: {config}/trust.json
       {"default": "<identity>", "remotes": {"rns://...": "<identity>"}}
@@ -124,8 +123,7 @@ def resolve_verify_identity(
     insecure: bool = False,
     config_dir: str | None = None,
 ) -> str | None:
-    """
-    Resolve signer identity for release verification.
+    """Resolve signer identity for release verification.
 
     When insecure is True, return None (rngit still validates crypto without pin).
     """

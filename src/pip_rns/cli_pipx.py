@@ -40,7 +40,7 @@ def main() -> None:
         version=f"pipx-rns {__version__}",
     )
     parser.add_argument(
-        "--no-color", action="store_true", help="Disable colored output"
+        "--no-color", action="store_true", help="Disable colored output",
     )
     parser.add_argument(
         "--no-interactive",
@@ -183,8 +183,8 @@ def main() -> None:
                     online=args.online,
                     online_remote=args.remote,
                     config_dir=cfg,
-                )
-            )
+                ),
+            ),
         )
 
     if args.command == "completion":

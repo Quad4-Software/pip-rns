@@ -26,8 +26,7 @@ def data_hash(data):
 
 
 def build_integrity(file_paths, base_dir=None):
-    """
-    Build integrity manifest mapping relative paths to hashes.
+    """Build integrity manifest mapping relative paths to hashes.
 
     file_paths: iterable of absolute or relative file paths inside the bundle.
     base_dir: root used to compute relative paths.
@@ -79,8 +78,7 @@ def _resolve_integrity_path(base_dir, rel_path):
 
 
 def verify_integrity(base_dir, integrity, all_files=None):
-    """
-    Verify files listed in integrity exist and match.
+    """Verify files listed in integrity exist and match.
 
     If all_files is provided (absolute paths under base_dir), also fail when
     disk contains files not listed in the integrity manifest.
@@ -102,7 +100,7 @@ def verify_integrity(base_dir, integrity, all_files=None):
         actual = file_hash(full)
         if actual != expected:
             errors.append(
-                f"Hash mismatch for {rel_path}: expected {expected[:16]}, got {actual[:16]}"
+                f"Hash mismatch for {rel_path}: expected {expected[:16]}, got {actual[:16]}",
             )
 
     if all_files is not None:

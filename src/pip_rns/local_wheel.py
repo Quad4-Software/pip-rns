@@ -51,8 +51,7 @@ def verify_local_wheel(
     verify_identity: str | None = None,
     insecure: bool = False,
 ) -> tuple[bool, str | None]:
-    """
-    Verify .rsg sidecar when present.
+    """Verify .rsg sidecar when present.
 
     Returns (verified, signer_identity).
     """
@@ -98,7 +97,7 @@ def install_local_wheel(
         else:
             raise RuntimeError(
                 "Signed wheel verification failed. "
-                "Use --verify IDENTITY, pip-rns trust add, or --insecure."
+                "Use --verify IDENTITY, pip-rns trust add, or --insecure.",
             )
     else:
         print(f"  {dim('unsigned wheel')}")

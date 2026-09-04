@@ -86,7 +86,7 @@ def _bootstrap_pip(python, venv_dir):
         raise InstallError(
             f"pip unavailable in venv {venv_dir}."
             + (f"\n{detail}" if detail else "")
-            + f"\nTry: {python} -m ensurepip --upgrade"
+            + f"\nTry: {python} -m ensurepip --upgrade",
         )
 
 
@@ -97,7 +97,7 @@ def _confirm_recreate_venv(path, got, required, no_interactive):
     msg = f"Venv {path} uses Python {got} but this install needs Python {required}."
     if is_noninteractive(no_interactive):
         raise InstallError(
-            msg + f"\nRecreate it: rm -rf {path} && opip install <bundle> --venv {path}"
+            msg + f"\nRecreate it: rm -rf {path} && opip install <bundle> --venv {path}",
         )
     terminal.warn(msg)
     try:
@@ -110,13 +110,12 @@ def _confirm_recreate_venv(path, got, required, no_interactive):
         return True
     raise InstallError(
         "Cancelled."
-        f"\nUse a matching venv or: rm -rf {path} && opip install <bundle> --venv {path}"
+        f"\nUse a matching venv or: rm -rf {path} && opip install <bundle> --venv {path}",
     )
 
 
 def ensure_venv(path, required_version=None, no_interactive=False):
-    """
-    Create or reuse a venv at path.
+    """Create or reuse a venv at path.
 
     Ensures the venv Python matches required_version (default: current
     interpreter). Recreates on mismatch when confirmed.
@@ -128,7 +127,7 @@ def ensure_venv(path, required_version=None, no_interactive=False):
     if host_version != required_version:
         raise InstallError(
             f"Current Python is {host_version} but this bundle needs "
-            f"Python {required_version}. Run opip with that interpreter."
+            f"Python {required_version}. Run opip with that interpreter.",
         )
 
     dest = os.path.abspath(os.path.expanduser(path))
@@ -138,10 +137,10 @@ def ensure_venv(path, required_version=None, no_interactive=False):
         got = _interpreter_version(py)
         if got is None:
             raise InstallError(
-                f"Could not determine Python version for venv interpreter: {py}"
+                f"Could not determine Python version for venv interpreter: {py}",
             )
         if got != required_version and _confirm_recreate_venv(
-            dest, got, required_version, no_interactive
+            dest, got, required_version, no_interactive,
         ):
             terminal.info(f"Removing mismatched venv {dest}")
             shutil.rmtree(dest, ignore_errors=True)
@@ -157,11 +156,11 @@ def ensure_venv(path, required_version=None, no_interactive=False):
     got = _interpreter_version(py)
     if got is None:
         raise InstallError(
-            f"Could not determine Python version for venv interpreter: {py}"
+            f"Could not determine Python version for venv interpreter: {py}",
         )
     if got != required_version:
         raise InstallError(
-            f"Venv {dest} still reports Python {got}, expected {required_version}."
+            f"Venv {dest} still reports Python {got}, expected {required_version}.",
         )
 
     if not _find_pip(py):
@@ -183,8 +182,7 @@ def _pep668_hints():
 
 
 def _offer_pep668_recovery(no_interactive=False, required_version=None):
-    """
-    Prompt for recovery after PEP 668 failure.
+    """Prompt for recovery after PEP 668 failure.
 
     Returns dict with keys among: venv, user, target, break_system_packages.
     """
@@ -250,7 +248,7 @@ def _select_wheels_for_install(manifest, wheels_dir):
     if required and required != py_version:
         raise InstallError(
             f"This bundle was built for Python {required}, "
-            f"but the current interpreter is {py_version} ({sys.executable})."
+            f"but the current interpreter is {py_version} ({sys.executable}).",
         )
 
     def _wheel_path(record):
@@ -280,7 +278,7 @@ def _select_wheels_for_install(manifest, wheels_dir):
         if skipped:
             detail = "\nSkipped incompatible wheels:\n  " + "\n  ".join(skipped[:12])
         raise InstallError(
-            f"No wheels in bundle match Python {py_version} on {platform_tag}." + detail
+            f"No wheels in bundle match Python {py_version} on {platform_tag}." + detail,
         )
     return sorted(selected)
 
@@ -318,7 +316,7 @@ def install_via_pip(
         cmd.append("--user")
     if break_system_packages:
         cmd.append("--break-system-packages")
-    cmd.extend(wheel_paths if wheel_paths else ["-r", requirements_path])
+    cmd.extend(wheel_paths or ["-r", requirements_path])
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         detail = result.stderr or result.stdout or ""
@@ -326,9 +324,109 @@ def install_via_pip(
     return result.stdout
 
 
+def install_via_uv(
+    wheels_dir,
+    requirements_path,
+    target=None,
+    user=False,
+    replace=False,
+    wheels=None,
+    python=None,
+    break_system_packages=False,
+):
+    """Install using uv pip --no-index --find-links."""
+    import glob
+
+    if not _uv_available():
+        raise InstallError("uv not found on PATH")
+    python = python or sys.executable
+    wheel_paths = wheels or sorted(glob.glob(os.path.join(wheels_dir, "*.whl")))
+    cmd = [
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        python,
+        "--no-index",
+        "--find-links",
+        wheels_dir,
+    ]
+    if replace:
+        cmd.extend(["--upgrade", "--force-reinstall"])
+    if target:
+        cmd.extend(["--target", target])
+    if user:
+        cmd.append("--user")
+    if break_system_packages:
+        cmd.append("--break-system-packages")
+    cmd.extend(wheel_paths or ["-r", requirements_path])
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        detail = result.stderr or result.stdout or ""
+        raise InstallError(f"uv pip install failed:\n{detail}")
+    return result.stdout
+
+
+def _uv_available():
+    import shutil
+
+    return shutil.which("uv") is not None
+
+
+def resolve_install_backend(backend=None, python=None):
+    """Return 'pip' or 'uv'."""
+    explicit = backend if backend is not None else os.environ.get("OPIP_BACKEND")
+    if explicit is not None and str(explicit).strip():
+        chosen = str(explicit).strip().lower()
+        if chosen not in ("pip", "uv"):
+            raise InstallError(f"Unknown install backend: {chosen}")
+        if chosen == "uv" and not _uv_available():
+            raise InstallError("OPIP_BACKEND=uv but uv is not on PATH")
+        return chosen
+    return "pip"
+
+
+def install_wheels(
+    wheels_dir,
+    requirements_path,
+    *,
+    backend=None,
+    target=None,
+    user=False,
+    replace=False,
+    wheels=None,
+    python=None,
+    break_system_packages=False,
+):
+    chosen = resolve_install_backend(backend, python=python)
+    # Fall back to uv only when pip is unavailable on this interpreter
+    if chosen == "pip" and python and not _find_pip(python) and _uv_available():
+        chosen = "uv"
+    if chosen == "uv":
+        return install_via_uv(
+            wheels_dir,
+            requirements_path,
+            target=target,
+            user=user,
+            replace=replace,
+            wheels=wheels,
+            python=python,
+            break_system_packages=break_system_packages,
+        )
+    return install_via_pip(
+        wheels_dir,
+        requirements_path,
+        target=target,
+        user=user,
+        replace=replace,
+        wheels=wheels,
+        python=python,
+        break_system_packages=break_system_packages,
+    )
+
+
 def install_wheel_manual(wheel_path, target_dir):
-    """
-    Install a single wheel by extracting into target_dir.
+    """Install a single wheel by extracting into target_dir.
 
     Fallback when pip is not available.
     """
@@ -375,8 +473,9 @@ def _run_pip_install_with_recovery(
     no_interactive=False,
     required_version=None,
     break_system_packages=False,
+    backend=None,
 ):
-    """Install via pip, offering PEP 668 recovery when needed."""
+    """Install via pip or uv, offering PEP 668 recovery when needed."""
     from opip import terminal
 
     current_target = target
@@ -389,17 +488,27 @@ def _run_pip_install_with_recovery(
         python = _venv_python(current_venv) if current_venv else sys.executable
         if current_venv and not os.path.isfile(python):
             raise InstallError(f"venv python not found: {python}")
-        if not _find_pip(python):
-            if current_venv:
-                raise InstallError(
-                    f"pip unavailable in venv {current_venv}. "
-                    f"Try: {python} -m ensurepip"
-                )
-            return current_target, current_user, current_venv, False
+        chosen = resolve_install_backend(backend, python=python)
+        if chosen == "pip" and not _find_pip(python):
+            if _uv_available() and (
+                (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
+                or not _find_pip(python)
+            ):
+                # Prefer uv only when pip truly missing
+                if not _find_pip(python):
+                    chosen = "uv"
+            if chosen == "pip":
+                if current_venv:
+                    raise InstallError(
+                        f"pip unavailable in venv {current_venv}. "
+                        f"Try: {python} -m ensurepip",
+                    )
+                return current_target, current_user, current_venv, False
         try:
-            install_via_pip(
+            install_wheels(
                 wheels_dir,
                 req_path,
+                backend=chosen,
                 target=current_target,
                 user=current_user,
                 replace=replace,
@@ -472,9 +581,9 @@ def install_bundle(
     forget_target=False,
     no_interactive=False,
     venv=None,
+    backend=None,
 ):
-    """
-    Install all wheels from a bundle.
+    """Install all wheels from a bundle.
 
     Returns InstallOutcome (list of package names with .dest / .venv).
     """
@@ -526,8 +635,22 @@ def install_bundle(
         packages = [w["package"] for w in manifest.get("wheels", [])]
         wheel_paths = _select_wheels_for_install(manifest, wheels_dir)
 
+        can_install = bool(
+            _find_pip()
+            or (venv and _find_pip(_venv_python(venv)))
+            or (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
+            or (venv and _uv_available() and not _find_pip(_venv_python(venv))),
+        )
         used_pip = False
-        if _find_pip() or (venv and _find_pip(_venv_python(venv))):
+        if can_install:
+            use_backend = backend
+            if (
+                not use_backend
+                and venv
+                and not _find_pip(_venv_python(venv))
+                and _uv_available()
+            ):
+                use_backend = "uv"
             target, user, venv, used_pip = _run_pip_install_with_recovery(
                 wheels_dir,
                 req_path,
@@ -538,6 +661,7 @@ def install_bundle(
                 venv=venv,
                 no_interactive=noninteractive,
                 required_version=required_version,
+                backend=use_backend,
             )
 
         if not used_pip:
@@ -633,6 +757,7 @@ def install_from_source(
     forget_target=False,
     no_interactive=False,
     venv=None,
+    backend=None,
 ):
     """Acquire bundle from any source and install."""
     from opip.sources import acquire_bundle
@@ -655,6 +780,7 @@ def install_from_source(
         forget_target=forget_target,
         no_interactive=no_interactive,
         venv=venv,
+        backend=backend,
     )
 
 

@@ -22,7 +22,7 @@ def test_inject_install_command():
         "rns://id/g/repo",
     ]
     assert _inject_install_command(
-        ["pip-rns", "--no-color", "id/g/repo", "--venv", ".venv"]
+        ["pip-rns", "--no-color", "id/g/repo", "--venv", ".venv"],
     ) == ["pip-rns", "--no-color", "install", "id/g/repo", "--venv", ".venv"]
     assert _inject_install_command(["pip-rns", "install", "rns://id/g/repo"]) == [
         "pip-rns",

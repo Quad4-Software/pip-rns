@@ -25,15 +25,14 @@ def is_git_source(source):
         source.startswith("git+")
         or source.startswith("git://")
         or source.endswith(".git")
-        or "github.com" in source
+        or ("github.com" in source
         and "#" in source
-        and BUNDLE_EXTENSION in source
+        and BUNDLE_EXTENSION in source)
     )
 
 
 def parse_git_source(source):
-    """
-    Parse git-style sources.
+    """Parse git-style sources.
 
     Formats:
       git+https://host/repo.git#ref:path/to/bundle.opip
@@ -63,8 +62,7 @@ def parse_git_source(source):
 
 
 def acquire_bundle(source, dest_dir=None, timeout=300, verify_identity=None):
-    """
-    Download or locate a bundle file from any supported source.
+    """Download or locate a bundle file from any supported source.
 
     Returns absolute path to the .opip bundle file.
     """

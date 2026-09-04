@@ -188,7 +188,7 @@ def test_extract_bundle_rejects_zip_slip():
                 "../escape.txt": b"x",
                 "manifest.json": b'{"name":"x","wheels":[]}',
                 "integrity.json": dump_integrity(
-                    {"algorithm": "sha256", "files": {}}
+                    {"algorithm": "sha256", "files": {}},
                 ).encode("utf-8"),
             },
         )

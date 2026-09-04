@@ -78,13 +78,12 @@ _BRANCH_REF_NAMES = frozenset(
         "default",
         "stable",
         "next",
-    }
+    },
 )
 
 
 def ref_implies_source(ref: str | None) -> bool:
-    """
-    True when ref looks like a branch/commit, not a release version tag.
+    """True when ref looks like a branch/commit, not a release version tag.
 
     Version-like refs (v1.2.3, 1.2.3) still prefer release wheels.
     Branch names like master/main skip the release probe.
@@ -175,8 +174,7 @@ def _ensure_clone(
     ref: str | None,
     update_existing: bool,
 ) -> str:
-    """
-    Clone into dest, or update an existing checkout.
+    """Clone into dest, or update an existing checkout.
 
     Returns a short status label: 'cloned', 'updated', or 'cached'.
     Cleans up incomplete dest on interrupt.
@@ -267,7 +265,7 @@ class Resolver:
                     return dest
                 raise OfflineError(
                     f"Offline: no editable clone at {dest}. "
-                    "Clone once online, then retry with --offline."
+                    "Clone once online, then retry with --offline.",
                 )
             status = _ensure_clone(resolver, url, dest, ref=ref, update_existing=True)
             self.last_status = status
@@ -284,10 +282,10 @@ class Resolver:
                 raise OfflineError(
                     f"Offline: no cached clone for {url}. "
                     "Install once online (or use a local path / .opip), "
-                    "then retry with --offline."
+                    "then retry with --offline.",
                 )
             status = _ensure_clone(
-                resolver, url, dest, ref=ref, update_existing=not offline
+                resolver, url, dest, ref=ref, update_existing=not offline,
             )
             self.last_status = status
             return dest
@@ -295,7 +293,7 @@ class Resolver:
         if offline:
             raise OfflineError(
                 "Offline: source install requires a cache hit or local path. "
-                "Use --use-cache online first, or install from a release / .opip."
+                "Use --use-cache online first, or install from a release / .opip.",
             )
 
         tmpdir = Path(tempfile.mkdtemp(prefix="pip-rns-"))

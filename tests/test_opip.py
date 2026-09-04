@@ -147,7 +147,7 @@ def test_is_rns_source():
 
 def test_parse_git_source_fragment():
     url, ref, subpath = parse_git_source(
-        "git+https://github.com/example/repo.git#v1.0.0:dist/bundle.opip"
+        "git+https://github.com/example/repo.git#v1.0.0:dist/bundle.opip",
     )
     assert url == "https://github.com/example/repo.git"
     assert ref == "v1.0.0"

@@ -30,11 +30,11 @@ from opip.safe_zip import (
 
 # Path segment that cannot introduce traversal or absolute forms.
 _SAFE_SEGMENT = st.from_regex(
-    r"[A-Za-z0-9][A-Za-z0-9._-]{0,24}", fullmatch=True
+    r"[A-Za-z0-9][A-Za-z0-9._-]{0,24}", fullmatch=True,
 ).filter(lambda s: s not in (".", "..") and ".." not in s)
 
 _SAFE_REL_PATH = st.lists(_SAFE_SEGMENT, min_size=1, max_size=5).map(
-    lambda parts: "/".join(parts)
+    lambda parts: "/".join(parts),
 )
 
 _SAFE_ARTIFACT = st.from_regex(
@@ -115,7 +115,7 @@ def test_normal_wheel_extract_roundtrip():
         assert os.path.isfile(os.path.join(dest, "pkg", "__init__.py"))
         assert os.path.isfile(os.path.join(dest, "pkg-1.0.0.dist-info", "METADATA"))
         assert os.path.abspath(dest) == os.path.commonpath(
-            [os.path.abspath(dest), os.path.abspath(os.path.join(dest, "pkg"))]
+            [os.path.abspath(dest), os.path.abspath(os.path.join(dest, "pkg"))],
         )
 
 
@@ -150,7 +150,7 @@ def test_safe_member_path_accepts_nested_relative(path):
         resolved = safe_member_path(dest, path)
         assert resolved is not None
         assert os.path.commonpath([os.path.abspath(dest), resolved]) == os.path.abspath(
-            dest
+            dest,
         )
         assert resolved == os.path.abspath(os.path.join(dest, *path.split("/")))
 
@@ -185,7 +185,7 @@ def test_extract_roundtrip_keeps_bytes_inside_dest(path, payload):
             for name in files:
                 full = os.path.join(root, name)
                 assert os.path.commonpath(
-                    [os.path.abspath(dest), os.path.abspath(full)]
+                    [os.path.abspath(dest), os.path.abspath(full)],
                 ) == os.path.abspath(dest)
 
 
@@ -219,7 +219,7 @@ def test_extract_rejects_malicious_member_names(bad, payload):
             for name in files:
                 full = os.path.join(root, name)
                 assert os.path.commonpath(
-                    [os.path.abspath(dest), os.path.abspath(full)]
+                    [os.path.abspath(dest), os.path.abspath(full)],
                 ) == os.path.abspath(dest)
 
 
@@ -238,7 +238,7 @@ def test_safe_artifact_name_accepts_basename(name):
         st.just("a/b.whl"),
         st.just("a\\b.whl"),
         st.just("/abs.whl"),
-    )
+    ),
 )
 @settings(max_examples=20, deadline=None)
 def test_safe_artifact_name_rejects_unsafe(name):
@@ -255,7 +255,7 @@ def test_contain_path_accepts_relative(path):
     with tempfile.TemporaryDirectory() as root:
         target = contain_path(root, path)
         assert os.path.commonpath([os.path.abspath(root), target]) == os.path.abspath(
-            root
+            root,
         )
 
 
@@ -287,7 +287,7 @@ def _paths_are_file_compatible(paths):
         values=st.binary(min_size=0, max_size=256),
         min_size=1,
         max_size=8,
-    ).filter(lambda d: _paths_are_file_compatible(d.keys()))
+    ).filter(lambda d: _paths_are_file_compatible(d.keys())),
 )
 @settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_integrity_roundtrip_on_safe_trees(files):
@@ -311,8 +311,8 @@ def test_integrity_roundtrip_on_safe_trees(files):
             "../../etc/passwd",
             "/tmp/abs.txt",
             "ok/../../evil.txt",
-        ]
-    )
+        ],
+    ),
 )
 @settings(max_examples=20, deadline=None)
 def test_integrity_rejects_escape_paths_in_map(escape):
@@ -370,7 +370,7 @@ def test_fuzz_random_member_names_never_escape_dest():
                     "../x",
                     "C:",
                     "abs",
-                ]
+                ],
             )
             parts.append(choice)
         samples.append("/".join(parts))
@@ -399,7 +399,7 @@ def test_fuzz_random_member_names_never_escape_dest():
                     for fname in files:
                         full = os.path.join(root, fname)
                         assert os.path.commonpath(
-                            [os.path.abspath(dest), os.path.abspath(full)]
+                            [os.path.abspath(dest), os.path.abspath(full)],
                         ) == os.path.abspath(dest)
 
 

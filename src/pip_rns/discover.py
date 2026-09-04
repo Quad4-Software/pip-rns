@@ -243,8 +243,7 @@ def discover_nodes(
     reticulum_config: str | None = None,
     on_announce=None,
 ) -> list[DiscoveredNode]:
-    """
-    Listen for rngit git.repositories announces.
+    """Listen for rngit git.repositories announces.
 
     Requires the RNS Python package (same stack as rngit).
     Soft dependency so pip-rns still installs without RNS.
@@ -253,7 +252,7 @@ def discover_nodes(
         RNS = _import_rns()
     except ImportError as exc:
         raise RuntimeError(
-            "RNS is required for discovery. Install with: pip install rns"
+            "RNS is required for discovery. Install with: pip install rns",
         ) from exc
 
     # Keep a reference so Reticulum stays initialized for the listen window
@@ -266,10 +265,10 @@ def discover_nodes(
         aspect_filter = RNGIT_ASPECT
 
         def received_announce(
-            self, destination_hash, announced_identity, app_data, *args
+            self, destination_hash, announced_identity, app_data, *args,
         ):
             handler.received_announce(
-                destination_hash, announced_identity, app_data, *args
+                destination_hash, announced_identity, app_data, *args,
             )
             if on_announce is not None:
                 dest = (

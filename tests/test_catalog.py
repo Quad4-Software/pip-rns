@@ -26,8 +26,8 @@ def test_all_entries_priority():
                     "has_wheel": True,
                     "latest_tag": "v1.0.0",
                     "source": "scan",
-                }
-            ]
+                },
+            ],
         )
         alias_init(tmp)
         amgr = AliasManager(tmp)

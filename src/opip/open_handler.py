@@ -24,8 +24,7 @@ def open_bundle(
     remember_target=False,
     forget_target=False,
 ):
-    """
-    Prompt to install, update, replace, or uninstall a bundle.
+    """Prompt to install, update, replace, or uninstall a bundle.
 
     Used for Windows file association double-click.
     """
@@ -57,7 +56,7 @@ def open_bundle(
             manifest.get("python_version"),
             manifest.get("platform"),
             len(manifest.get("wheels", [])),
-        )
+        ),
     )
 
     if not installed:
@@ -73,7 +72,7 @@ def open_bundle(
         "2) Replace (uninstall then install)\n"
         "3) Uninstall\n"
         "0) Cancel\n"
-        "Choice: "
+        "Choice: ",
     )
     sys.stdout.flush()
     choice = _read_choice()

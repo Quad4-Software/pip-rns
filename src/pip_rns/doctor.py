@@ -57,7 +57,7 @@ def run_doctor(
                     fix="pip install rns"
                     if tool in ("rngit", "rnid")
                     else "install git",
-                )
+                ),
             )
 
     for backend in ("pip", "pipx", "uv", "poetry"):
@@ -80,7 +80,7 @@ def run_doctor(
                         "python -m pip unavailable",
                         "fail",
                         fix="python -m venv .venv && source .venv/bin/activate",
-                    )
+                    ),
                 )
         elif path:
             checks.append(Check(backend, True, path, "pass"))
@@ -95,7 +95,7 @@ def run_doctor(
             True,
             str(prefs._path),
             "pass",
-        )
+        ),
     )
 
     from .indexes import IndexManager, _config_dir
@@ -110,7 +110,7 @@ def run_doctor(
                 f"{n} registered ({_config_dir()}) (opt-in only)",
                 "pass" if n else "warn",
                 fix=None if n else "pip-rns index add rns://identity/group/index",
-            )
+            ),
         )
     except Exception as exc:
         checks.append(Check("indexes", False, str(exc), "warn"))
@@ -132,7 +132,7 @@ def run_doctor(
                 f"empty ({trust.path}). use pip-rns trust add",
                 "warn",
                 fix="pip-rns trust add rns://id/group/repo IDENTITY",
-            )
+            ),
         )
 
     from .resolver import CACHE_DIR, PERSISTENT_DIR
@@ -146,7 +146,7 @@ def run_doctor(
             True,
             f"{cache_n} clone(s) under {CACHE_DIR}",
             "pass" if cache_n else "warn",
-        )
+        ),
     )
     edit_n = 0
     if PERSISTENT_DIR.is_dir():
@@ -157,7 +157,7 @@ def run_doctor(
             True,
             f"{edit_n} under {PERSISTENT_DIR}",
             "pass",
-        )
+        ),
     )
 
     from .discover import DiscoverStore
@@ -175,14 +175,14 @@ def run_doctor(
             ),
             "pass" if dnodes else "warn",
             fix=None if dnodes else "pip-rns browse",
-        )
+        ),
     )
 
     try:
         import RNS  # noqa: F401
 
         checks.append(
-            Check("rns-python", True, "import RNS ok (needed for discover)", "pass")
+            Check("rns-python", True, "import RNS ok (needed for discover)", "pass"),
         )
     except ImportError:
         checks.append(
@@ -192,7 +192,7 @@ def run_doctor(
                 "RNS not importable. pip install rns (needed for discover)",
                 "warn",
                 fix="pip install rns",
-            )
+            ),
         )
 
     color_on = pip_ui.should_enable_color()
@@ -202,7 +202,7 @@ def run_doctor(
             True,
             "enabled" if color_on else "disabled (NO_COLOR/CI/non-TTY/classic Windows)",
             "pass",
-        )
+        ),
     )
     ni = is_noninteractive()
     checks.append(
@@ -211,7 +211,7 @@ def run_doctor(
             True,
             "non-interactive" if ni else ("CI" if is_ci() else "interactive"),
             "pass",
-        )
+        ),
     )
 
     if online:
@@ -222,7 +222,7 @@ def run_doctor(
                     False,
                     "pass --remote RNS_URL with --online (no default remote)",
                     "fail",
-                )
+                ),
             )
         else:
             try:
@@ -235,7 +235,7 @@ def run_doctor(
                         True,
                         f"{len(releases)} releases from {online_remote}",
                         "pass",
-                    )
+                    ),
                 )
             except Exception as exc:
                 checks.append(Check("online", False, str(exc)[:200], "fail"))

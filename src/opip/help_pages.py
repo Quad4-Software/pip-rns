@@ -11,7 +11,7 @@ def show_main_help():
     """Print the main colored help overview."""
     terminal.heading(f"opip {__version__}")
     terminal.write_out(
-        terminal.dim("Offline Python wheel bundles with integrity verification.")
+        terminal.dim("Offline Python wheel bundles with integrity verification."),
     )
     terminal.write_out("")
     terminal.heading("Commands")
@@ -28,7 +28,7 @@ def show_main_help():
     terminal.write_out("")
     terminal.info("Run opip help <command> or opip <command> --help for details.")
     terminal.info(
-        "Global flags: --data-dir, --no-color, --no-interactive/-y, --version"
+        "Global flags: --data-dir, --no-color, --no-interactive/-y, --version",
     )
 
 

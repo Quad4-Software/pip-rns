@@ -28,8 +28,7 @@ def export_release(
     config_dir: str | None = None,
     all_artifacts: bool = False,
 ) -> list[str]:
-    """
-    Download release artifacts into output directory for offline sharing.
+    """Download release artifacts into output directory for offline sharing.
 
     Returns list of written file paths.
     """

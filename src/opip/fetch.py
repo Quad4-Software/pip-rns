@@ -15,7 +15,7 @@ from opip.safe_zip import contain_path, safe_artifact_name
 from opip.wheel_cache import lookup_wheel, store_wheel
 
 USER_AGENT = "opip/{} (+https://github.com/Quad4-Software/pip-rns)".format(
-    __import__("opip").__version__
+    __import__("opip").__version__,
 )
 CHUNK_SIZE = 65536
 
@@ -50,16 +50,15 @@ def download_url(url, dest_path, timeout=120, expected_hash=None):
         if actual != expected_hash:
             os.remove(dest_path)
             raise FetchError(
-                f"Hash mismatch for {url}: expected {expected_hash[:16]}, got {actual[:16]}"
+                f"Hash mismatch for {url}: expected {expected_hash[:16]}, got {actual[:16]}",
             )
     return dest_path
 
 
 def download_wheel(
-    wheel_spec, dest_dir, timeout=120, use_cache=True, require_pypi_hash=False
+    wheel_spec, dest_dir, timeout=120, use_cache=True, require_pypi_hash=False,
 ):
     """Download a wheel from resolver spec into dest_dir."""
-    url = wheel_spec["url"]
     try:
         filename = safe_artifact_name(wheel_spec["filename"])
     except ValueError as exc:
@@ -71,8 +70,27 @@ def download_wheel(
         expected = digests["sha256"]
     elif require_pypi_hash:
         raise FetchError(
-            f"PyPI provides no sha256 digest for {filename}. use without --require-pypi-hash"
+            f"PyPI provides no sha256 digest for {filename}. use without --require-pypi-hash",
         )
+
+    local_path = wheel_spec.get("path")
+    url = wheel_spec.get("url") or ""
+    if not local_path and url.startswith("file://"):
+        local_path = url[7:]
+        if os.name == "nt" and local_path.startswith("/") and len(local_path) > 2:
+            # file:///C:/path
+            if local_path[2] == ":":
+                local_path = local_path[1:]
+
+    if local_path and os.path.isfile(local_path):
+        if expected and file_hash(local_path) != expected:
+            raise FetchError(
+                f"Hash mismatch for local {filename}: expected {expected[:16]}",
+            )
+        shutil.copy2(local_path, dest)
+        if use_cache:
+            store_wheel(dest, filename=filename, expected_hash=expected)
+        return dest
 
     if use_cache:
         cached = lookup_wheel(filename, expected)
@@ -83,6 +101,9 @@ def download_wheel(
                 shutil.copy2(cached, dest)
                 return dest
 
+    if not url or url.startswith("file://"):
+        raise FetchError(f"No download URL for {filename}")
+
     download_url(url, dest, timeout=timeout, expected_hash=expected)
     if use_cache:
         store_wheel(dest, filename=filename, expected_hash=expected)
@@ -90,7 +111,7 @@ def download_wheel(
 
 
 def download_wheels_parallel(
-    wheel_specs, dest_dir, jobs=8, timeout=120, use_cache=True, require_pypi_hash=False
+    wheel_specs, dest_dir, jobs=8, timeout=120, use_cache=True, require_pypi_hash=False,
 ):
     """Download many wheels concurrently. Returns list of local paths."""
     if jobs < 2 or len(wheel_specs) < 2:
@@ -152,8 +173,7 @@ def fetch_ftp(url, dest_path, timeout=120):
 
 
 def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
-    """
-    Clone or archive from a git repository.
+    """Clone or archive from a git repository.
 
     url: git URL or git+https://... style
     Returns path to fetched content directory or file.
@@ -191,7 +211,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
     except FileNotFoundError:
         shutil.rmtree(tmp_parent, ignore_errors=True)
         raise FetchError(
-            "git is not installed. Install git or download the bundle manually."
+            "git is not installed. Install git or download the bundle manually.",
         )
     except subprocess.CalledProcessError as exc:
         shutil.rmtree(tmp_parent, ignore_errors=True)
@@ -215,8 +235,7 @@ def fetch_git(url, dest_dir, ref=None, subpath=None, timeout=300):
 
 
 def fetch_file(source, dest_path, timeout=120):
-    """
-    Fetch a file from http, https, ftp, or local path.
+    """Fetch a file from http, https, ftp, or local path.
 
     Returns dest_path.
     """

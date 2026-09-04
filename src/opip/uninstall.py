@@ -42,8 +42,7 @@ def _manual_uninstall(packages, target_dir):
 
 
 def uninstall_bundle(bundle_name, store=None, user=False, target=None):
-    """
-    Uninstall packages recorded for a bundle.
+    """Uninstall packages recorded for a bundle.
 
     Returns list of uninstalled package names.
     """
@@ -72,7 +71,7 @@ def uninstall_bundle(bundle_name, store=None, user=False, target=None):
             _manual_uninstall(packages, install_target)
         else:
             raise UninstallError(
-                "Could not uninstall via pip and no install target recorded"
+                "Could not uninstall via pip and no install target recorded",
             )
 
     store.remove_install(bundle_name)

@@ -31,7 +31,7 @@ def test_resolve_reinstall_prefers_cli_venv():
         store = Store(data_dir=os.path.join(tmp, "state"))
         store.record_install("pkg", ["pkg"], target=os.path.join(tmp, "old"))
         target, user, venv = _resolve_reinstall_dest(
-            store, "pkg", venv=os.path.join(tmp, "env")
+            store, "pkg", venv=os.path.join(tmp, "env"),
         )
         assert target is None
         assert user is False
@@ -135,7 +135,7 @@ def test_update_restores_backup_when_create_fails():
         with open(bundle, "rb") as fh:
             before = fh.read()
         with mock.patch(
-            "opip.update.create_bundle", side_effect=RuntimeError("network down")
+            "opip.update.create_bundle", side_effect=RuntimeError("network down"),
         ):
             try:
                 update_bundle("test-bundle", store=store, reinstall=False)
@@ -181,7 +181,7 @@ def test_update_reinstall_uses_replace_not_uninstall():
             with mock.patch("opip.update.verify_bundle", side_effect=fake_verify):
                 with mock.patch("opip.update.has_signature", return_value=False):
                     with mock.patch(
-                        "opip.update.install_bundle", side_effect=fake_install
+                        "opip.update.install_bundle", side_effect=fake_install,
                     ) as inst:
                         with mock.patch("opip.update.bundle_info") as info:
                             info.return_value = {

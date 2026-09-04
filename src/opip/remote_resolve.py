@@ -4,8 +4,7 @@ import os
 
 
 def resolve_remote_source(source):
-    """
-    Apply pip-rns alias and index resolution to a remote string.
+    """Apply pip-rns alias and index resolution to a remote string.
 
     Preserves @ref and :artifact suffixes on the source.
     """

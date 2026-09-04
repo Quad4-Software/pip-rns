@@ -35,7 +35,7 @@ def _pick_release_tag(remote: str) -> str | None:
         print(f"  {dim(f'could not list releases: {exc}')}")
         return None
     published = [r for r in releases if r.get("status") == "published"] or list(
-        releases
+        releases,
     )
     if not published:
         print(f"  {dim('no releases found')}")
@@ -61,8 +61,7 @@ def offer_install_options(
     *,
     no_interactive: bool = False,
 ) -> InstallChoice | None:
-    """
-    Prompt how to install a bare remote (no @ref / mode flags).
+    """Prompt how to install a bare remote (no @ref / mode flags).
 
     Returns InstallChoice, or None to keep the default auto behavior
     (prefer release wheel, else clone).

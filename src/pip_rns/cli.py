@@ -174,7 +174,7 @@ _COMMANDS = frozenset(
         "browse",
         "search",
         "help",
-    }
+    },
 )
 
 
@@ -259,7 +259,7 @@ def main(argv: list[str] | None = None) -> None:
         version=f"pip-rns {__version__}",
     )
     parser.add_argument(
-        "--no-color", action="store_true", help="Disable colored output"
+        "--no-color", action="store_true", help="Disable colored output",
     )
     parser.add_argument(
         "--no-interactive",
@@ -285,7 +285,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("extra", nargs="*", help="Extra arguments passed to the installer")
 
     p = sub.add_parser(
-        "update", help="Reinstall a package from a remote (force latest)"
+        "update", help="Reinstall a package from a remote (force latest)",
     )
     p.add_argument("remote")
     _add_common_install_args(p)
@@ -477,7 +477,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     p = sub.add_parser(
-        "search", help="Search packages across aliases, indexes, discovery"
+        "search", help="Search packages across aliases, indexes, discovery",
     )
     p.add_argument("query", nargs="?", default="", help="Substring to match")
 
@@ -518,7 +518,7 @@ def main(argv: list[str] | None = None) -> None:
         help="Shell (default: detect from $SHELL)",
     )
     a.add_argument(
-        "--dry-run", action="store_true", help="Show actions without copying"
+        "--dry-run", action="store_true", help="Show actions without copying",
     )
 
     register_bundle_parsers(sub)
@@ -629,7 +629,7 @@ def main(argv: list[str] | None = None) -> None:
                 else ("wheel" if entry.has_wheel else "no-wheel")
             )
             print(
-                f"  {bold(entry.name)}  {dim(entry.source)}  {dim(wheel)}  {dim(entry.remote)}"
+                f"  {bold(entry.name)}  {dim(entry.source)}  {dim(wheel)}  {dim(entry.remote)}",
             )
         return
 
@@ -831,14 +831,14 @@ def main(argv: list[str] | None = None) -> None:
             if scanned:
                 print(
                     f"{green('✔')} {len(scanned)} package(s) saved. "
-                    f"Install with short name: pip-rns install <name>"
+                    f"Install with short name: pip-rns install <name>",
                 )
             return
 
         print(
             f"{header('⤵ Discover')} listening for "
             f"{bold('git.repositories')} "
-            f"{dim(f'({args.seconds:g}s)')}"
+            f"{dim(f'({args.seconds:g}s)')}",
         )
 
         def _on_node(node):
@@ -864,13 +864,13 @@ def main(argv: list[str] | None = None) -> None:
         if args.save and heard_nodes:
             discover_store.merge(heard_nodes)
             print(
-                f"{green('✔')} saved {len(heard_nodes)} node(s) to {discover_store.path}"
+                f"{green('✔')} saved {len(heard_nodes)} node(s) to {discover_store.path}",
             )
         elif not heard_nodes:
             print(f"  {dim('no announces heard in window')}")
         else:
             print(
-                f"{dim('heard')} {len(heard_nodes)} node(s) (pass --save to remember)"
+                f"{dim('heard')} {len(heard_nodes)} node(s) (pass --save to remember)",
             )
             for heard in heard_nodes:
                 print(f"  {format_node_line(heard)}")

@@ -58,7 +58,7 @@ def _fake_pypi(*versions):
                 "packagetype": "bdist_wheel",
                 "url": f"https://example.test/pkg-{ver}.whl",
                 "digests": {"sha256": "abc"},
-            }
+            },
         ]
     return {"releases": releases, "info": {"version": versions[-1]}}
 

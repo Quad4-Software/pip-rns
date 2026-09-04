@@ -3,8 +3,9 @@
 import os
 import shutil
 
-from opip.bundle import bundle_info, create_bundle, verify_bundle
+from opip.bundle import bundle_info, create_bundle, extract_bundle, verify_bundle
 from opip.install import InstallError, _venv_python, install_bundle
+from opip.lockfile import diff_locks
 from opip.signing import has_signature
 from opip.storage import Store
 
@@ -21,8 +22,7 @@ def _path_is_venv(path):
 
 
 def _resolve_reinstall_dest(store, bundle_name, target=None, user=False, venv=None):
-    """
-    Pick reinstall destination from CLI flags, then install record, then prefs.
+    """Pick reinstall destination from CLI flags, then install record, then prefs.
 
     Returns (target, user, venv).
     """
@@ -60,11 +60,14 @@ def update_bundle(
     venv=None,
     no_interactive=False,
     identity_path=None,
+    index_url=None,
+    find_links=None,
+    offline=False,
+    emit_delta=None,
 ):
-    """
-    Re-create a bundle from its stored requirements and optionally reinstall.
+    """Re-create a bundle from its stored requirements and optionally reinstall.
 
-    Requires network access on the machine running update.
+    Reuses unchanged wheels from the previous bundle when hashes match.
     Reinstall uses --upgrade/--force-reinstall instead of uninstall-first
     so a failed refresh does not leave packages removed.
     """
@@ -86,18 +89,22 @@ def update_bundle(
     backup = old_path + ".bak"
     restored = False
     if os.path.isfile(old_path) and os.path.abspath(output_path) == os.path.abspath(
-        old_path
+        old_path,
     ):
         shutil.copy2(old_path, backup)
 
+    old_ctx = None
     try:
         if has_signature(old_path) and not identity_path:
             from opip import terminal
 
             terminal.warn(
                 "Previous bundle was signed. Pass --identity to re-sign the update, "
-                "or the new file will be unsigned."
+                "or the new file will be unsigned.",
             )
+
+        old_ctx = extract_bundle(old_path)
+        reuse_dir = os.path.join(old_ctx["dest_dir"], "wheels")
 
         create_bundle(
             output_path,
@@ -106,12 +113,34 @@ def update_bundle(
             py_version=manifest.get("python_version"),
             platform_tag=manifest.get("platform"),
             identity_path=identity_path,
+            index_url=index_url,
+            find_links=find_links,
+            offline=offline,
+            reuse_wheels_dir=reuse_dir if os.path.isdir(reuse_dir) else None,
         )
         errors, new_manifest = verify_bundle(output_path)
         if errors:
             raise UpdateError(
-                "Updated bundle failed verification:\n" + "\n".join(errors)
+                "Updated bundle failed verification:\n" + "\n".join(errors),
             )
+
+        diff = diff_locks(manifest.get("wheels", []), new_manifest.get("wheels", []))
+        from opip import terminal
+
+        terminal.info(
+            "Update wheels: +{} ~{} -{} ={}".format(
+                len(diff["added"]),
+                len(diff["changed"]),
+                len(diff["removed"]),
+                len(diff["unchanged"]),
+            ),
+        )
+
+        if emit_delta:
+            from opip.delta import create_delta
+
+            base_for_delta = backup if os.path.isfile(backup) else old_path
+            create_delta(base_for_delta, output_path, emit_delta)
 
         store.register_bundle(bundle_name, output_path, new_manifest)
 
@@ -136,7 +165,7 @@ def update_bundle(
                 )
             except InstallError as exc:
                 raise UpdateError(
-                    "Bundle file was rebuilt, but reinstall failed:\n" + str(exc)
+                    "Bundle file was rebuilt, but reinstall failed:\n" + str(exc),
                 ) from exc
 
         if os.path.isfile(backup):
@@ -149,3 +178,6 @@ def update_bundle(
             shutil.move(backup, old_path)
             restored = True
         raise
+    finally:
+        if old_ctx is not None:
+            shutil.rmtree(old_ctx["dest_dir"], ignore_errors=True)

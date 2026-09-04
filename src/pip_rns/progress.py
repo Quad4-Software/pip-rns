@@ -46,7 +46,7 @@ class RnsWait:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         if not self._enabled or self._thread is None:
-            return None
+            return
         self._stop.set()
         self._thread.join(timeout=2.0)
         try:
@@ -54,7 +54,7 @@ class RnsWait:
             sys.stderr.flush()
         except Exception:
             pass
-        return None
+        return
 
     def _run(self) -> None:
         frames = ("|", "/", "-", "\\")

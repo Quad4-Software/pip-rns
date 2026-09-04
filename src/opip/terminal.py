@@ -42,8 +42,7 @@ def _env_truthy(name):
 
 
 def _windows_color_host_ok():
-    """
-    Return True only on modern Windows hosts that handle ANSI well.
+    """Return True only on modern Windows hosts that handle ANSI well.
 
     Classic cmd.exe and PowerShell stay colorless unless FORCE_COLOR.
     """
@@ -74,8 +73,7 @@ def enable_windows_vt():
 
 
 def should_enable_color(color_mode=None, no_color=False):
-    """
-    Decide whether ANSI color should be enabled.
+    """Decide whether ANSI color should be enabled.
 
     color_mode: auto, always, never, or None to read OPIP_COLOR.
     """
@@ -106,8 +104,7 @@ def should_enable_color(color_mode=None, no_color=False):
 
 
 def configure(color_mode=None, no_color=False):
-    """
-    Configure color output.
+    """Configure color output.
 
     color_mode: auto, always, never, or None to read from environment.
     """

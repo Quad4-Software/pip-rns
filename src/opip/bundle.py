@@ -67,7 +67,7 @@ def build_project_wheel(project_dir, wheels_dir):
     )
     if result.returncode != 0:
         raise BundleError(
-            f"Failed to build project wheel:\n{result.stderr or result.stdout}"
+            f"Failed to build project wheel:\n{result.stderr or result.stdout}",
         )
     for name in os.listdir(wheels_dir):
         if name.endswith(".whl"):
@@ -91,11 +91,16 @@ def create_bundle(
     publisher_name=None,
     publisher_contact=None,
     identity_path=None,
+    index_url=None,
+    find_links=None,
+    offline=False,
+    lock_pins=None,
+    reuse_wheels_dir=None,
 ):
     """Fetch wheels and pack them into an integrity-backed .opip bundle."""
     if requirements_file:
         requirements = read_requirements_file(requirements_file)
-    if not requirements:
+    if not requirements and not lock_pins:
         raise BundleError("No requirements specified")
 
     py_version = py_version or detect_python_version()
@@ -105,22 +110,55 @@ def create_bundle(
     if not output_path.endswith(BUNDLE_EXTENSION):
         output_path = output_path + BUNDLE_EXTENSION
 
-    wheels_specs = resolve_requirements(
-        requirements,
-        py_version,
-        platform_tag,
-        include_deps=include_deps,
-        jobs=jobs,
-        progress=True,
-    )
+    if lock_pins:
+        from opip.find_links import specs_from_pins
+        from opip.resolver import ResolutionError
+
+        try:
+            wheels_specs = specs_from_pins(
+                lock_pins,
+                find_links,
+                py_version,
+                platform_tag,
+                offline=offline,
+                index_url=index_url,
+            )
+        except ResolutionError as exc:
+            raise BundleError(str(exc))
+        if not requirements:
+            requirements = []
+            for p in lock_pins:
+                if isinstance(p, dict):
+                    requirements.append(
+                        "{}=={}".format(p["name"], p.get("version") or ""),
+                    )
+                else:
+                    requirements.append(p)
+    else:
+        from opip.resolver import ResolutionError
+
+        try:
+            wheels_specs = resolve_requirements(
+                requirements,
+                py_version,
+                platform_tag,
+                include_deps=include_deps,
+                jobs=jobs,
+                progress=True,
+                index_url=index_url,
+                find_links=find_links,
+                offline=offline,
+            )
+        except ResolutionError as exc:
+            raise BundleError(str(exc))
 
     if require_pypi_hash:
         for spec in wheels_specs:
             if "sha256" not in (spec.get("digests") or {}):
                 raise BundleError(
-                    "PyPI provides no sha256 for {}. cannot satisfy --require-pypi-hash".format(
-                        spec.get("filename")
-                    )
+                    "Index provides no sha256 for {}. cannot satisfy --require-pypi-hash".format(
+                        spec.get("filename"),
+                    ),
                 )
 
     tmpdir = tempfile.mkdtemp(prefix="opip-create-")
@@ -134,18 +172,45 @@ def create_bundle(
         signer_identity = identity_hash(identity_path)
 
     try:
-        download_wheels_parallel(
-            wheels_specs,
-            wheels_dir,
-            jobs=jobs,
-            use_cache=use_cache,
-            require_pypi_hash=require_pypi_hash,
-        )
+        # Prefer reuse of unchanged wheels from a prior bundle extract
+        remaining = []
         for spec in wheels_specs:
             filename = safe_artifact_name(spec["filename"])
-            path = os.path.join(wheels_dir, filename)
-            source = "cache" if use_cache else "pypi"
-            wheel_entries.append(build_wheel_record(path, spec=spec, source=source))
+            dest = os.path.join(wheels_dir, filename)
+            reused = False
+            if reuse_wheels_dir:
+                src = os.path.join(reuse_wheels_dir, filename)
+                expected = (spec.get("digests") or {}).get("sha256")
+                if os.path.isfile(src):
+                    from opip.integrity import file_hash
+
+                    if not expected or file_hash(src) == expected:
+                        shutil.copy2(src, dest)
+                        reused = True
+            if reused:
+                source = "cache"
+                wheel_entries.append(build_wheel_record(dest, spec=spec, source=source))
+            else:
+                remaining.append(spec)
+
+        if remaining:
+            download_wheels_parallel(
+                remaining,
+                wheels_dir,
+                jobs=jobs,
+                use_cache=use_cache,
+                require_pypi_hash=require_pypi_hash,
+            )
+            for spec in remaining:
+                filename = safe_artifact_name(spec["filename"])
+                path = os.path.join(wheels_dir, filename)
+                if spec.get("_local") or (spec.get("url") or "").startswith("file://"):
+                    source = "find-links"
+                elif use_cache:
+                    source = "cache"
+                else:
+                    source = "pypi"
+                wheel_entries.append(build_wheel_record(path, spec=spec, source=source))
 
         if include_project and project_dir:
             project_wheel = build_project_wheel(project_dir, wheels_dir)
@@ -156,7 +221,7 @@ def create_bundle(
                     spec={"project_name": project_name},
                     source="local",
                     built_from=os.path.abspath(project_dir),
-                )
+                ),
             )
             meta = read_wheel_metadata(project_wheel)
             pkg_req = "{}=={}".format(meta["name"], meta["version"])
@@ -197,7 +262,7 @@ def create_bundle(
             trust = None
             if identity_path:
                 trust = export_public_record(
-                    identity_path, pub_name, contact=publisher_contact
+                    identity_path, pub_name, contact=publisher_contact,
                 )
             publisher_record = make_publisher(
                 pub_name,
@@ -206,7 +271,7 @@ def create_bundle(
                 public_record=trust,
             )
             with open(
-                os.path.join(tmpdir, PUBLISHER_FILE), "w", encoding="utf-8"
+                os.path.join(tmpdir, PUBLISHER_FILE), "w", encoding="utf-8",
             ) as fh:
                 fh.write(dump_publisher(publisher_record))
 
@@ -322,8 +387,8 @@ def verify_bundle_contents(
         if os.path.isfile(whl):
             errors.extend(
                 verify_wheel_provenance(
-                    whl, record, require_pypi_hash=require_pypi_hash
-                )
+                    whl, record, require_pypi_hash=require_pypi_hash,
+                ),
             )
         else:
             errors.append(f"Missing wheel file: {filename}")
@@ -332,7 +397,7 @@ def verify_bundle_contents(
 
 
 def verify_bundle(
-    bundle_path, signer=None, require_signature=False, require_pypi_hash=False
+    bundle_path, signer=None, require_signature=False, require_pypi_hash=False,
 ):
     """Verify bundle. Returns (errors, manifest)."""
     ctx = extract_bundle(bundle_path)

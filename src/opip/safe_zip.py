@@ -15,8 +15,7 @@ class UnsafeZipError(Exception):
 
 
 def safe_member_path(dest_dir, member_name):
-    """
-    Resolve member_name under dest_dir or raise UnsafeZipError.
+    """Resolve member_name under dest_dir or raise UnsafeZipError.
 
     Rejects absolute paths, drive letters, and .. segments.
     """
@@ -61,8 +60,7 @@ def extract_zip_safe(
     max_member_bytes=MAX_MEMBER_BYTES,
     max_total_bytes=MAX_TOTAL_BYTES,
 ):
-    """
-    Extract zip_path into dest_dir with path and size checks.
+    """Extract zip_path into dest_dir with path and size checks.
 
     Raises UnsafeZipError on traversal, symlinks, or size limits.
     """
@@ -78,12 +76,12 @@ def extract_zip_safe(
                 raise UnsafeZipError(f"Symlink zip member rejected: {info.filename}")
             if info.file_size > max_member_bytes:
                 raise UnsafeZipError(
-                    f"Zip member too large ({info.file_size} bytes): {info.filename}"
+                    f"Zip member too large ({info.file_size} bytes): {info.filename}",
                 )
             total += info.file_size
             if total > max_total_bytes:
                 raise UnsafeZipError(
-                    f"Zip total uncompressed size exceeds limit ({max_total_bytes} bytes)"
+                    f"Zip total uncompressed size exceeds limit ({max_total_bytes} bytes)",
                 )
 
             dest = safe_member_path(dest_root, info.filename)
@@ -96,16 +94,16 @@ def extract_zip_safe(
                     os.makedirs(parent, exist_ok=True)
                 except OSError as exc:
                     raise UnsafeZipError(
-                        f"Cannot create parent for zip member {info.filename}: {exc}"
+                        f"Cannot create parent for zip member {info.filename}: {exc}",
                     )
 
             if os.path.isdir(dest):
                 raise UnsafeZipError(
-                    f"Zip member path is an existing directory: {info.filename}"
+                    f"Zip member path is an existing directory: {info.filename}",
                 )
             if os.path.lexists(dest) and os.path.islink(dest):
                 raise UnsafeZipError(
-                    f"Refusing to overwrite symlink at zip member path: {info.filename}"
+                    f"Refusing to overwrite symlink at zip member path: {info.filename}",
                 )
 
             written = 0
@@ -121,18 +119,17 @@ def extract_zip_safe(
                                 with contextlib.suppress(OSError):
                                     os.remove(dest)
                                 raise UnsafeZipError(
-                                    f"Zip member exceeded size limit while reading: {info.filename}"
+                                    f"Zip member exceeded size limit while reading: {info.filename}",
                                 )
                             out.write(chunk)
             except OSError as exc:
                 raise UnsafeZipError(
-                    f"Cannot open zip member destination {info.filename}: {exc}"
+                    f"Cannot open zip member destination {info.filename}: {exc}",
                 ) from exc
 
 
 def safe_artifact_name(filename):
-    """
-    Return a basename-only artifact name or raise ValueError.
+    """Return a basename-only artifact name or raise ValueError.
 
     Rejects empty names, path separators, and .. components.
     """
@@ -143,7 +140,7 @@ def safe_artifact_name(filename):
         raise ValueError("Empty artifact filename")
     if "/" in name or "\\" in name:
         raise ValueError(
-            f"Artifact filename must not contain path separators: {filename}"
+            f"Artifact filename must not contain path separators: {filename}",
         )
     base = os.path.basename(name)
     if base != name or base in (".", "..") or ".." in base:
@@ -152,8 +149,7 @@ def safe_artifact_name(filename):
 
 
 def contain_path(root_dir, rel_path):
-    """
-    Join rel_path under root_dir and ensure the result stays inside root_dir.
+    """Join rel_path under root_dir and ensure the result stays inside root_dir.
 
     Raises ValueError on escape.
     """

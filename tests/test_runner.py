@@ -89,7 +89,7 @@ def main() -> int:
             dt = time.time() - t0
             reason = str(exc).strip() or "skipped"
             print(
-                f"  {Y}{mark_skip}{X} {label}  {D}({dt * 1000:.0f}ms){X}  {D}{reason}{X}"
+                f"  {Y}{mark_skip}{X} {label}  {D}({dt * 1000:.0f}ms){X}  {D}{reason}{X}",
             )
             skipped += 1
         except Exception:

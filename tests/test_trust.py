@@ -27,7 +27,7 @@ def test_trust_resolve_order():
         store.set_remote("rns://aa/g/repo", "cccccccccccccccccccccccccccccccc")
         assert (
             store.resolve(
-                "rns://aa/g/repo", explicit="eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                "rns://aa/g/repo", explicit="eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             )
             == "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         )

@@ -97,7 +97,7 @@ def test_ensure_venv_rejects_mismatched_python():
         with mock.patch("opip.install.os.path.isfile", return_value=True):
             with mock.patch("opip.install._interpreter_version", return_value="3.12"):
                 with mock.patch(
-                    "opip.install.detect_python_version", return_value="3.14"
+                    "opip.install.detect_python_version", return_value="3.14",
                 ):
                     try:
                         ensure_venv(venv, required_version="3.14", no_interactive=True)
@@ -125,11 +125,11 @@ def test_ensure_venv_recreates_when_confirmed():
 
         with mock.patch("opip.install.detect_python_version", return_value="3.14"):
             with mock.patch(
-                "opip.install._interpreter_version", side_effect=fake_version
+                "opip.install._interpreter_version", side_effect=fake_version,
             ):
                 with mock.patch("builtins.input", return_value="y"):
                     with mock.patch(
-                        "opip.interactive.is_noninteractive", return_value=False
+                        "opip.interactive.is_noninteractive", return_value=False,
                     ):
                         with mock.patch("opip.install._find_pip", return_value=True):
                             with mock.patch("subprocess.run") as run:
@@ -137,7 +137,7 @@ def test_ensure_venv_recreates_when_confirmed():
 
                                 def isfile(path):
                                     if path == py or str(path).endswith(
-                                        ("python", "python.exe")
+                                        ("python", "python.exe"),
                                     ):
                                         return states["exists"]
                                     return real_isfile(path)
@@ -151,19 +151,18 @@ def test_ensure_venv_recreates_when_confirmed():
 
                                 run.side_effect = fake_run
                                 with mock.patch(
-                                    "opip.install.os.path.isfile", side_effect=isfile
+                                    "opip.install.os.path.isfile", side_effect=isfile,
+                                ), mock.patch(
+                                    "opip.install.shutil.rmtree",
+                                    side_effect=lambda *_a, **_k: states.update(
+                                        exists=False,
+                                    ),
                                 ):
-                                    with mock.patch(
-                                        "opip.install.shutil.rmtree",
-                                        side_effect=lambda *_a, **_k: states.update(
-                                            exists=False
-                                        ),
-                                    ):
-                                        out = ensure_venv(
-                                            venv,
-                                            required_version="3.14",
-                                            no_interactive=False,
-                                        )
+                                    out = ensure_venv(
+                                        venv,
+                                        required_version="3.14",
+                                        no_interactive=False,
+                                    )
         assert out == os.path.abspath(venv)
 
 
@@ -201,7 +200,7 @@ def test_pip_recovery_retries_with_venv():
                             return_value="/fake/python",
                         ):
                             with mock.patch(
-                                "opip.install.os.path.isfile", return_value=True
+                                "opip.install.os.path.isfile", return_value=True,
                             ):
                                 target, user, used_venv, used_pip = (
                                     _run_pip_install_with_recovery(

@@ -34,8 +34,8 @@ def test_browse_no_listen_scan_only():
                 DiscoveredNode(
                     destination_hash="aa" * 16,
                     heard_at=1.0,
-                )
-            ]
+                ),
+            ],
         )
 
         with mock.patch(
@@ -61,17 +61,16 @@ def test_browse_no_listen_scan_only():
 
 
 def test_browse_noninteractive_no_nodes():
-    with tempfile.TemporaryDirectory() as tmp:
-        with mock.patch(
-            "pip_rns.browse.DiscoverStore",
-        ) as store_cls:
-            store = store_cls.return_value
-            store.list_nodes.return_value = []
-            try:
-                run_browse(config_dir=tmp, no_listen=True, no_interactive=True)
-                raise AssertionError("expected RuntimeError")
-            except RuntimeError as exc:
-                assert "No saved nodes" in str(exc)
+    with tempfile.TemporaryDirectory() as tmp, mock.patch(
+        "pip_rns.browse.DiscoverStore",
+    ) as store_cls:
+        store = store_cls.return_value
+        store.list_nodes.return_value = []
+        try:
+            run_browse(config_dir=tmp, no_listen=True, no_interactive=True)
+            raise AssertionError("expected RuntimeError")
+        except RuntimeError as exc:
+            assert "No saved nodes" in str(exc)
 
 
 def test_browse_auto_alias():

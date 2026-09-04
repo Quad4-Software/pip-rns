@@ -181,8 +181,7 @@ def _offer_managed_env_recovery(
     venv: str | None,
     no_interactive: bool,
 ) -> tuple[str, str | None] | None:
-    """
-    Prompt for recovery after PEP 668 / managed env failure.
+    """Prompt for recovery after PEP 668 / managed env failure.
 
     Returns (installer, venv) to retry, or None to abort.
     """
@@ -451,7 +450,7 @@ def install(
         from_release = True
         if from_source or editable:
             raise ValueError(
-                "--require-release cannot be combined with --from-source/--editable"
+                "--require-release cannot be combined with --from-source/--editable",
             )
 
     remote_base, embedded_ref = parse_ref(remote)
@@ -537,7 +536,7 @@ def install(
     if editable or from_source:
         if from_release:
             raise ValueError(
-                "--from-release cannot be combined with --editable/--from-source"
+                "--from-release cannot be combined with --editable/--from-source",
             )
         if explicit_from_source and ref and ref_implies_source(ref):
             hit = _probe_release_wheel(resolved, None)
@@ -545,7 +544,7 @@ def install(
                 tag, _whl = hit
                 hint = input_name if "/" not in remote_base else resolved
                 print(
-                    f"  {dim(f'A release wheel exists ({tag}). Faster: pip-rns install {hint}')}"
+                    f"  {dim(f'A release wheel exists ({tag}). Faster: pip-rns install {hint}')}",
                 )
         if explicit_from_source:
             print(f"  {dim('Cloning source (--from-source)')}")
@@ -579,7 +578,7 @@ def install(
         if offline:
             raise OfflineError(
                 "Offline: release fetch needs RNS. "
-                "Use a local .opip / exported wheel, or cache a source clone."
+                "Use a local .opip / exported wheel, or cache a source clone.",
             )
         venv = install_from_release(
             resolved,
@@ -783,7 +782,7 @@ def install_from_release(
         raise RuntimeError(
             f"Release {tag}: signatures present but verification did not confirm. "
             "Refuse to install (fail closed). Pass --verify IDENTITY, "
-            "run pip-rns trust add, or use --insecure to override."
+            "run pip-rns trust add, or use --insecure to override.",
         )
     if signed and insecure and not fetched.verified:
         print(f"  {yellow('insecure: skipping signature confirmation')}")

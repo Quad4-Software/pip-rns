@@ -87,7 +87,7 @@ def test_rns_source_defaults_to_cache_and_updates():
     dest = CACHE_DIR / repo_hash(f"{url}@master")
     fake = mock.Mock()
     with mock.patch("pip_rns.resolver.get_resolver", return_value=fake), mock.patch(
-        "pip_rns.resolver._ensure_clone", return_value="updated"
+        "pip_rns.resolver._ensure_clone", return_value="updated",
     ) as ensure:
         path = Resolver().resolve(url, ref="master")
     assert path == dest
@@ -108,7 +108,7 @@ def test_ensure_clone_updates_existing_git_checkout():
         (dest / ".git").mkdir()
         fake = mock.Mock()
         status = _ensure_clone(
-            fake, "rns://id/g/r", dest, ref="master", update_existing=True
+            fake, "rns://id/g/r", dest, ref="master", update_existing=True,
         )
         assert status == "updated"
         fake.update.assert_called_once()
@@ -128,12 +128,12 @@ def test_ensure_clone_cleans_partial_on_interrupt():
 
         def boom(*_a, **_k):
             dest.mkdir(parents=True, exist_ok=True)
-            raise KeyboardInterrupt()
+            raise KeyboardInterrupt
 
         fake.clone.side_effect = boom
         try:
             _ensure_clone(
-                fake, "rns://id/g/r", dest, ref="master", update_existing=True
+                fake, "rns://id/g/r", dest, ref="master", update_existing=True,
             )
             raise AssertionError("expected KeyboardInterrupt")
         except KeyboardInterrupt:

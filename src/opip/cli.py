@@ -1,6 +1,7 @@
 """Command-line interface for opip."""
 
 import argparse
+import json
 import os
 import sys
 
@@ -13,17 +14,22 @@ from opip.install import InstallError, install_from_source, uninstall_from_file
 from opip.interactive import is_noninteractive
 from opip.keys import IdentityError, generate_identity, identity_hash
 from opip.listing import (
+    bundle_info_dict,
+    bundles_as_json,
     format_bundle_table,
     format_install_table,
+    installs_as_json,
     list_bundles,
     list_installed,
     show_bundle_info,
+    verify_result_dict,
 )
 from opip.manifest import BUNDLE_EXTENSION
 from opip.open_handler import OpenError, open_bundle
 from opip.project import ProjectError, detect_project, merge_optional_requirements
 from opip.signing import SigningError
 from opip.storage import Store
+from opip.trust_cmd import dispatch_trust, resolve_signer
 from opip.uninstall import UninstallError, uninstall_bundle
 from opip.update import UpdateError, update_bundle
 from opip.verify import verify_bundle_file
@@ -62,6 +68,23 @@ def build_parser():
         "--yes",
         action="store_true",
         help="Assume yes / non-interactive (alias for --no-interactive).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Machine-readable JSON on stdout for verify, info, list, trust ls.",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Suppress success stdout (errors still on stderr).",
+    )
+    parser.add_argument(
+        "--config",
+        default=None,
+        metavar="DIR",
+        help="pip-rns config directory for trust store (env: PIP_RNS_CONFIG).",
     )
 
     sub = parser.add_subparsers(dest="command", help="Available commands")
@@ -161,7 +184,34 @@ def build_parser():
     p_create.add_argument(
         "--require-pypi-hash",
         action="store_true",
-        help="Require PyPI sha256 digests for every downloaded wheel.",
+        help="Require index sha256 digests for every downloaded wheel.",
+    )
+    p_create.add_argument(
+        "--index-url",
+        default=None,
+        help="Warehouse JSON index base (env: OPIP_INDEX_URL).",
+    )
+    p_create.add_argument(
+        "--find-links",
+        default=None,
+        metavar="DIR",
+        help="Local wheel directory for create (env: OPIP_FIND_LINKS).",
+    )
+    p_create.add_argument(
+        "--offline",
+        action="store_true",
+        help="Refuse network during create (env: OPIP_OFFLINE).",
+    )
+    p_create.add_argument(
+        "--lockfile",
+        default=None,
+        metavar="PATH",
+        help="Use uv.lock, poetry.lock, or pip-tools hashed requirements.",
+    )
+    p_create.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="Ignore auto-detected lockfiles; resolve from requirements.",
     )
     p_create.add_argument(
         "--publisher",
@@ -242,6 +292,12 @@ def build_parser():
         action="store_true",
         help="Forget any remembered install destination for this bundle.",
     )
+    p_install.add_argument(
+        "--backend",
+        choices=("pip", "uv"),
+        default=None,
+        help="Install backend (env: OPIP_BACKEND, default pip).",
+    )
 
     p_dest = sub.add_parser(
         "dest",
@@ -294,6 +350,70 @@ def build_parser():
         help="Destination .opip path (USB, network share, etc.).",
     )
 
+    p_extract = sub.add_parser(
+        "extract",
+        help="Unpack wheels from a bundle for pip/uv hand-off.",
+    )
+    p_extract.add_argument("bundle", help="Path to .opip bundle file.")
+    p_extract.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Output wheelhouse directory.",
+    )
+    p_extract.add_argument(
+        "--simple-index",
+        action="store_true",
+        help="Write a minimal PEP 503 simple index layout.",
+    )
+    p_extract.add_argument(
+        "--no-verify",
+        action="store_true",
+        help="Skip integrity verification before extract.",
+    )
+    p_extract.add_argument(
+        "--signer",
+        metavar="IDENTITY",
+        default=None,
+        help="Pin required signer identity (env: OPIP_SIGNER).",
+    )
+    p_extract.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="Fail if bundle is not signed.",
+    )
+
+    p_delta = sub.add_parser(
+        "delta",
+        help="Build a thin .opipd patch between two bundles.",
+    )
+    p_delta.add_argument("old", help="Base .opip bundle.")
+    p_delta.add_argument("new", help="Target .opip bundle.")
+    p_delta.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Output .opipd path.",
+    )
+
+    p_apply = sub.add_parser(
+        "apply",
+        help="Apply a .opipd patch onto a base bundle.",
+    )
+    p_apply.add_argument("base", help="Base .opip bundle.")
+    p_apply.add_argument("delta", help="Path to .opipd patch.")
+    p_apply.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Output .opip path.",
+    )
+    p_apply.add_argument(
+        "--identity",
+        default=None,
+        help="Reticulum identity to sign the result.",
+    )
+
     sub.add_parser(
         "register-windows",
         help="Register .opip file association and Explorer context menus (Windows).",
@@ -326,6 +446,28 @@ def build_parser():
         "--identity",
         default=None,
         help="Reticulum identity to re-sign the updated bundle.",
+    )
+    p_update.add_argument(
+        "--index-url",
+        default=None,
+        help="Warehouse JSON index base (env: OPIP_INDEX_URL).",
+    )
+    p_update.add_argument(
+        "--find-links",
+        default=None,
+        metavar="DIR",
+        help="Local wheel directory (env: OPIP_FIND_LINKS).",
+    )
+    p_update.add_argument(
+        "--offline",
+        action="store_true",
+        help="Refuse network during update.",
+    )
+    p_update.add_argument(
+        "--emit-delta",
+        default=None,
+        metavar="PATH",
+        help="Also write a .opipd patch from the previous bundle.",
     )
 
     p_verify = sub.add_parser(
@@ -382,6 +524,24 @@ def build_parser():
         help="What to list (default: bundles).",
     )
 
+    p_trust = sub.add_parser(
+        "trust",
+        help="Trusted publisher identities (shared pip-rns trust store).",
+    )
+    tp = p_trust.add_subparsers(dest="trust_command", help="trust actions")
+    t_add = tp.add_parser("add", help="Trust a signer for a remote (or set default).")
+    t_add.add_argument(
+        "remote_or_default",
+        help="Remote rns:// URL, identity hex, or 'default'.",
+    )
+    t_add.add_argument("identity", help="32-hex Reticulum identity hash.")
+    t_rm = tp.add_parser("rm", help="Forget a trusted signer.")
+    t_rm.add_argument("remote_or_default", help="Remote rns:// URL or 'default'.")
+    tp.add_parser("ls", help="List trusted publishers.")
+    t_sd = tp.add_parser("set-default", help="Set default signer identity.")
+    t_sd.add_argument("identity")
+    tp.add_parser("forget-default", help="Clear default signer.")
+
     sub.add_parser(
         "doctor",
         help="Check opip environment health.",
@@ -393,7 +553,7 @@ def build_parser():
     )
     cp = p_comp.add_subparsers(dest="completion_command", help="completion actions")
     p_comp_install = cp.add_parser(
-        "install", help="Install completions for this shell."
+        "install", help="Install completions for this shell.",
     )
     p_comp_install.add_argument(
         "--shell",
@@ -427,7 +587,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     args = apply_defaults(args)
     args.no_interactive = bool(
-        getattr(args, "no_interactive", False) or getattr(args, "yes", False)
+        getattr(args, "no_interactive", False) or getattr(args, "yes", False),
     )
 
     if args.command == "help":
@@ -474,22 +634,44 @@ def _resolve_create_plan(args):
     project_dir = os.path.abspath(args.project_dir)
     project_info = None
     reqs = list(args.packages)
+    lock_pins = None
 
-    if args.requirements:
-        reqs.extend(read_requirements_file(args.requirements))
-    elif not reqs:
-        project_info = detect_project(project_dir)
-        reqs = merge_optional_requirements(
-            project_info, project_dir, include_dev=args.with_dev
-        )
-        if project_info.source:
-            terminal.info(f"Using {project_info.source} from {project_dir}")
+    if not getattr(args, "no_lock", False):
+        lock_path = getattr(args, "lockfile", None)
+        if not lock_path:
+            from opip.lock_import import detect_lockfile
 
-    if not reqs:
-        raise BundleError(
-            "No requirements found. Add packages, pass -r requirements.txt, "
-            "or run inside a project with pyproject.toml."
-        )
+            lock_path = detect_lockfile(project_dir)
+        if lock_path and (
+            getattr(args, "lockfile", None)
+            or (not args.requirements and not args.packages)
+        ):
+            from opip.lock_import import LockImportError, load_lockfile
+
+            try:
+                lock_pins = load_lockfile(lock_path)
+                terminal.info(f"Using lockfile {lock_path}")
+            except LockImportError as exc:
+                if getattr(args, "lockfile", None):
+                    raise BundleError(str(exc))
+                lock_pins = None
+
+    if lock_pins is None:
+        if args.requirements:
+            reqs.extend(read_requirements_file(args.requirements))
+        elif not reqs:
+            project_info = detect_project(project_dir)
+            reqs = merge_optional_requirements(
+                project_info, project_dir, include_dev=args.with_dev,
+            )
+            if project_info.source:
+                terminal.info(f"Using {project_info.source} from {project_dir}")
+
+        if not reqs:
+            raise BundleError(
+                "No requirements found. Add packages, pass -r requirements.txt, "
+                "--lockfile, or run inside a project with pyproject.toml.",
+            )
 
     name = args.name
     if not name and project_info and project_info.name:
@@ -503,7 +685,7 @@ def _resolve_create_plan(args):
 
     include_project = _resolve_include_project(args, project_info, project_dir)
 
-    return output, reqs, name, project_dir, include_project
+    return output, reqs, name, project_dir, include_project, lock_pins
 
 
 def _resolve_include_project(args, project_info, project_dir):
@@ -517,7 +699,7 @@ def _resolve_include_project(args, project_info, project_dir):
 def _prompt_bundle_name(no_interactive):
     if is_noninteractive(no_interactive):
         raise BundleError(
-            "Could not determine bundle name. Pass --name or use a pyproject.toml."
+            "Could not determine bundle name. Pass --name or use a pyproject.toml.",
         )
     sys.stdout.write(terminal.bold("Bundle name: "))
     sys.stdout.flush()
@@ -532,7 +714,9 @@ def _prompt_bundle_name(no_interactive):
 
 def _dispatch(args, store):
     if args.command == "create":
-        output, reqs, name, project_dir, include_project = _resolve_create_plan(args)
+        output, reqs, name, project_dir, include_project, lock_pins = (
+            _resolve_create_plan(args)
+        )
         path = create_bundle(
             output,
             reqs,
@@ -548,6 +732,10 @@ def _dispatch(args, store):
             publisher_name=args.publisher,
             publisher_contact=args.publisher_contact,
             identity_path=args.identity,
+            index_url=getattr(args, "index_url", None),
+            find_links=getattr(args, "find_links", None),
+            offline=bool(getattr(args, "offline", False)),
+            lock_pins=lock_pins,
         )
         manifest = bundle_info(path)
         store.register_bundle(
@@ -555,14 +743,15 @@ def _dispatch(args, store):
             path,
             manifest,
         )
-        terminal.success(f"Created bundle: {path}")
-        terminal.write_out(
-            "  {} wheels for Python {} on {}".format(
-                len(manifest.get("wheels", [])),
-                manifest.get("python_version"),
-                manifest.get("platform"),
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Created bundle: {path}")
+            terminal.write_out(
+                "  {} wheels for Python {} on {}".format(
+                    len(manifest.get("wheels", [])),
+                    manifest.get("python_version"),
+                    manifest.get("platform"),
+                ),
             )
-        )
         return 0
 
     if args.command == "install":
@@ -572,6 +761,12 @@ def _dispatch(args, store):
         if args.venv and (args.target or args.user):
             terminal.error("use --venv alone, not with --target or --user.")
             return 1
+        signer = resolve_signer(
+            args.source,
+            explicit=args.signer,
+            insecure=False,
+            config_dir=getattr(args, "config", None),
+        )
         packages = install_from_source(
             args.source,
             target=args.target,
@@ -579,32 +774,34 @@ def _dispatch(args, store):
             replace=args.replace,
             store=store,
             verify=not args.no_verify,
-            signer=args.signer,
+            signer=signer,
             require_signature=args.require_signature,
             target_explicit=args.target is not None,
             remember_target=args.remember_target,
             forget_target=args.forget_target,
             no_interactive=args.no_interactive,
             venv=args.venv,
+            backend=getattr(args, "backend", None),
         )
-        terminal.success(f"Installed {len(packages)} packages from bundle.")
-        for pkg in packages:
-            terminal.write_out(f"  {pkg}")
-        dest = getattr(packages, "dest", None) or (
-            args.target
-            or (f"venv {args.venv}" if args.venv else None)
-            or ("user site" if args.user else "system/active")
-        )
-        if args.no_verify:
-            signer = "skipped (--no-verify)"
-        elif args.signer:
-            signer = f"verified {args.signer}"
-        else:
-            signer = "auto (.rsg when present)"
-        terminal.write_out(terminal.dim(f"Resolved: {args.source}"))
-        terminal.write_out(terminal.dim("Mode: opip bundle"))
-        terminal.write_out(terminal.dim(f"Dest: {dest}"))
-        terminal.write_out(terminal.dim(f"Signer: {signer}"))
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Installed {len(packages)} packages from bundle.")
+            for pkg in packages:
+                terminal.write_out(f"  {pkg}")
+            dest = getattr(packages, "dest", None) or (
+                args.target
+                or (f"venv {args.venv}" if args.venv else None)
+                or ("user site" if args.user else "system/active")
+            )
+            if args.no_verify:
+                signer_label = "skipped (--no-verify)"
+            elif signer:
+                signer_label = f"verified {signer}"
+            else:
+                signer_label = "auto (.rsg when present)"
+            terminal.write_out(terminal.dim(f"Resolved: {args.source}"))
+            terminal.write_out(terminal.dim("Mode: opip bundle"))
+            terminal.write_out(terminal.dim(f"Dest: {dest}"))
+            terminal.write_out(terminal.dim(f"Signer: {signer_label}"))
         return 0
 
     if args.command == "dest":
@@ -645,14 +842,91 @@ def _dispatch(args, store):
 
     if args.command == "export":
         out, manifest = export_bundle(args.source, args.output, store=store)
-        terminal.success(f"Exported bundle: {out}")
-        terminal.write_out(
-            "  {} wheels, Python {}, {}".format(
-                len(manifest.get("wheels", [])),
-                manifest.get("python_version"),
-                manifest.get("platform"),
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Exported bundle: {out}")
+            terminal.write_out(
+                "  {} wheels, Python {}, {}".format(
+                    len(manifest.get("wheels", [])),
+                    manifest.get("python_version"),
+                    manifest.get("platform"),
+                ),
             )
+        return 0
+
+    if args.command == "extract":
+        from opip.extract_cmd import ExtractError, extract_to_wheelhouse
+
+        signer = resolve_signer(
+            args.bundle,
+            explicit=args.signer,
+            insecure=False,
+            config_dir=getattr(args, "config", None),
         )
+        try:
+            out, count = extract_to_wheelhouse(
+                args.bundle,
+                args.output,
+                simple_index=args.simple_index,
+                verify=not args.no_verify,
+                signer=signer,
+                require_signature=args.require_signature,
+            )
+        except ExtractError as exc:
+            terminal.error(str(exc))
+            return 1
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Extracted {count} wheels to {out}")
+        return 0
+
+    if args.command == "delta":
+        from opip.delta import DeltaError, create_delta
+
+        try:
+            path, meta = create_delta(args.old, args.new, args.output)
+        except DeltaError as exc:
+            terminal.error(str(exc))
+            return 1
+        if getattr(args, "json", False):
+            terminal.write_out(
+                json.dumps(
+                    {
+                        "path": path,
+                        "added": meta.get("added"),
+                        "changed": meta.get("changed"),
+                        "removed": meta.get("removed"),
+                        "unchanged_count": len(meta.get("unchanged") or []),
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+            )
+        elif not getattr(args, "quiet", False):
+            terminal.success(f"Wrote delta: {path}")
+            terminal.write_out(
+                "  +{} ~{} -{} ({} unchanged)".format(
+                    len(meta.get("added") or []),
+                    len(meta.get("changed") or []),
+                    len(meta.get("removed") or []),
+                    len(meta.get("unchanged") or []),
+                ),
+            )
+        return 0
+
+    if args.command == "apply":
+        from opip.delta import DeltaError, apply_delta
+
+        try:
+            path = apply_delta(
+                args.base,
+                args.delta,
+                args.output,
+                identity_path=args.identity,
+            )
+        except DeltaError as exc:
+            terminal.error(str(exc))
+            return 1
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Applied delta: {path}")
         return 0
 
     if args.command == "register-windows":
@@ -691,28 +965,44 @@ def _dispatch(args, store):
             venv=args.venv,
             no_interactive=args.no_interactive,
             identity_path=args.identity,
+            index_url=getattr(args, "index_url", None),
+            find_links=getattr(args, "find_links", None),
+            offline=bool(getattr(args, "offline", False)),
+            emit_delta=getattr(args, "emit_delta", None),
         )
-        terminal.success(f"Updated bundle: {path}")
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Updated bundle: {path}")
         return 0
 
     if args.command == "verify":
+        signer = resolve_signer(
+            args.bundle,
+            explicit=args.signer,
+            insecure=False,
+            config_dir=getattr(args, "config", None),
+        )
         ok, errors, manifest = verify_bundle_file(
             args.bundle,
-            signer=args.signer,
+            signer=signer,
             require_signature=args.require_signature,
             require_pypi_hash=args.require_pypi_hash,
         )
+        if getattr(args, "json", False):
+            payload = verify_result_dict(ok, args.bundle, errors, manifest)
+            terminal.write_out(json.dumps(payload, indent=2, sort_keys=True))
+            return 0 if ok else 1
         if ok:
-            terminal.success(f"Bundle OK: {args.bundle}")
-            terminal.write_out(
-                "  {} wheels, Python {}, {}".format(
-                    len(manifest.get("wheels", [])),
-                    manifest.get("python_version"),
-                    manifest.get("platform"),
+            if not getattr(args, "quiet", False):
+                terminal.success(f"Bundle OK: {args.bundle}")
+                terminal.write_out(
+                    "  {} wheels, Python {}, {}".format(
+                        len(manifest.get("wheels", [])),
+                        manifest.get("python_version"),
+                        manifest.get("platform"),
+                    ),
                 )
-            )
-            if manifest.get("version") == "2":
-                terminal.write_out("  manifest v2 (integrity + provenance)")
+                if manifest.get("version") == "2":
+                    terminal.write_out("  manifest v2 (integrity + provenance)")
             return 0
         terminal.error("Bundle verification failed:")
         for err in errors:
@@ -722,23 +1012,47 @@ def _dispatch(args, store):
     if args.command == "keygen":
         generate_identity(args.output)
         signer = identity_hash(args.output)
-        terminal.success(f"Wrote identity: {args.output}")
-        terminal.write_out(f"  Identity hash: {signer}")
-        terminal.write_out(
-            f"  Sign bundles with --identity. verify with --signer {signer}"
-        )
+        if not getattr(args, "quiet", False):
+            terminal.success(f"Wrote identity: {args.output}")
+            terminal.write_out(f"  Identity hash: {signer}")
+            terminal.write_out(
+                f"  Sign bundles with --identity. verify with --signer {signer}",
+            )
         return 0
 
     if args.command == "info":
-        terminal.write_out(show_bundle_info(args.bundle))
+        if getattr(args, "json", False):
+            terminal.write_out(
+                json.dumps(bundle_info_dict(args.bundle), indent=2, sort_keys=True),
+            )
+            return 0
+        if not getattr(args, "quiet", False):
+            terminal.write_out(show_bundle_info(args.bundle))
         return 0
 
     if args.command == "list":
         if args.what == "installed":
-            terminal.write_out(format_install_table(list_installed(store)))
+            rows = list_installed(store)
+            if getattr(args, "json", False):
+                terminal.write_out(installs_as_json(rows))
+            elif not getattr(args, "quiet", False):
+                terminal.write_out(format_install_table(rows))
         else:
-            terminal.write_out(format_bundle_table(list_bundles(store)))
+            rows = list_bundles(store)
+            if getattr(args, "json", False):
+                terminal.write_out(bundles_as_json(rows))
+            elif not getattr(args, "quiet", False):
+                terminal.write_out(format_bundle_table(rows))
         return 0
+
+    if args.command == "trust":
+        return dispatch_trust(
+            args,
+            write_out=terminal.write_out,
+            success=terminal.success,
+            warn=terminal.warn,
+            error=terminal.error,
+        )
 
     if args.command == "doctor":
         from opip.doctor import print_doctor, run_doctor

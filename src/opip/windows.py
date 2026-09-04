@@ -15,7 +15,7 @@ EXT = ".opip"
 def _require_windows():
     if sys.platform != "win32":
         raise WindowsIntegrationError(
-            "Windows integration is only available on Windows."
+            "Windows integration is only available on Windows.",
         )
 
 
@@ -37,7 +37,7 @@ def register_windows():
     verify_cmd = _launcher("verify")
 
     with winreg.CreateKey(
-        winreg.HKEY_CURRENT_USER, "Software\\Classes\\" + EXT
+        winreg.HKEY_CURRENT_USER, "Software\\Classes\\" + EXT,
     ) as ext_key:
         winreg.SetValue(ext_key, None, winreg.REG_SZ, PROG_ID)
 

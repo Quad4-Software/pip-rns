@@ -116,8 +116,7 @@ def package_name_for(repo: str, index_name: str | None = None) -> str:
 
 
 def check_python_release(remote: str) -> tuple[bool, str | None]:
-    """
-    Return (has_wheel, latest_tag) for a remote.
+    """Return (has_wheel, latest_tag) for a remote.
 
     Uses rngit release list/view. Failures mean unknown (not Python).
     """
@@ -128,7 +127,7 @@ def check_python_release(remote: str) -> tuple[bool, str | None]:
     if not releases:
         return False, None
     published = [r for r in releases if r.get("status") == "published"] or list(
-        releases
+        releases,
     )
     for rel in published[:5]:
         tag = rel.get("tag")
@@ -209,8 +208,7 @@ def fetch_nomad_catalog(
     request_timeout: float = 30.0,
     reticulum_config: str | None = None,
 ) -> list[tuple[str, str]]:
-    """
-    List (group, repo) via Nomad pages when serve_nomadnet is enabled.
+    """List (group, repo) via Nomad pages when serve_nomadnet is enabled.
 
     Returns empty list when Nomad is unavailable.
     """
@@ -237,7 +235,7 @@ def fetch_nomad_catalog(
         if identity is None:
             # Derive nomad dest from identity hash bytes directly
             nomad_dh = RNS.Destination.hash_from_name_and_identity(
-                "nomadnetwork.node", ident_bytes
+                "nomadnetwork.node", ident_bytes,
             )
             if not _await_path(RNS, nomad_dh, path_timeout):
                 return []
@@ -249,7 +247,7 @@ def fetch_nomad_catalog(
         return []
 
     nomad_dh = RNS.Destination.hash_from_name_and_identity(
-        "nomadnetwork.node", identity
+        "nomadnetwork.node", identity,
     )
     if not _await_path(RNS, nomad_dh, path_timeout):
         return []
@@ -269,7 +267,7 @@ def fetch_nomad_catalog(
 
     try:
         index_raw = _link_request(
-            link, "/page/index.mu", data=None, timeout=request_timeout
+            link, "/page/index.mu", data=None, timeout=request_timeout,
         )
         if not index_raw:
             return []
@@ -350,7 +348,7 @@ def probe_packages_indexes(
                         latest_tag=None,
                         source="index",
                         heard_at=now,
-                    )
+                    ),
                 )
         except Exception:
             continue
@@ -379,8 +377,7 @@ def scan_node(
     check_releases: bool = True,
     on_status: Callable[[str], None] | None = None,
 ) -> list[DiscoveredPackage]:
-    """
-    Find Python packages on one discovered node.
+    """Find Python packages on one discovered node.
 
     Strategy:
     1. Try Nomad catalog (group/repo list)
@@ -420,7 +417,7 @@ def scan_node(
                     repo=repo,
                     source="nomad",
                     heard_at=now,
-                )
+                ),
             )
 
     status(f"index probe on {node.destination_hash[:12]}...")
@@ -442,7 +439,7 @@ def scan_node(
 
     # Prefer Python-installable: has wheel, or came from a packages index
     preferred = [p for p in packages if p.has_wheel or p.source == "index"]
-    return preferred if preferred else packages
+    return preferred or packages
 
 
 def scan_nodes(
@@ -460,7 +457,7 @@ def scan_nodes(
                 reticulum_config=reticulum_config,
                 check_releases=check_releases,
                 on_status=on_status,
-            )
+            ),
         )
     return all_pkgs
 
@@ -485,8 +482,7 @@ def maybe_auto_alias(
     auto: bool = False,
     no_interactive: bool = False,
 ) -> int:
-    """
-    Create aliases for discovered packages without conflicting names.
+    """Create aliases for discovered packages without conflicting names.
 
     Returns count of aliases created.
     """

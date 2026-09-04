@@ -33,7 +33,7 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
                 False,
                 "not on PATH (pip install rns). needed to sign/verify",
                 "warn",
-            )
+            ),
         )
 
     base = data_dir or default_data_dir()
@@ -61,7 +61,7 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
             True,
             "enabled" if color_on else "disabled",
             "pass",
-        )
+        ),
     )
     ni = is_noninteractive()
     checks.append(
@@ -70,7 +70,7 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
             True,
             "non-interactive" if ni else ("CI" if is_ci() else "interactive"),
             "pass",
-        )
+        ),
     )
 
     try:

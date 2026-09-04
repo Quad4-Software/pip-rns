@@ -441,7 +441,7 @@ class UvInstaller(BaseInstaller):
 
     def uninstall(self, package: str) -> None:
         run_installer_cmd(
-            [*self._cmd(), "pip", "uninstall", *self._python_args(), package]
+            [*self._cmd(), "pip", "uninstall", *self._python_args(), package],
         )
 
 
@@ -505,7 +505,7 @@ def _detect_pkg_name(repo_path: Path) -> str | None:
     if pyproject.exists():
         try:
             text = pyproject.read_text()
-            m = re.search(r'^name\s*=\s*"([^"]+)"', text, re.M)
+            m = re.search(r'^name\s*=\s*"([^"]+)"', text, re.MULTILINE)
             if m:
                 return m.group(1)
         except Exception:

@@ -85,7 +85,7 @@ def test_remember_target_flag_saves_without_prompt():
                     no_interactive=True,
                 )
         assert os.path.abspath(
-            store.get_preferred_target("test-bundle")
+            store.get_preferred_target("test-bundle"),
         ) == os.path.abspath(target)
 
 
@@ -105,7 +105,7 @@ def test_no_prompt_when_noninteractive():
         with mock.patch("opip.install._find_pip", return_value=False):
             with mock.patch("opip.install.install_wheel_manual"):
                 with mock.patch(
-                    "builtins.input", side_effect=AssertionError("prompted")
+                    "builtins.input", side_effect=AssertionError("prompted"),
                 ):
                     install_bundle(
                         bundle,

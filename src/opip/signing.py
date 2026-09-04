@@ -22,7 +22,7 @@ def _check_rnid():
     if shutil.which("rnid") is None:
         raise SigningError(
             "rnid not found on PATH (needed to sign and verify bundles). "
-            "Install via: pip install rns"
+            "Install via: pip install rns",
         )
 
 
@@ -37,8 +37,7 @@ def has_signature(bundle_path):
 
 
 def sign_bundle(bundle_path, identity_path):
-    """
-    Sign a bundle file with a Reticulum identity.
+    """Sign a bundle file with a Reticulum identity.
 
     Writes a .rsg sidecar next to the bundle. Returns the signature path.
     """
@@ -67,8 +66,7 @@ def parse_signer_identity(output):
 
 
 def verify_bundle_signature(bundle_path, signer=None):
-    """
-    Verify the .rsg signature for a bundle file.
+    """Verify the .rsg signature for a bundle file.
 
     When signer is None, rnid validates against the pubkey embedded in the
     modern .rsg (automatic authenticity check). When signer is set, require
@@ -81,8 +79,7 @@ def verify_bundle_signature(bundle_path, signer=None):
 
 
 def verify_bundle_signature_info(bundle_path, signer=None):
-    """
-    Verify the .rsg signature for a bundle file.
+    """Verify the .rsg signature for a bundle file.
 
     Returns (errors, signing_identity_hex_or_None).
     Empty errors means valid or unsigned.
@@ -114,7 +111,7 @@ def verify_bundle_signature_info(bundle_path, signer=None):
         if signer is None and "legacy" in err.lower():
             return [
                 "Legacy .rsg requires --signer IDENTITY or OPIP_SIGNER "
-                "to verify authenticity."
+                "to verify authenticity.",
             ], None
         return [f"Signature check failed for {bundle_path}: {err}"], identity
 
