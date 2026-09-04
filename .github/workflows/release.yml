@@ -1,0 +1,234 @@
+# Tag release: verify, build, attest, publish an immutable GitHub Release.
+# Optional PyPI upload when repository variable PUBLISH_PYPI=true
+# (Trusted Publishing / OIDC). Actions pinned to full commit SHAs per
+# https://docs.github.com/en/actions/reference/security/secure-use
+#
+# Immutable by design:
+# - refuses to mutate an existing GitHub Release or its assets
+# - builds without restoring Actions caches (no cache poisoning on tags)
+# - requires --verify-tag and attaches digests plus build provenance
+# Pair with repo tag rulesets that block force-pushes to v* tags.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release (for example v1.3.2)
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  build:
+    name: Verify and build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Resolve tag
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$REF_NAME"
+          fi
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Tag must look like v1.2.3, got: ${TAG}"
+              exit 1
+              ;;
+          esac
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.meta.outputs.tag }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup uv project (no cache restore on release)
+        uses: ./.github/actions/setup-uv-project
+        with:
+          python-version: "3.12"
+          enable-cache: "false"
+          cache-suffix: release
+
+      - name: Verify package version matches tag
+        env:
+          EXPECTED: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          ACTUAL=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/pip_rns/version.py)
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "version.py is ${ACTUAL}, tag expects ${EXPECTED}"
+            exit 1
+          fi
+
+      - name: Quality checks
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+          uv run mypy
+
+      - name: Test
+        run: uv run python -m tests.test_runner
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Write digests
+        run: |
+          set -euo pipefail
+          (
+            cd dist
+            sha256sum -- * > SHA256SUMS
+          )
+          cat dist/SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.whl
+            dist/*.tar.gz
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-dist-${{ steps.meta.outputs.tag }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: false
+
+  github-release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download dist artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-dist-${{ needs.build.outputs.tag }}
+          path: dist
+
+      - name: Refuse mutable releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists. Refusing to mutate assets (immutable releases)."
+            exit 1
+          fi
+
+      - name: Build release notes from CHANGELOG
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          text = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          lines = text.splitlines()
+          prefix = f"## {version}"
+          start = None
+          for i, line in enumerate(lines):
+              if line == prefix or line.startswith(prefix + " ") or line.startswith(prefix + "\t"):
+                  start = i + 1
+                  break
+          if start is None:
+              notes = f"pip-rns {version}\n"
+          else:
+              chunk = []
+              for line in lines[start:]:
+                  if line.startswith("## "):
+                      break
+                  chunk.append(line)
+              notes = "\n".join(chunk).strip() + "\n"
+          Path("release-notes.md").write_text(notes, encoding="utf-8")
+          print(notes)
+          PY
+
+      - name: Create immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" dist/* \
+            --title "pip-rns ${VERSION}" \
+            --notes-file release-notes.md \
+            --verify-tag
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [build, github-release]
+    if: vars.PUBLISH_PYPI == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-dist-${{ needs.build.outputs.tag }}
+          path: dist
+
+      - name: Keep only package files for PyPI
+        run: |
+          set -euo pipefail
+          find dist -type f ! -name '*.whl' ! -name '*.tar.gz' -delete
+          ls -la dist
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist
+          # Fail if the version already exists. PyPI uploads are immutable.
+          skip-existing: false

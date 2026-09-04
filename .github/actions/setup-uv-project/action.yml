@@ -1,0 +1,33 @@
+name: Setup uv project
+description: Install uv, Python, and locked dev dependencies with caching
+
+inputs:
+  python-version:
+    description: Python version for UV_PYTHON
+    required: true
+  enable-cache:
+    description: Enable GitHub Actions cache for uv
+    required: false
+    default: "true"
+  cache-suffix:
+    description: Extra cache key suffix (for example matrix Python version)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: ${{ inputs.enable-cache }}
+        python-version: ${{ inputs.python-version }}
+        cache-python: true
+        cache-dependency-glob: |
+          pyproject.toml
+          uv.lock
+        cache-suffix: py${{ inputs.python-version }}-${{ inputs.cache-suffix }}
+
+    - name: Sync locked dependencies
+      shell: bash
+      run: uv sync --locked --group dev

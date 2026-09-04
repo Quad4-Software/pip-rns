@@ -1,0 +1,188 @@
+# CI with path filters and a required gate for branch protection.
+# Actions pinned to full commit SHAs per
+# https://docs.github.com/en/actions/reference/security/secure-use
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  changes:
+    name: Path filter
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Detect relevant path changes
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          files=""
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            files=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            files=$(gh api "repos/${REPO}/compare/${BEFORE}...${HEAD_SHA}" --jq '.files[].filename')
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          code=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              src/*|tests/*|scripts/*|pyproject.toml|uv.lock|Makefile|.github/workflows/*|.github/actions/*|.github/dependabot.yml)
+                code=true
+                break
+                ;;
+            esac
+          done <<< "$files"
+
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          echo "Detected code-relevant changes: ${code}"
+
+  quality:
+    name: Lint and typecheck
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv project
+        uses: ./.github/actions/setup-uv-project
+        with:
+          python-version: "3.12"
+          cache-suffix: quality
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy
+        run: uv run mypy
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      max-parallel: 3
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv project
+        uses: ./.github/actions/setup-uv-project
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-suffix: test
+
+      - name: Run tests
+        run: uv run python -m tests.test_runner
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+  gate:
+    name: CI gate
+    needs: [changes, quality, test, dependency-review]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Enforce required checks
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          QUALITY: ${{ needs.quality.result }}
+          TEST: ${{ needs.test.result }}
+          DEP_REVIEW: ${{ needs.dependency-review.result }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "Path filter job failed: ${CHANGES_RESULT}"
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            case "$DEP_REVIEW" in
+              success|skipped) ;;
+              *)
+                echo "Dependency review failed: ${DEP_REVIEW}"
+                exit 1
+                ;;
+            esac
+          fi
+
+          if [ "$CODE" = "true" ]; then
+            for name_result in "quality:${QUALITY}" "test:${TEST}"; do
+              name="${name_result%%:*}"
+              result="${name_result#*:}"
+              if [ "$result" != "success" ]; then
+                echo "Required job ${name} did not succeed: ${result}"
+                exit 1
+              fi
+            done
+          else
+            echo "No code-relevant paths changed. Quality/test skipped."
+          fi
+
+          echo "CI gate passed."
