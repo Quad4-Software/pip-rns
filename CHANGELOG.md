@@ -15,6 +15,7 @@
 - opip install prompts to recover from PEP 668 (venv, --user, or --target)
 - opip --user retries with --break-system-packages on Arch-style PEP 668
 - opip refuses or recreates a venv when its Python version mismatches the bundle
+- opip filters incompatible wheels and rejects unreadable venv interpreters
 
 ## 1.3.1 — 2026-07-23 [released]
 
