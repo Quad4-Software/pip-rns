@@ -20,6 +20,7 @@ from opip.lockfile import dump_json, make_lock, make_sbom
 from opip.manifest import dump_manifest, make_manifest
 from opip.provenance import build_wheel_record
 from opip.remote_resolve import resolve_remote_source
+from opip.resolver import detect_python_version
 from opip.sidecar import copy_sidecar_from_dir, fetch_sidecar_if_available
 from opip.signing import signature_path
 from opip.sources import is_rns_source, parse_git_source
@@ -53,7 +54,7 @@ def _make_test_bundle(tmpdir: str, bundle_path: str) -> None:
         name="test-bundle",
         requirements=requirements,
         wheels=wheel_entries,
-        python_version="3.12",
+        python_version=detect_python_version(),
         platform_tag="any",
     )
     with open(os.path.join(tmpdir, "manifest.json"), "w", encoding="utf-8") as fh:

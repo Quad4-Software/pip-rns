@@ -10,10 +10,10 @@ from opip.install import (
     InstallError,
     _offer_pep668_recovery,
     _run_pip_install_with_recovery,
+    _venv_python,
     is_externally_managed_error,
 )
 from opip.storage import Store
-
 
 PEP668 = """
 error: externally-managed-environment
@@ -32,7 +32,7 @@ def test_detect_externally_managed():
 def test_noninteractive_pep668_hints():
     try:
         _offer_pep668_recovery(no_interactive=True)
-        assert False, "expected InstallError"
+        raise AssertionError("expected InstallError")
     except InstallError as exc:
         text = str(exc)
         assert "PEP 668" in text
@@ -48,7 +48,7 @@ def test_recovery_prompt_venv(monkeypatch_input=None):
             with mock.patch("builtins.input", side_effect=["1", venv_path]):
                 recovered = _offer_pep668_recovery(no_interactive=False)
         assert recovered["venv"] == os.path.abspath(venv_path)
-        assert os.path.isfile(os.path.join(recovered["venv"], "bin", "python"))
+        assert os.path.isfile(_venv_python(recovered["venv"]))
 
 
 def test_recovery_prompt_user():
@@ -94,7 +94,6 @@ def test_ensure_venv_rejects_mismatched_python():
 
     with tempfile.TemporaryDirectory() as tmp:
         venv = os.path.join(tmp, "old")
-        # Pretend an existing venv reports 3.12 while we need 3.14
         with mock.patch("opip.install.os.path.isfile", return_value=True):
             with mock.patch("opip.install._interpreter_version", return_value="3.12"):
                 with mock.patch(
@@ -102,7 +101,7 @@ def test_ensure_venv_rejects_mismatched_python():
                 ):
                     try:
                         ensure_venv(venv, required_version="3.14", no_interactive=True)
-                        assert False, "expected InstallError"
+                        raise AssertionError("expected InstallError")
                     except InstallError as exc:
                         assert "3.12" in str(exc)
                         assert "3.14" in str(exc)
@@ -114,15 +113,15 @@ def test_ensure_venv_recreates_when_confirmed():
 
     with tempfile.TemporaryDirectory() as tmp:
         venv = os.path.join(tmp, "old")
-        os.makedirs(os.path.join(venv, "bin"))
-        # First call sees mismatch and confirms recreate; second path creates fresh.
+        py = _venv_python(venv)
+        os.makedirs(os.path.dirname(py))
+        open(py, "w").close()
         versions = iter(["3.12", "3.14"])
 
         def fake_version(_py):
             return next(versions)
 
         real_isfile = os.path.isfile
-        # After rmtree, bin/python is gone so create path runs.
 
         with mock.patch("opip.install.detect_python_version", return_value="3.14"):
             with mock.patch(
@@ -134,12 +133,11 @@ def test_ensure_venv_recreates_when_confirmed():
                     ):
                         with mock.patch("opip.install._find_pip", return_value=True):
                             with mock.patch("subprocess.run") as run:
-                                # Initial python exists, then after rmtree create venv
                                 states = {"exists": True}
 
                                 def isfile(path):
-                                    if path.endswith("python") or path.endswith(
-                                        "python.exe"
+                                    if path == py or str(path).endswith(
+                                        ("python", "python.exe")
                                     ):
                                         return states["exists"]
                                     return real_isfile(path)
@@ -147,12 +145,8 @@ def test_ensure_venv_recreates_when_confirmed():
                                 def fake_run(cmd, **kwargs):
                                     if len(cmd) >= 3 and cmd[1:3] == ["-m", "venv"]:
                                         states["exists"] = True
-                                        os.makedirs(
-                                            os.path.join(venv, "bin"), exist_ok=True
-                                        )
-                                        open(
-                                            os.path.join(venv, "bin", "python"), "w"
-                                        ).close()
+                                        os.makedirs(os.path.dirname(py), exist_ok=True)
+                                        open(py, "w").close()
                                     return mock.Mock(returncode=0)
 
                                 run.side_effect = fake_run
@@ -242,6 +236,6 @@ def test_install_bundle_noninteractive_pep668():
             with mock.patch("opip.install.install_via_pip", side_effect=boom):
                 try:
                     install_bundle(bundle, store=store, no_interactive=True)
-                    assert False, "expected InstallError"
+                    raise AssertionError("expected InstallError")
                 except InstallError as exc:
                     assert "--venv" in str(exc)

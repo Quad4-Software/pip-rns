@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 from opip.bundle import extract_bundle, verify_bundle_contents
-from opip.resolver import detect_platform, detect_python_version, is_universal_platform
+from opip.resolver import detect_platform, detect_python_version
 from opip.safe_zip import UnsafeZipError, extract_zip_safe, safe_artifact_name
 from opip.wheel import parse_wheel_filename, wheel_matches_platform
 
@@ -136,11 +136,16 @@ def ensure_venv(path, required_version=None, no_interactive=False):
 
     if os.path.isfile(py):
         got = _interpreter_version(py)
-        if got and got != required_version:
-            if _confirm_recreate_venv(dest, got, required_version, no_interactive):
-                terminal.info(f"Removing mismatched venv {dest}")
-                shutil.rmtree(dest, ignore_errors=True)
-                py = _venv_python(dest)
+        if got is None:
+            raise InstallError(
+                f"Could not determine Python version for venv interpreter: {py}"
+            )
+        if got != required_version and _confirm_recreate_venv(
+            dest, got, required_version, no_interactive
+        ):
+            terminal.info(f"Removing mismatched venv {dest}")
+            shutil.rmtree(dest, ignore_errors=True)
+            py = _venv_python(dest)
 
     if not os.path.isfile(py):
         terminal.info(f"Creating venv at {dest} (Python {required_version})")
@@ -150,7 +155,11 @@ def ensure_venv(path, required_version=None, no_interactive=False):
             raise InstallError(f"venv created but python missing: {dest}")
 
     got = _interpreter_version(py)
-    if got and got != required_version:
+    if got is None:
+        raise InstallError(
+            f"Could not determine Python version for venv interpreter: {py}"
+        )
+    if got != required_version:
         raise InstallError(
             f"Venv {dest} still reports Python {got}, expected {required_version}."
         )
@@ -237,24 +246,19 @@ def _select_wheels_for_install(manifest, wheels_dir):
     """Return wheel paths compatible with this machine."""
     py_version = detect_python_version()
     platform_tag = detect_platform()
-    manifest_platform = manifest.get("platform")
+    required = manifest.get("python_version")
+    if required and required != py_version:
+        raise InstallError(
+            f"This bundle was built for Python {required}, "
+            f"but the current interpreter is {py_version} ({sys.executable})."
+        )
 
     def _wheel_path(record):
         filename = safe_artifact_name(record["filename"])
         return os.path.join(wheels_dir, filename)
 
-    if not is_universal_platform(manifest_platform):
-        paths = []
-        for w in manifest.get("wheels", []):
-            try:
-                whl_path = _wheel_path(w)
-            except ValueError as exc:
-                raise InstallError(str(exc))
-            if os.path.isfile(whl_path):
-                paths.append(whl_path)
-        return sorted(paths)
-
     selected = []
+    skipped = []
     for w in manifest.get("wheels", []):
         try:
             whl_path = _wheel_path(w)
@@ -263,12 +267,20 @@ def _select_wheels_for_install(manifest, wheels_dir):
         if not os.path.isfile(whl_path):
             continue
         parsed = parse_wheel_filename(w["filename"])
-        if parsed and wheel_matches_platform(parsed, py_version, platform_tag):
+        if parsed is None:
+            skipped.append(w["filename"])
+            continue
+        if wheel_matches_platform(parsed, py_version, platform_tag):
             selected.append(whl_path)
+        else:
+            skipped.append(w["filename"])
 
     if not selected:
+        detail = ""
+        if skipped:
+            detail = "\nSkipped incompatible wheels:\n  " + "\n  ".join(skipped[:12])
         raise InstallError(
-            f"No wheels in universal bundle match Python {py_version} on {platform_tag}"
+            f"No wheels in bundle match Python {py_version} on {platform_tag}." + detail
         )
     return sorted(selected)
 
@@ -402,7 +414,10 @@ def _run_pip_install_with_recovery(
                     else os.path.join(current_venv, "bin", "activate")
                 )
                 terminal.info(f"Installed into venv {current_venv}")
-                terminal.info(f"Activate with: source {activate}")
+                if os.name == "nt":
+                    terminal.info(f"Activate with: {activate}")
+                else:
+                    terminal.info(f"Activate with: source {activate}")
             return current_target, current_user, current_venv, True
         except InstallError as exc:
             text = str(exc)
