@@ -82,6 +82,25 @@ opip install rns://identity/group/repo@v1.0.0:my-bundle.opip
 
 That path still needs RNS on the consumer. For true air-gap, copy the .opip file itself (Path A).
 
+## Path D: delta packs after the base is already there
+
+On the connected machine, after you already shipped `pkg-v1.opip` once:
+
+```bash
+opip create -r requirements.txt -o ./pkg-v2.opip
+opip delta ./pkg-v1.opip ./pkg-v2.opip -o /media/usb/pkg-v1-to-v2.opipd
+```
+
+On the air-gap host that still has the base:
+
+```bash
+opip apply /media/usb/pkg-v1.opip /media/usb/pkg-v1-to-v2.opipd -o ./pkg-v2.opip
+opip verify ./pkg-v2.opip --require-signature
+opip install ./pkg-v2.opip
+```
+
+`apply` refuses a wrong base file (hash mismatch). Prefer this over copying a full universal bundle on every update.
+
 ## Checklist
 
 1. Build or export on a machine you trust.
@@ -90,6 +109,7 @@ That path still needs RNS on the consumer. For true air-gap, copy the .opip file
 4. Verify on the destination before install.
 5. Install into a venv or remembered --target when PEP 668 blocks system pip.
 6. Keep the publisher identity written down next to the media label.
+7. After the first full bundle, prefer `.opipd` deltas for scarce links.
 
 ## Mixing with aliases
 

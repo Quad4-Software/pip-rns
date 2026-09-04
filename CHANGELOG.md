@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.2 — Unreleased
+## 1.4.0 — Unreleased
 
 - Browse can listen, save, scan, and optionally install in one flow
 - Search across aliases, indexes, and discovered packages
@@ -18,6 +18,15 @@
 - opip filters incompatible wheels and rejects unreadable venv interpreters
 - CI test matrix covers Ubuntu, Windows, and macOS
 - opip update reinstalls with replace (no uninstall-first), restores dest/venv, and can re-sign
+- opip create from private indexes, local find-links, or offline wheel dirs
+- opip create from uv.lock, poetry.lock, or pip-tools hashed locks
+- opip SBOM is CycloneDX 1.5
+- opip extract to a wheelhouse or PEP 503 simple index
+- opip install with pip or uv backend
+- opip json and quiet output for CI
+- opip trust uses the shared pip-rns trust store
+- opip update reuses unchanged wheels
+- opip delta and apply for thin update packs
 
 ## 1.3.1 — 2026-07-23 [released]
 

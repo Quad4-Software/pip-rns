@@ -74,10 +74,19 @@ opip verify ./pkg.opip --signer e46112d44649266d71fe2193e00a4710 --require-signa
 opip install ./pkg.opip --signer e46112d44649266d71fe2193e00a4710
 ```
 
+opip uses the same trust store as pip-rns. When `--signer` is omitted, verify and install resolve a pin from `trust.json` (per-remote, then default):
+
+```bash
+opip trust add default e46112d44649266d71fe2193e00a4710
+opip trust ls
+opip verify ./pkg.opip --require-signature
+```
+
 Environment defaults:
 
 - OPIP_IDENTITY for create
 - OPIP_SIGNER for verify and install
+- PIP_RNS_CONFIG for the shared trust store directory
 
 ## Bundles through pip-rns
 
