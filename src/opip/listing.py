@@ -114,7 +114,8 @@ def show_bundle_info(bundle_path):
     if security:
         lines.append(
             "Security: integrity={}, authenticity={}".format(
-                security.get("integrity"), security.get("authenticity"),
+                security.get("integrity"),
+                security.get("authenticity"),
             ),
         )
     if has_signature(bundle_path):

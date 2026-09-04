@@ -165,7 +165,8 @@ def test_live_release_view():
         raise SkipTest("pip-rns not installed in current Python")
 
     info = release_info(
-        "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node", "v1.6.0",
+        "rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node",
+        "v1.6.0",
     )
     assert info["status"] == "published"
     whls = [

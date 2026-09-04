@@ -228,7 +228,7 @@ def test_extract_verifies_and_writes_simple_index(tmp_path):
 
     out = tmp_path / "wheelhouse"
     path, count = extract_to_wheelhouse(
-        str(bundle), str(out), simple_index=True, verify=True
+        str(bundle), str(out), simple_index=True, verify=True,
     )
     assert count == 1
     assert (out / "demo-1.0.0-py3-none-any.whl").is_file()
@@ -438,7 +438,7 @@ def test_trust_cli_and_verify_uses_default(tmp_path, capsys):
             "add",
             "default",
             identity,
-        ]
+        ],
     )
     assert code == 0
     capsys.readouterr()

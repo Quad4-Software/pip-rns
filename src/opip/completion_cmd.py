@@ -50,7 +50,9 @@ def _find_source(rel: str) -> Path | None:
 
 
 def install_completions(
-    *, shell: str | None = None, dry_run: bool = False,
+    *,
+    shell: str | None = None,
+    dry_run: bool = False,
 ) -> list[str]:
     shell = detect_shell(shell)
     if shell not in COMPLETION_FILES:

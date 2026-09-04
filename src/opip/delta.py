@@ -47,7 +47,8 @@ def create_delta(old_bundle, new_bundle, output_path):
         old_manifest = old_ctx["manifest"]
         new_manifest = new_ctx["manifest"]
         diff = diff_locks(
-            old_manifest.get("wheels", []), new_manifest.get("wheels", []),
+            old_manifest.get("wheels", []),
+            new_manifest.get("wheels", []),
         )
 
         base_sha = file_hash(old_bundle)
@@ -74,7 +75,8 @@ def create_delta(old_bundle, new_bundle, output_path):
                 if not os.path.isfile(src):
                     raise DeltaError(f"Missing wheel in new bundle: {filename}")
                 shutil.copy2(
-                    src, os.path.join(wheels_dir, safe_artifact_name(filename)),
+                    src,
+                    os.path.join(wheels_dir, safe_artifact_name(filename)),
                 )
 
             # Carry lock/sbom/publisher from target for apply
@@ -89,7 +91,9 @@ def create_delta(old_bundle, new_bundle, output_path):
             all_files = collect_files(tmpdir)
             integrity = build_integrity(all_files, base_dir=tmpdir)
             with open(
-                os.path.join(tmpdir, "integrity.json"), "w", encoding="utf-8",
+                os.path.join(tmpdir, "integrity.json"),
+                "w",
+                encoding="utf-8",
             ) as fh:
                 fh.write(dump_integrity(integrity))
 
@@ -103,8 +107,7 @@ def create_delta(old_bundle, new_bundle, output_path):
 
 
 def apply_delta(base_bundle, delta_path, output_path, identity_path=None):
-    """Apply .opipd onto base .opip. Fail closed if base_sha256 mismatches.
-    """
+    """Apply .opipd onto base .opip. Fail closed if base_sha256 mismatches."""
     base_bundle = os.path.abspath(base_bundle)
     delta_path = os.path.abspath(delta_path)
     if not output_path.endswith(BUNDLE_EXTENSION):
@@ -123,7 +126,8 @@ def apply_delta(base_bundle, delta_path, output_path, identity_path=None):
         if not expected or expected != actual:
             raise DeltaError(
                 "Base bundle hash mismatch. expected {}, got {}".format(
-                    (expected or "")[:16], actual[:16],
+                    (expected or "")[:16],
+                    actual[:16],
                 ),
             )
 
@@ -183,7 +187,9 @@ def apply_delta(base_bundle, delta_path, output_path, identity_path=None):
                     },
                 )
                 with open(
-                    os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8",
+                    os.path.join(out_dir, "manifest.json"),
+                    "w",
+                    encoding="utf-8",
                 ) as fh:
                     fh.write(dump_manifest(manifest))
 
@@ -207,10 +213,14 @@ def apply_delta(base_bundle, delta_path, output_path, identity_path=None):
                                 with open(pub_path, encoding="utf-8") as fh:
                                     publisher = load_publisher(fh.read())
                             data = make_sbom(
-                                manifest, wheel_entries, publisher=publisher,
+                                manifest,
+                                wheel_entries,
+                                publisher=publisher,
                             )
                         with open(
-                            os.path.join(out_dir, name), "w", encoding="utf-8",
+                            os.path.join(out_dir, name),
+                            "w",
+                            encoding="utf-8",
                         ) as fh:
                             fh.write(dump_json(data))
 

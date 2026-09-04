@@ -262,7 +262,9 @@ def create_bundle(
             trust = None
             if identity_path:
                 trust = export_public_record(
-                    identity_path, pub_name, contact=publisher_contact,
+                    identity_path,
+                    pub_name,
+                    contact=publisher_contact,
                 )
             publisher_record = make_publisher(
                 pub_name,
@@ -271,7 +273,9 @@ def create_bundle(
                 public_record=trust,
             )
             with open(
-                os.path.join(tmpdir, PUBLISHER_FILE), "w", encoding="utf-8",
+                os.path.join(tmpdir, PUBLISHER_FILE),
+                "w",
+                encoding="utf-8",
             ) as fh:
                 fh.write(dump_publisher(publisher_record))
 
@@ -387,7 +391,9 @@ def verify_bundle_contents(
         if os.path.isfile(whl):
             errors.extend(
                 verify_wheel_provenance(
-                    whl, record, require_pypi_hash=require_pypi_hash,
+                    whl,
+                    record,
+                    require_pypi_hash=require_pypi_hash,
                 ),
             )
         else:
@@ -397,7 +403,10 @@ def verify_bundle_contents(
 
 
 def verify_bundle(
-    bundle_path, signer=None, require_signature=False, require_pypi_hash=False,
+    bundle_path,
+    signer=None,
+    require_signature=False,
+    require_pypi_hash=False,
 ):
     """Verify bundle. Returns (errors, manifest)."""
     ctx = extract_bundle(bundle_path)

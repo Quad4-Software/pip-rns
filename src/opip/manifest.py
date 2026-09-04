@@ -14,7 +14,12 @@ def utc_now_iso():
 
 
 def make_manifest(
-    name, requirements, wheels, python_version, platform_tag, extras=None,
+    name,
+    requirements,
+    wheels,
+    python_version,
+    platform_tag,
+    extras=None,
 ):
     """Build a new bundle manifest dict."""
     manifest = {

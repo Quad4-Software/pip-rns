@@ -11,7 +11,9 @@ def default_data_dir():
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         return os.path.join(base, "opip")
     base = os.environ.get("XDG_DATA_HOME") or os.path.join(
-        os.path.expanduser("~"), ".local", "share",
+        os.path.expanduser("~"),
+        ".local",
+        "share",
     )
     return os.path.join(base, "opip")
 
@@ -21,7 +23,8 @@ def default_cache_dir():
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         return os.path.join(base, "opip", "cache")
     base = os.environ.get("XDG_CACHE_HOME") or os.path.join(
-        os.path.expanduser("~"), ".cache",
+        os.path.expanduser("~"),
+        ".cache",
     )
     return os.path.join(base, "opip")
 
@@ -121,7 +124,8 @@ class Store:
 
     def set_preferred_target(self, name, path):
         if "destinations" not in self._prefs or not isinstance(
-            self._prefs["destinations"], dict,
+            self._prefs["destinations"],
+            dict,
         ):
             self._prefs["destinations"] = {}
         self._prefs["destinations"][name] = os.path.abspath(path)

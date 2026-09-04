@@ -137,7 +137,8 @@ def _pick_whl(artifacts: list[dict[str, str]]) -> str | None:
 
 
 def _pick_opip(
-    artifacts: list[dict[str, str]], pattern: str | None = None,
+    artifacts: list[dict[str, str]],
+    pattern: str | None = None,
 ) -> str | None:
     names = [a["name"] for a in artifacts if a["name"].endswith(".opip")]
     if not names:
@@ -268,7 +269,11 @@ def fetch_release_artifact(
 
         with RnsWait("Waiting on Reticulum (release fetch)"):
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=workdir, timeout=7200,
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=workdir,
+                timeout=7200,
             )
         if result.returncode != 0:
             err = result.stderr.strip() or result.stdout.strip()

@@ -204,7 +204,9 @@ def test_live_uv_supports_reinstall_and_pip_subcommands():
     assert "--reinstall" in text
     for sub in ("install", "uninstall", "list"):
         result = subprocess.run(
-            ["uv", "pip", sub, "--help"], capture_output=True, text=True,
+            ["uv", "pip", sub, "--help"],
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0, f"uv pip {sub} --help failed"
 
@@ -215,7 +217,9 @@ def test_live_poetry_supports_add_remove_show():
     assert "--editable" in add
     for sub in ("add", "remove", "show"):
         result = subprocess.run(
-            ["poetry", sub, "--help"], capture_output=True, text=True,
+            ["poetry", sub, "--help"],
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0, f"poetry {sub} --help failed"
 

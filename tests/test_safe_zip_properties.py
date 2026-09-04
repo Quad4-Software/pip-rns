@@ -30,7 +30,8 @@ from opip.safe_zip import (
 
 # Path segment that cannot introduce traversal or absolute forms.
 _SAFE_SEGMENT = st.from_regex(
-    r"[A-Za-z0-9][A-Za-z0-9._-]{0,24}", fullmatch=True,
+    r"[A-Za-z0-9][A-Za-z0-9._-]{0,24}",
+    fullmatch=True,
 ).filter(lambda s: s not in (".", "..") and ".." not in s)
 
 _SAFE_REL_PATH = st.lists(_SAFE_SEGMENT, min_size=1, max_size=5).map(

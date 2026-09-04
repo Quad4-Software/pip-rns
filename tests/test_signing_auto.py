@@ -49,6 +49,7 @@ def test_live_rnid_auto_verify_without_identity():
         assert len(identity) == 32
 
         pinned_bad = verify_bundle_signature_info(
-            target, signer="e46112d44649266d71fe2193e00a4710",
+            target,
+            signer="e46112d44649266d71fe2193e00a4710",
         )
         assert pinned_bad[0]

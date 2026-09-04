@@ -83,7 +83,12 @@ def pick_local_wheel(candidates, req_info, py_version, platform_tag):
 
 
 def specs_from_pins(
-    pins, find_links, py_version, platform_tag, offline=False, index_url=None,
+    pins,
+    find_links,
+    py_version,
+    platform_tag,
+    offline=False,
+    index_url=None,
 ):
     """Build wheel specs from exact name==version pins using find-links and/or index.
 
@@ -125,7 +130,9 @@ def specs_from_pins(
             if sha and local["digests"].get("sha256") != sha:
                 raise ResolutionError(
                     "Hash mismatch for local wheel {}: expected {}, got {}".format(
-                        local["filename"], sha[:16], local["digests"]["sha256"][:16],
+                        local["filename"],
+                        sha[:16],
+                        local["digests"]["sha256"][:16],
                     ),
                 )
             specs.append(local)
@@ -146,7 +153,9 @@ def specs_from_pins(
             if digests.get("sha256") and digests["sha256"] != sha:
                 raise ResolutionError(
                     "Hash mismatch for {}: lock {}, index {}".format(
-                        name, sha[:16], digests["sha256"][:16],
+                        name,
+                        sha[:16],
+                        digests["sha256"][:16],
                     ),
                 )
             digests["sha256"] = sha
@@ -155,7 +164,8 @@ def specs_from_pins(
     if missing:
         raise ResolutionError(
             "Could not locate wheels (offline={}):\n  {}".format(
-                offline, "\n  ".join(missing),
+                offline,
+                "\n  ".join(missing),
             ),
         )
     return specs

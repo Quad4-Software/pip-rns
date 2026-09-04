@@ -45,7 +45,8 @@ def _parse_poetry_lock(path):
         text = "\n" + text
     pins = []
     blocks = re.split(
-        r"\n\[\[package\]\]\n", "\n" + text if not text.startswith("\n") else text,
+        r"\n\[\[package\]\]\n",
+        "\n" + text if not text.startswith("\n") else text,
     )
     # Also handle [[package]] at start
     if text.lstrip().startswith("[[package]]"):
@@ -59,7 +60,8 @@ def _parse_poetry_lock(path):
         files_block = _toml_array_table(block, "files")
         if files_block:
             match = re.search(
-                r'hash\s*=\s*["\']sha256:([0-9a-fA-F]+)["\']', files_block,
+                r'hash\s*=\s*["\']sha256:([0-9a-fA-F]+)["\']',
+                files_block,
             )
             if match:
                 sha = match.group(1).lower()

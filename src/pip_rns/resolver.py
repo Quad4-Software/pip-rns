@@ -285,7 +285,11 @@ class Resolver:
                     "then retry with --offline.",
                 )
             status = _ensure_clone(
-                resolver, url, dest, ref=ref, update_existing=not offline,
+                resolver,
+                url,
+                dest,
+                ref=ref,
+                update_existing=not offline,
             )
             self.last_status = status
             return dest

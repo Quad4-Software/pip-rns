@@ -56,7 +56,11 @@ def download_url(url, dest_path, timeout=120, expected_hash=None):
 
 
 def download_wheel(
-    wheel_spec, dest_dir, timeout=120, use_cache=True, require_pypi_hash=False,
+    wheel_spec,
+    dest_dir,
+    timeout=120,
+    use_cache=True,
+    require_pypi_hash=False,
 ):
     """Download a wheel from resolver spec into dest_dir."""
     try:
@@ -111,7 +115,12 @@ def download_wheel(
 
 
 def download_wheels_parallel(
-    wheel_specs, dest_dir, jobs=8, timeout=120, use_cache=True, require_pypi_hash=False,
+    wheel_specs,
+    dest_dir,
+    jobs=8,
+    timeout=120,
+    use_cache=True,
+    require_pypi_hash=False,
 ):
     """Download many wheels concurrently. Returns list of local paths."""
     if jobs < 2 or len(wheel_specs) < 2:

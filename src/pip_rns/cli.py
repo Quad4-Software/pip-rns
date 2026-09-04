@@ -259,7 +259,9 @@ def main(argv: list[str] | None = None) -> None:
         version=f"pip-rns {__version__}",
     )
     parser.add_argument(
-        "--no-color", action="store_true", help="Disable colored output",
+        "--no-color",
+        action="store_true",
+        help="Disable colored output",
     )
     parser.add_argument(
         "--no-interactive",
@@ -285,7 +287,8 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("extra", nargs="*", help="Extra arguments passed to the installer")
 
     p = sub.add_parser(
-        "update", help="Reinstall a package from a remote (force latest)",
+        "update",
+        help="Reinstall a package from a remote (force latest)",
     )
     p.add_argument("remote")
     _add_common_install_args(p)
@@ -477,7 +480,8 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     p = sub.add_parser(
-        "search", help="Search packages across aliases, indexes, discovery",
+        "search",
+        help="Search packages across aliases, indexes, discovery",
     )
     p.add_argument("query", nargs="?", default="", help="Substring to match")
 
@@ -518,7 +522,9 @@ def main(argv: list[str] | None = None) -> None:
         help="Shell (default: detect from $SHELL)",
     )
     a.add_argument(
-        "--dry-run", action="store_true", help="Show actions without copying",
+        "--dry-run",
+        action="store_true",
+        help="Show actions without copying",
     )
 
     register_bundle_parsers(sub)

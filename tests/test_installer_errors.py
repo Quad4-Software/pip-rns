@@ -33,7 +33,9 @@ def test_classify_externally_managed():
 
 def test_classify_permission():
     err = classify_install_failure(
-        ["pip", "install", "x"], 1, "ERROR: Permission denied: /usr/lib",
+        ["pip", "install", "x"],
+        1,
+        "ERROR: Permission denied: /usr/lib",
     )
     assert err.kind == "permission"
     assert any("venv" in h for h in err.hints)
@@ -50,7 +52,9 @@ def test_classify_missing_pip():
 
 def test_classify_disk_full():
     err = classify_install_failure(
-        ["pip", "install", "x"], 1, "No space left on device",
+        ["pip", "install", "x"],
+        1,
+        "No space left on device",
     )
     assert err.kind == "disk_full"
 

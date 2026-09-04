@@ -105,7 +105,8 @@ def test_no_prompt_when_noninteractive():
         with mock.patch("opip.install._find_pip", return_value=False):
             with mock.patch("opip.install.install_wheel_manual"):
                 with mock.patch(
-                    "builtins.input", side_effect=AssertionError("prompted"),
+                    "builtins.input",
+                    side_effect=AssertionError("prompted"),
                 ):
                     install_bundle(
                         bundle,

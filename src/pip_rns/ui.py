@@ -39,7 +39,9 @@ def _windows_color_host_ok() -> bool:
 
 
 def should_enable_color(
-    *, no_color: bool = False, color_mode: str | None = None,
+    *,
+    no_color: bool = False,
+    color_mode: str | None = None,
 ) -> bool:
     mode = (color_mode or os.environ.get("PIP_RNS_COLOR", "auto")).strip().lower()
     if no_color or os.environ.get("NO_COLOR") is not None:

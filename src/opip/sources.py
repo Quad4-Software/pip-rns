@@ -25,9 +25,7 @@ def is_git_source(source):
         source.startswith("git+")
         or source.startswith("git://")
         or source.endswith(".git")
-        or ("github.com" in source
-        and "#" in source
-        and BUNDLE_EXTENSION in source)
+        or ("github.com" in source and "#" in source and BUNDLE_EXTENSION in source)
     )
 
 

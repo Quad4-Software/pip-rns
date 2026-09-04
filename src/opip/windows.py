@@ -37,7 +37,8 @@ def register_windows():
     verify_cmd = _launcher("verify")
 
     with winreg.CreateKey(
-        winreg.HKEY_CURRENT_USER, "Software\\Classes\\" + EXT,
+        winreg.HKEY_CURRENT_USER,
+        "Software\\Classes\\" + EXT,
     ) as ext_key:
         winreg.SetValue(ext_key, None, winreg.REG_SZ, PROG_ID)
 

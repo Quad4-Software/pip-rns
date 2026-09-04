@@ -553,7 +553,8 @@ def build_parser():
     )
     cp = p_comp.add_subparsers(dest="completion_command", help="completion actions")
     p_comp_install = cp.add_parser(
-        "install", help="Install completions for this shell.",
+        "install",
+        help="Install completions for this shell.",
     )
     p_comp_install.add_argument(
         "--shell",
@@ -662,7 +663,9 @@ def _resolve_create_plan(args):
         elif not reqs:
             project_info = detect_project(project_dir)
             reqs = merge_optional_requirements(
-                project_info, project_dir, include_dev=args.with_dev,
+                project_info,
+                project_dir,
+                include_dev=args.with_dev,
             )
             if project_info.source:
                 terminal.info(f"Using {project_info.source} from {project_dir}")

@@ -235,7 +235,8 @@ def fetch_nomad_catalog(
         if identity is None:
             # Derive nomad dest from identity hash bytes directly
             nomad_dh = RNS.Destination.hash_from_name_and_identity(
-                "nomadnetwork.node", ident_bytes,
+                "nomadnetwork.node",
+                ident_bytes,
             )
             if not _await_path(RNS, nomad_dh, path_timeout):
                 return []
@@ -247,7 +248,8 @@ def fetch_nomad_catalog(
         return []
 
     nomad_dh = RNS.Destination.hash_from_name_and_identity(
-        "nomadnetwork.node", identity,
+        "nomadnetwork.node",
+        identity,
     )
     if not _await_path(RNS, nomad_dh, path_timeout):
         return []
@@ -267,7 +269,10 @@ def fetch_nomad_catalog(
 
     try:
         index_raw = _link_request(
-            link, "/page/index.mu", data=None, timeout=request_timeout,
+            link,
+            "/page/index.mu",
+            data=None,
+            timeout=request_timeout,
         )
         if not index_raw:
             return []

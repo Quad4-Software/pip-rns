@@ -84,7 +84,9 @@ def fetch_rns_bundle(source, dest_dir, verify_identity=None):
 
     clone_dir = os.path.join(dest_dir, "rns-clone")
     _clone_repo(
-        remote, clone_dir, ref=ref if ref and not shutil.which("rngit") else None,
+        remote,
+        clone_dir,
+        ref=ref if ref and not shutil.which("rngit") else None,
     )
     for root, _dirs, files in os.walk(clone_dir):
         for name in sorted(files):

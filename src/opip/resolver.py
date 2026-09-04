@@ -318,7 +318,11 @@ def fetch_release_json(package, version, timeout=60, index_url=None, offline=Fal
 
 
 def release_requires_dist(
-    package, version, pypi_data=None, index_url=None, offline=False,
+    package,
+    version,
+    pypi_data=None,
+    index_url=None,
+    offline=False,
 ):
     """Return Requires-Dist list for a package version."""
     if pypi_data is not None:
@@ -424,7 +428,10 @@ def select_wheel_url(pypi_data, req_info, py_version, platform_tag):
         return best
     raise ResolutionError(
         "No compatible wheel for {} ({}) on {}/{}".format(
-            name, spec or "any", py_version, platform_tag,
+            name,
+            spec or "any",
+            py_version,
+            platform_tag,
         ),
     )
 
@@ -449,7 +456,10 @@ def _resolve_one(
         from opip.find_links import pick_local_wheel, scan_wheels
 
         local = pick_local_wheel(
-            scan_wheels(find_links), req_info, py_version, platform_tag,
+            scan_wheels(find_links),
+            req_info,
+            py_version,
+            platform_tag,
         )
         if local:
             return local

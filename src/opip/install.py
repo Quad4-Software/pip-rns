@@ -97,7 +97,8 @@ def _confirm_recreate_venv(path, got, required, no_interactive):
     msg = f"Venv {path} uses Python {got} but this install needs Python {required}."
     if is_noninteractive(no_interactive):
         raise InstallError(
-            msg + f"\nRecreate it: rm -rf {path} && opip install <bundle> --venv {path}",
+            msg
+            + f"\nRecreate it: rm -rf {path} && opip install <bundle> --venv {path}",
         )
     terminal.warn(msg)
     try:
@@ -140,7 +141,10 @@ def ensure_venv(path, required_version=None, no_interactive=False):
                 f"Could not determine Python version for venv interpreter: {py}",
             )
         if got != required_version and _confirm_recreate_venv(
-            dest, got, required_version, no_interactive,
+            dest,
+            got,
+            required_version,
+            no_interactive,
         ):
             terminal.info(f"Removing mismatched venv {dest}")
             shutil.rmtree(dest, ignore_errors=True)
@@ -278,7 +282,8 @@ def _select_wheels_for_install(manifest, wheels_dir):
         if skipped:
             detail = "\nSkipped incompatible wheels:\n  " + "\n  ".join(skipped[:12])
         raise InstallError(
-            f"No wheels in bundle match Python {py_version} on {platform_tag}." + detail,
+            f"No wheels in bundle match Python {py_version} on {platform_tag}."
+            + detail,
         )
     return sorted(selected)
 

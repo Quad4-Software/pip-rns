@@ -28,7 +28,9 @@ def test_cyclonedx_sbom_shape():
         },
     ]
     sbom = make_sbom(
-        manifest, wheels, publisher={"name": "Team", "identity": "ab" * 16},
+        manifest,
+        wheels,
+        publisher={"name": "Team", "identity": "ab" * 16},
     )
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["specVersion"] == "1.5"
@@ -218,10 +220,12 @@ def test_extract_and_simple_index(tmp_path):
 
     out = tmp_path / "wheelhouse"
     path, count = extract_to_wheelhouse(
-        str(bundle), str(out), simple_index=True, verify=True,
+        str(bundle),
+        str(out),
+        simple_index=True,
+        verify=True,
     )
     assert count == 1
     assert (out / "demo-1.0-py3-none-any.whl").is_file()
     assert (out / "index.html").is_file()
     assert (out / "demo" / "index.html").is_file()
-

@@ -265,10 +265,17 @@ def discover_nodes(
         aspect_filter = RNGIT_ASPECT
 
         def received_announce(
-            self, destination_hash, announced_identity, app_data, *args,
+            self,
+            destination_hash,
+            announced_identity,
+            app_data,
+            *args,
         ):
             handler.received_announce(
-                destination_hash, announced_identity, app_data, *args,
+                destination_hash,
+                announced_identity,
+                app_data,
+                *args,
             )
             if on_announce is not None:
                 dest = (
