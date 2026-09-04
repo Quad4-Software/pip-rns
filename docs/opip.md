@@ -125,9 +125,13 @@ Export verifies before copying.
 opip list
 opip list installed
 opip info ./pkg.opip
-opip update my-bundle -o ./pkg-new.opip
-opip uninstall my-bundle
+opip update nomadnet
+opip update nomadnet --venv .venv
+opip update nomadnet --no-reinstall -o ./nomadnet-new.opip
+opip uninstall nomadnet
 ```
+
+`opip update` rebuilds the registered `.opip` from its pinned requirements (needs network), then reinstalls with upgrade/force-reinstall into the previous destination when known (venv, --target, or --user). Pass `--identity` to re-sign if the old bundle was signed.
 
 Remembered destinations:
 

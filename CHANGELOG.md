@@ -16,6 +16,8 @@
 - opip --user retries with --break-system-packages on Arch-style PEP 668
 - opip refuses or recreates a venv when its Python version mismatches the bundle
 - opip filters incompatible wheels and rejects unreadable venv interpreters
+- CI test matrix covers Ubuntu, Windows, and macOS
+- opip update reinstalls with replace (no uninstall-first), restores dest/venv, and can re-sign
 
 ## 1.3.1 — 2026-07-23 [released]
 

@@ -122,9 +122,13 @@ pip-rns venv forget default
 
 ```bash
 pip-rns update rns://identity/group/repo
+pip-rns update rns://identity/group/repo --from-release --ref v1.2.0
+pip-rns update rns://identity/group/repo --venv .venv
 pip-rns list
 pip-rns uninstall some-package
 ```
+
+`pip-rns update` is a fresh reinstall from the remote (same options as install). Prefer `--from-release` when a wheel exists.
 
 Add --pipx, --uv, or --poetry when the install used that backend.
 
