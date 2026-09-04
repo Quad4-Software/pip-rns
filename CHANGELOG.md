@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 — Unreleased
+## 1.4.0 - 2026-09-04 [released]
 
 - Browse can listen, save, scan, and optionally install in one flow
 - Search across aliases, indexes, and discovered packages
@@ -28,7 +28,7 @@
 - opip update reuses unchanged wheels
 - opip delta and apply for thin update packs
 
-## 1.3.1 — 2026-07-23 [released]
+## 1.3.1 - 2026-07-23 [released]
 
 - Trust store for release publishers (add, remove, list, set default)
 - Offline, insecure, require-release, and yes flags for install
@@ -40,7 +40,7 @@
 - Bare remotes ask for install mode when run in a terminal
 - Ctrl-C and prompt cancel exit cleanly
 
-## 1.3.0 — 2026-07-23 [released]
+## 1.3.0 - 2026-07-23 [released]
 
 - Remembered install destinations and virtualenvs
 - Doctor and shell completion for pip-rns and opip
@@ -55,7 +55,7 @@
 
 - First-run prompt that offered a vendor package index
 
-## 1.2.0 — 2026-06-14 [released]
+## 1.2.0 - 2026-06-14 [released]
 
 - opip offline wheel bundles (create, verify, install, export, update, uninstall)
 - Integrity hashes, lock, and SBOM in bundles
