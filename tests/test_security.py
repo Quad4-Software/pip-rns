@@ -54,6 +54,15 @@ def test_safe_member_path_rejects_absolute():
             pass
 
 
+def test_safe_member_path_rejects_nul():
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            safe_member_path(tmp, "a\x00b.txt")
+            raise AssertionError("expected UnsafeZipError")
+        except UnsafeZipError:
+            pass
+
+
 def test_safe_member_path_allows_nested():
     with tempfile.TemporaryDirectory() as tmp:
         dest = safe_member_path(tmp, "wheels/pkg.whl")

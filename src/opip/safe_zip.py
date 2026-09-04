@@ -23,6 +23,9 @@ def safe_member_path(dest_dir, member_name):
     if not member_name or member_name.endswith("/"):
         return None
 
+    if "\x00" in member_name:
+        raise UnsafeZipError(f"NUL in zip member path rejected: {member_name!r}")
+
     name = member_name.replace("\\", "/")
     if name.startswith("/") or (len(name) > 1 and name[1] == ":"):
         raise UnsafeZipError(f"Absolute zip member path rejected: {member_name}")
@@ -156,6 +159,8 @@ def contain_path(root_dir, rel_path):
     """
     if rel_path is None or str(rel_path).strip() == "":
         raise ValueError("Empty relative path")
+    if "\x00" in str(rel_path):
+        raise ValueError(f"NUL in path rejected: {rel_path!r}")
     root = os.path.abspath(root_dir)
     normalized = str(rel_path).replace("\\", "/")
     parts = [p for p in normalized.split("/") if p not in ("", ".")]

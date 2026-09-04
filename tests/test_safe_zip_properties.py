@@ -387,7 +387,8 @@ def test_fuzz_random_member_names_never_escape_dest():
                     zf.writestr("keep.txt", b"keep")
                     if name and not name.endswith("/"):
                         zf.writestr(name, b"payload")
-            except (ValueError, OSError):
+            except (ValueError, OSError, IndexError):
+                # IndexError: Python 3.10 zipfile collapses NUL names to "" then crashes
                 continue
             with contextlib.suppress(UnsafeZipError):
                 extract_zip_safe(zip_path, dest)

@@ -35,6 +35,15 @@ def _discover() -> list[tuple[str, str, Callable[[], None]]]:
     return tests
 
 
+def _stdout_supports(chars: str) -> bool:
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        chars.encode(encoding)
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
 def main() -> int:
     verbose = "-v" in sys.argv
     filt = None
@@ -56,6 +65,10 @@ def main() -> int:
     R = "\033[31m"
     D = "\033[2m"
     X = "\033[0m"
+    if _stdout_supports("\u2713\u2717\u25cb"):
+        mark_ok, mark_fail, mark_skip = "\u2713", "\u2717", "\u25cb"
+    else:
+        mark_ok, mark_fail, mark_skip = "OK", "FAIL", "SKIP"
 
     print(f"running {len(tests)} test{'s' if len(tests) != 1 else ''}")
     print()
@@ -66,17 +79,19 @@ def main() -> int:
         try:
             fn()
             dt = time.time() - t0
-            print(f"  {G}\u2713{X} {label}  {D}({dt * 1000:.0f}ms){X}")
+            print(f"  {G}{mark_ok}{X} {label}  {D}({dt * 1000:.0f}ms){X}")
             passed += 1
         except SkipTest as exc:
             dt = time.time() - t0
             reason = str(exc).strip() or "skipped"
-            print(f"  {Y}\u25cb{X} {label}  {D}({dt * 1000:.0f}ms){X}  {D}{reason}{X}")
+            print(
+                f"  {Y}{mark_skip}{X} {label}  {D}({dt * 1000:.0f}ms){X}  {D}{reason}{X}"
+            )
             skipped += 1
         except Exception:
             dt = time.time() - t0
             tb = traceback.format_exc()
-            print(f"  {R}\u2717{X} {label}  {D}({dt * 1000:.0f}ms){X}")
+            print(f"  {R}{mark_fail}{X} {label}  {D}({dt * 1000:.0f}ms){X}")
             if verbose:
                 for line in tb.rstrip().splitlines():
                     print(f"    {line}")
