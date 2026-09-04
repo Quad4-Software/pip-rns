@@ -81,11 +81,23 @@ From a local file:
 opip install ./pkg.opip
 ```
 
+Into a venv:
+
+```bash
+opip install ./pkg.opip --venv .venv
+```
+
 Into a specific directory:
 
 ```bash
 opip install ./pkg.opip --target /opt/wheels
 opip install ./pkg.opip --target /opt/wheels --remember-target
+```
+
+User site (automatically adds --break-system-packages when PEP 668 blocks --user):
+
+```bash
+opip install ./pkg.opip --user
 ```
 
 From Reticulum (release or path inside a release):
@@ -97,7 +109,7 @@ opip install rns://identity/group/repo@v1.0.0:my-bundle.opip
 
 HTTP, HTTPS, FTP, and git sources are also accepted when you need a bridge.
 
-On PEP 668 protected interpreters, install can prompt for a venv, --user, or --target recovery path.
+On PEP 668 protected interpreters, install can prompt for a venv, --user, or --target recovery path. The bundle Python version must match the current interpreter. An existing venv with the wrong Python is refused or recreated after confirmation.
 
 ## Export for USB
 
