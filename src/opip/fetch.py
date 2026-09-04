@@ -81,10 +81,14 @@ def download_wheel(
     url = wheel_spec.get("url") or ""
     if not local_path and url.startswith("file://"):
         local_path = url[7:]
-        if os.name == "nt" and local_path.startswith("/") and len(local_path) > 2:
+        if (
+            os.name == "nt"
+            and local_path.startswith("/")
+            and len(local_path) > 2
+            and local_path[2] == ":"
+        ):
             # file:///C:/path
-            if local_path[2] == ":":
-                local_path = local_path[1:]
+            local_path = local_path[1:]
 
     if local_path and os.path.isfile(local_path):
         if expected and file_hash(local_path) != expected:

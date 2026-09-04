@@ -40,7 +40,8 @@ def load_lockfile(path):
 
 
 def _parse_poetry_lock(path):
-    text = open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
     if not text.startswith("[[package]]"):
         text = "\n" + text
     pins = []
@@ -77,7 +78,8 @@ def _parse_poetry_lock(path):
 
 def _parse_uv_lock(path):
     """Minimal uv.lock reader (TOML package tables)."""
-    text = open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
     pins = []
     blocks = re.split(r"\[\[package\]\]\s*\n", text)
     for block in blocks[1:]:

@@ -51,9 +51,11 @@ def apply_defaults(args):
         if not getattr(args, "offline", False):
             args.offline = bool(env_str("OPIP_OFFLINE"))
 
-    if getattr(args, "command", None) == "install":
-        if getattr(args, "backend", None) is None:
-            args.backend = env_str("OPIP_BACKEND")
+    if (
+        getattr(args, "command", None) == "install"
+        and getattr(args, "backend", None) is None
+    ):
+        args.backend = env_str("OPIP_BACKEND")
 
     if (
         getattr(args, "command", None) in ("verify", "install", "extract")

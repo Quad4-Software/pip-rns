@@ -495,13 +495,9 @@ def _run_pip_install_with_recovery(
             raise InstallError(f"venv python not found: {python}")
         chosen = resolve_install_backend(backend, python=python)
         if chosen == "pip" and not _find_pip(python):
-            if _uv_available() and (
-                (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
-                or not _find_pip(python)
-            ):
-                # Prefer uv only when pip truly missing
-                if not _find_pip(python):
-                    chosen = "uv"
+            want_uv = (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
+            if _uv_available() and (want_uv or not _find_pip(python)):
+                chosen = "uv"
             if chosen == "pip":
                 if current_venv:
                     raise InstallError(
