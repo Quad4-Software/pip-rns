@@ -107,7 +107,8 @@ def _socks5_connect(
 
 def _build_opener(proxy: str | None):
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.minimum_version = ssl.TLSVersion.TLS_1_2
+    ctx.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     ctx.load_default_certs()
     ctx.verify_mode = ssl.CERT_REQUIRED
     ctx.check_hostname = True
