@@ -1,6 +1,6 @@
 .\" Man page for opip
 .\" vim: ft=man
-.TH OPIP 1 "2026-06-14" "1.2.0" "User Commands"
+.TH OPIP 1 "2026-09-05" "1.5.0" "User Commands"
 .SH NAME
 opip \- Create and install integrity-backed offline Python wheel bundles
 .SH SYNOPSIS
@@ -12,20 +12,36 @@ opip \- Create and install integrity-backed offline Python wheel bundles
 Build, verify, and install offline Python wheel bundles (\.opip) for
 sneakernet and air-gapped targets. Bundles include integrity manifests,
 lock files, SBOM metadata, and optional Reticulum RSG signatures.
+Standalone
+.B opip.pyz
+runs without a prior pip install. Kits can embed portable CPython for
+hosts with no system Python.
 .SH COMMANDS
 .SS create
 Fetch wheels from PyPI and pack them into a bundle.
-.B opip create
-[\fB-o\fR \fIFILE\fR] [\fB-C\fR \fIDIR\fR] [\fB-r\fR \fIREQ.txt\fR]
-[\fB--python\fR \fIVERSION\fR] [\fB--platform\fR \fITAG\fR]
-[\fB--publisher\fR \fINAME\fR] [\fB--identity\fR \fIFILE\fR]
-[\fIpackages\fR...]
+Supports
+.B --proxy
+for HTTP/HTTPS/SOCKS5(h) (Tor:
+.BR socks5h://127.0.0.1:9050 ).
 .SS install
 Install a bundle from a local file, rns:// remote, URL, or git source.
-.B opip install
-\fISOURCE\fR
-[\fB--signer\fR \fIIDENTITY\fR] [\fB--require-signature\fR]
-[\fB--user\fR] [\fB--replace\fR]
+Backends:
+.BR pip ,
+.BR uv ,
+.BR manual .
+Also
+.B --break-system-packages
+and
+.B --venv .
+.SS kit
+Build or verify a USB/airgap kit (zipapps, bundle, optional runtime).
+.B opip kit create
+\fIpackages\fR
+.B -o
+\fIDIR\fR
+[\fB--with-runtime\fR] [\fB--proxy\fR \fIURL\fR]
+.SS self-install
+Install opip and pip-rns onto PATH without system pip.
 .SS verify
 Verify bundle integrity, authenticity, and provenance.
 .SS export
@@ -49,11 +65,17 @@ opip create
 .RS
 opip verify my-bundle.opip
 .br
-opip install my-bundle.opip
+opip install my-bundle.opip --venv .venv
 .RE
-.B Install from Reticulum:
+.B USB kit with portable Python:
 .RS
-opip install rns://identity/group/repo@v1.0.0
+opip kit create nomadnet -o /media/usb --with-runtime
+.br
+/media/usb/install.sh
+.RE
+.B Run without installing:
+.RS
+python3 opip.pyz help airgap
 .RE
 .SH ENVIRONMENT
 .TP
@@ -62,6 +84,12 @@ State directory for bundle registry and install records.
 .TP
 .B OPIP_SIGNER
 Default signer identity for verify and install.
+.TP
+.B OPIP_PROXY
+Default proxy for create/kit downloads.
+.TP
+.B OPIP_BACKEND
+Install backend: pip, uv, or manual.
 .TP
 .B PIP_RNS_CONFIG
 Config directory for pip-rns aliases resolved during rns:// installs.

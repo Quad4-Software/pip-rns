@@ -1,10 +1,14 @@
 # pip-rns
 
-Install Python packages over [Reticulum](https://reticulum.network/) from remotes you choose, and share integrity-backed offline wheel bundles (`.opip`) for sneakernet / air-gap paths.
+Install Python packages over [Reticulum](https://reticulum.network/) from remotes you choose, and share integrity-backed offline wheel bundles (.opip) for sneakernet / air-gap paths.
 
 You pick every source. There is no default vendor index. Indexes and aliases are opt-in. PyPI, HTTPS git, and system pip remain available as bridges when you need them, not as the center of the design.
 
-rngit page (optional peer docs): `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
+rngit page (optional peer docs):
+
+```
+132f67e79d9b24aad014e93015fb858f:/page/index.mu
+```
 
 Read the [docs](docs/README.md)
 
@@ -12,10 +16,17 @@ Read the [docs](docs/README.md)
 
 | Tool | Purpose |
 |------|---------|
-| `pip-rns` / `pipx-rns` | Install from Reticulum rngit remotes via pip, pipx, uv, or poetry |
-| `opip` | Build, verify, and install offline `.opip` bundles for USB / air-gap |
+| pip-rns / pipx-rns | Install from Reticulum rngit remotes via pip, pipx, uv, or poetry |
+| opip | Build, verify, and install offline .opip bundles for USB / air-gap |
+| opip.pyz / pip-rns.pyz | Standalone zipapps (no prior pip). Run make pyz |
+| opip kit | One-command USB kit with optional portable CPython |
 
-Both ship in this package. `opip` uses only the Python standard library (no extra dependencies).
+Both CLIs ship in this package. opip uses only the Python standard library (no extra dependencies).
+
+```bash
+opip help airgap
+pip-rns help bootstrap
+```
 
 ## Choose your sources
 
@@ -54,21 +65,20 @@ pip-rns install --offline rns://identity/group/repo   # cache hit only
 
 ### Features
 
-- **Multi-backend** - install with pip, pipx, uv, or poetry
-- **Version pinning** - `pipx-rns install repo@v1.0.0` or `--ref v1.0.0`
-- **Releases** - install pre-built `.whl` files from rngit releases (`--from-release` / `--require-release`)
-- **Trust store** - remember publisher identities (`pip-rns trust`). `--verify` for one-off pins
-- **Fail closed** - signed releases must verify unless you pass `--insecure`
-- **Offline** - `--offline` uses cache / local paths only (no RNS fetch)
-- **Export** - `pip-rns export` mirrors release artifacts for USB sharing
-- **Editable mode** - `--editable` for persistent checkouts
-- **pipx inject** - install into existing pipx venvs
-- **Aliases** - short names for long remote paths
-- **Indexes** - opt-in sync of package listings from remotes you register
-- **Discover** - listen for announced rngit nodes (`git.repositories`) on the mesh
-- **Browse** - one command to listen, scan, alias, and install (`pip-rns browse`)
-- **Search** - find packages across aliases, indexes, and discovery
-- **Local wheels** - install exported `.whl` files from USB paths
+- Multi-backend install with pip, pipx, uv, or poetry
+- Version pinning and release wheels (prefer --from-release over a full clone)
+- Trust store for publisher identities, fail-closed signed releases
+- Offline cache / local paths, export for USB, editable checkouts
+- Aliases, opt-in indexes, discover / browse / search on the mesh
+- Local wheel install from USB paths
+
+```bash
+pipx-rns install repo@v1.0.0
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0
+pip-rns trust add rns://id/group/repo e46112d44649266d71fe2193e00a4710
+pip-rns export rns://id/group/repo --ref v1.0.0 -o /media/usb/mirror
+pip-rns browse --install
+```
 
 ### Requirements
 
@@ -132,7 +142,7 @@ You choose which indexes to trust. None are added automatically.
 
 ### Commands
 
-#### `pip-rns` (generic)
+#### pip-rns (generic)
 
 ```
 pip-rns [install] <identity/group/repo> [--from-release|--from-source|-s] [--require-release]
@@ -157,9 +167,16 @@ pip-rns doctor [--fix] [--online --remote RNS_URL]
 pip-rns completion install [--shell bash|zsh|fish]
 ```
 
-`pip-rns rns://id/group/repo` is shorthand for install. With no `@ref` / mode flags on a TTY, you get a menu (latest release preferred, source clone labeled expensive, pick a release). Install prefers a release `.whl` when one exists (use `--from-source`/`-s` to force a clone, or `--from-release` / `--require-release` to require a wheel). Branch-like refs such as `@master` or `@main` clone from source automatically. RNS source installs reuse `~/.local/share/pip-rns/cache` and fetch/update on repeat (set `PIP_RNS_NO_CACHE=1` to force a fresh temp clone). `--offline` never contacts RNS. Indexes are opt-in: add only remotes you choose.
+pip-rns rns://id/group/repo is shorthand for install. With no @ref / mode flags on a TTY, you get a menu (latest release preferred, source clone labeled expensive, pick a release). Install prefers a release wheel when one exists. Branch-like refs such as @master or @main clone from source. RNS source installs reuse ~/.local/share/pip-rns/cache. Indexes are opt-in.
 
-#### `pipx-rns` (pipx-specific)
+```bash
+pip-rns install --from-source rns://id/group/repo
+pip-rns install --from-release rns://id/group/repo --ref v1.0.0
+pip-rns install --offline rns://id/group/repo
+PIP_RNS_NO_CACHE=1 pip-rns install rns://id/group/repo
+```
+
+#### pipx-rns (pipx-specific)
 
 ```
 pipx-rns install <remote> [--ref TAG] [--editable] [--from-release|--from-source]
@@ -174,13 +191,13 @@ pipx-rns completion install
 
 #### Releases
 
-Install pre-built `.whl` from an rngit release (faster, no build step):
+Install pre-built .whl from an rngit release (faster, no build step):
 
 ```bash
 pip-rns install --from-release rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0
 ```
 
-Require a specific release signer when installing (or save it with `pip-rns trust`):
+Require a specific release signer when installing (or save it with pip-rns trust):
 
 ```bash
 pip-rns install --from-release rns://id/group/repo --ref v1.0.0 --verify e46112d44649266d71fe2193e00a4710
@@ -195,7 +212,7 @@ pip-rns release view rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node
 pip-rns export rns://06a54b505bb67b25ef3f8097e8001edc/public/rns-page-node --ref v1.6.0 -o ./mirror
 ```
 
-Release artifacts are downloaded via `rngit release fetch` on the rngit node hosting the repository. Signed releases fail closed if verification is not confirmed unless you pass `--insecure`.
+Release artifacts are downloaded via rngit release fetch on the rngit node hosting the repository. Signed releases fail closed if verification is not confirmed unless you pass --insecure.
 
 #### Aliases
 
@@ -207,7 +224,7 @@ pip-rns alias ls
 pip-rns install lxmfy
 ```
 
-Aliases are stored in `~/.config/pip-rns/aliases` (`%APPDATA%/pip-rns/aliases` on Windows):
+Aliases are stored in ~/.config/pip-rns/aliases (%APPDATA%/pip-rns/aliases on Windows):
 
 ```
 lxmfy=06a54b505bb67b25ef3f8097e8001edc/public/LXMFy
@@ -228,20 +245,20 @@ pip-rns trust set-default e46112d44649266d71fe2193e00a4710
 pip-rns trust ls
 ```
 
-Stored in `~/.config/pip-rns/trust.json`. Used automatically when `--verify` is omitted (unless `--insecure`).
+Stored in ~/.config/pip-rns/trust.json. Used automatically when --verify is omitted (unless --insecure).
 
 #### Discover
 
-rngit nodes announce on the `git.repositories` aspect. Listen on your local Reticulum stack (requires the `rns` Python package):
+rngit nodes announce on the git.repositories aspect. Listen on your local Reticulum stack (requires the rns Python package):
 
 ```bash
 pip-rns discover --seconds 60 --save
 pip-rns discover ls
 ```
 
-Heard destination hashes can be used as `rns://<destination_hash>/group/repo` when the path is known. Discovery is passive. You only learn nodes that announce during the listen window.
+Heard destination hashes can be used as rns://DESTINATION_HASH/group/repo when the path is known. Discovery is passive. You only learn nodes that announce during the listen window.
 
-Scan those nodes for Python packages (Nomad catalog when enabled, common `packages` index repos, and release `.whl` checks):
+Scan those nodes for Python packages (Nomad catalog when enabled, common packages index repos, and release .whl checks):
 
 ```bash
 pip-rns discover --save --scan
@@ -255,7 +272,7 @@ Short names from discovery resolve after aliases and registered indexes.
 
 #### Indexes
 
-Register an index (an rngit repo with a `packages` file) and install by name:
+Register an index (an rngit repo with a packages file) and install by name:
 
 ```bash
 pip-rns index add rns://identity/group/index
@@ -268,7 +285,7 @@ Indexes chain with aliases: local aliases take priority, then synced indexes, th
 
 #### Bundles (opip integration)
 
-Install or verify offline `.opip` bundles using pip-rns aliases and config:
+Install or verify offline .opip bundles using pip-rns aliases and config:
 
 ```bash
 pip-rns bundle install lxmfy-bundle@v1.0.0 --signer e46112d44649266d71fe2193e00a4710
@@ -277,7 +294,7 @@ pip-rns bundle verify ./my-bundle.opip --require-signature
 
 #### Passthrough
 
-Flags after `--` are forwarded to the underlying tool:
+Flags after -- are forwarded to the underlying tool:
 
 ```bash
 pip-rns install identity/group/repo -- --break-system-packages
@@ -289,38 +306,41 @@ pipx-rns install identity/group/repo -- --force
 
 | Variable | Default | Description |
 |---|---|---|
-| `PIP_RNS_PIP` | `pip` | pip command |
-| `PIP_RNS_PIPX` | `pipx` | pipx command |
-| `PIP_RNS_UV` | `uv` | uv command |
-| `PIP_RNS_POETRY` | `poetry` | poetry command |
-| `PIP_RNS_CONFIG` | - | config directory for aliases |
-| `PIP_RNS_USE_CACHE` | - | enable cache (`1`) |
-| `PIP_RNS_COLOR` | `auto` | `auto`, `always`, `never` (or `0`/`1`) |
-| `PIP_RNS_NO_INTERACTIVE` | - | disable prompts when set |
-| `NO_COLOR` | - | disable colors (standard) |
-| `FORCE_COLOR` | - | force colors (standard) |
-| `CI` | - | disables prompts and color unless `FORCE_COLOR` |
+| PIP_RNS_PIP | pip | pip command |
+| PIP_RNS_PIPX | pipx | pipx command |
+| PIP_RNS_UV | uv | uv command |
+| PIP_RNS_POETRY | poetry | poetry command |
+| PIP_RNS_CONFIG | - | config directory for aliases |
+| PIP_RNS_USE_CACHE | - | enable cache (1) |
+| PIP_RNS_COLOR | auto | auto, always, never (or 0/1) |
+| PIP_RNS_NO_INTERACTIVE | - | disable prompts when set |
+| NO_COLOR | - | disable colors (standard) |
+| FORCE_COLOR | - | force colors (standard) |
+| CI | - | disables prompts and color unless FORCE_COLOR |
 
-Color stays off on classic Windows `cmd.exe` / PowerShell unless Windows Terminal (`WT_SESSION`), ConEmu/ANSICON, or `FORCE_COLOR` is set. Global flag: `--no-interactive`. Long RNS waits show a TTY spinner (`Waiting on Reticulum…`).
+Color stays off on classic Windows cmd.exe / PowerShell unless Windows Terminal (WT_SESSION), ConEmu/ANSICON, or FORCE_COLOR is set. Global flag: --no-interactive. Long RNS waits show a TTY spinner.
 
-Remember a venv: `pip-rns install … --venv /path --remember-venv` or `pip-rns venv set default /path`.
+```bash
+pip-rns install rns://id/group/repo --venv /path --remember-venv
+pip-rns venv set default /path
+```
 
 ## opip (offline bundles)
 
-Create and install integrity-backed offline Python wheel bundles (`.opip`).
+Create and install integrity-backed offline Python wheel bundles (.opip).
 
 ### Features
 
-- **create**: Fetch wheels from PyPI and pack them into an integrity-backed bundle
-- **auto-detect**: Read `pyproject.toml`, `setup.py`, or `requirements.txt` from a cloned project
-- **universal bundles**: `--platform universal` bundles wheels for Windows, Linux, and macOS in one file
-- **install**: Install from a local bundle, HTTP/HTTPS/FTP/git, or Reticulum (`rns://`) source
-- **export**: Copy a verified bundle for sneakernet / USB sharing
-- **uninstall / update**: Manage registered bundles
-- **verify**: Check integrity, authenticity, and PyPI provenance
-- **Windows integration**: File association and Explorer context menus (`register-windows`)
+- Create integrity-backed bundles from PyPI or a cloned project
+- Universal platform packs, verify, export, uninstall / update
+- Install from local file, HTTP/HTTPS/FTP/git, or rns://
+- Windows file association via register-windows
 
-Each bundle contains `manifest.json`, `integrity.json`, `lock.json`, `sbom.json`, optional `publisher.json`, plus a `wheels/` directory and pinned `requirements.txt`. Signed bundles also have a Reticulum `.rsg` sidecar (and optionally an `.rsm` release manifest when published via `rngit release`).
+```text
+manifest.json  integrity.json  lock.json  sbom.json  publisher.json
+wheels/        requirements.txt
+optional .rsg / .rsm when signed or published via rngit release
+```
 
 ### Quick start
 
@@ -332,7 +352,7 @@ cd some-project
 opip create
 ```
 
-Copy the `.opip` file to the air-gapped machine:
+Copy the .opip file to the air-gapped machine:
 
 ```bash
 opip verify my-bundle.opip
@@ -354,7 +374,7 @@ opip create -r requirements.txt --python 3.12 --platform win_amd64
 opip create -r requirements.txt --python 3.12 --platform universal
 ```
 
-Signed bundles (Reticulum RSG). A present `.rsg` is verified automatically via the embedded pubkey. Pass `--signer` to pin a required identity:
+Signed bundles (Reticulum RSG). A present .rsg is verified automatically via the embedded pubkey. Pass --signer to pin a required identity:
 
 ```bash
 opip keygen -o publisher.rns
@@ -363,7 +383,7 @@ opip verify shared-bundle.opip
 opip verify shared-bundle.opip --signer e46112d44649266d71fe2193e00a4710 --require-signature
 ```
 
-Publish a signed bundle as an rngit release (creates `.rsm` manifest automatically):
+Publish a signed bundle as an rngit release (creates .rsm manifest automatically):
 
 ```bash
 rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
@@ -373,44 +393,44 @@ rngit release -i publisher.rns rns://identity/group/repo create v1.0.0:./dist
 
 | Command | Description |
 |---------|-------------|
-| `create [-o FILE] [-C DIR] [-r REQ.txt] [packages...]` | Build a bundle |
-| `install SOURCE [--target DIR] [--remember-target] [--signer IDENTITY]` | Install a bundle |
-| `dest list\|set\|forget` | Remembered install destinations per bundle |
-| `uninstall BUNDLE [--user]` | Uninstall by registered bundle name |
-| `update BUNDLE [-o FILE]` | Rebuild a registered bundle |
-| `export SOURCE -o FILE` | Copy a verified bundle for sharing |
-| `verify BUNDLE [--signer IDENTITY] [--require-signature]` | Verify integrity and authenticity |
-| `keygen -o FILE` | Generate Reticulum identity for signing |
-| `info BUNDLE` | Show bundle metadata |
-| `list [bundles\|installed]` | List registry |
-| `doctor` | Check environment health |
-| `completion install` | Install shell completions |
-| `help [COMMAND] [-i]` | Interactive or per-command help |
-| `register-windows` | Register `.opip` association and context menus |
+| create [-o FILE] [-C DIR] [-r REQ.txt] [packages...] | Build a bundle |
+| install SOURCE [--target DIR] [--remember-target] [--signer IDENTITY] | Install a bundle |
+| dest list\|set\|forget | Remembered install destinations per bundle |
+| uninstall BUNDLE [--user] | Uninstall by registered bundle name |
+| update BUNDLE [-o FILE] | Rebuild a registered bundle |
+| export SOURCE -o FILE | Copy a verified bundle for sharing |
+| verify BUNDLE [--signer IDENTITY] [--require-signature] | Verify integrity and authenticity |
+| keygen -o FILE | Generate Reticulum identity for signing |
+| info BUNDLE | Show bundle metadata |
+| list [bundles\|installed] | List registry |
+| doctor | Check environment health |
+| completion install | Install shell completions |
+| help [COMMAND] [-i] | Interactive or per-command help |
+| register-windows | Register .opip association and context menus |
 
-Global flags: `--no-color`, `--no-interactive` / `-y`, `--data-dir`, `--version`.
+Global flags: --no-color, --no-interactive / -y, --data-dir, --version.
 
-Remember a per-bundle install destination after `opip install --target DIR` (prompted when interactive), or use `--remember-target` / `opip dest set NAME PATH`. Later installs reuse that path when `--target` is omitted.
+Remember a per-bundle install destination after opip install --target DIR (prompted when interactive), or use --remember-target / opip dest set NAME PATH. Later installs reuse that path when --target is omitted.
 
 ### opip Environment
 
 | Variable | Purpose |
 |----------|---------|
-| `OPIP_DATA_DIR` | State directory (same as `--data-dir`) |
-| `OPIP_JOBS` | Default parallel downloads for `create` |
-| `OPIP_PYTHON` | Default `--python` for `create` |
-| `OPIP_PLATFORM` | Default `--platform` for `create` |
-| `OPIP_PUBLISHER` | Default `--publisher` for `create` |
-| `OPIP_IDENTITY` | Default `--identity` path for `create` |
-| `OPIP_SIGNER` | Default `--signer` for `verify` and `install` |
-| `OPIP_COLOR` | `auto`, `always`, or `never` |
-| `OPIP_NO_COLOR` | Disable color when set |
-| `OPIP_FORCE_COLOR` | Force color when set |
-| `OPIP_NO_INTERACTIVE` | Disable prompts when set |
-| `NO_COLOR` | Standard. Disables colors when set |
-| `FORCE_COLOR` | Standard. Enables colors when set |
-| `CI` | disables prompts and color unless `FORCE_COLOR` |
-| `PIP_RNS_CONFIG` | pip-rns config directory. aliases are resolved for `rns://` installs |
+| OPIP_DATA_DIR | State directory (same as --data-dir) |
+| OPIP_JOBS | Default parallel downloads for create |
+| OPIP_PYTHON | Default --python for create |
+| OPIP_PLATFORM | Default --platform for create |
+| OPIP_PUBLISHER | Default --publisher for create |
+| OPIP_IDENTITY | Default --identity path for create |
+| OPIP_SIGNER | Default --signer for verify and install |
+| OPIP_COLOR | auto, always, or never |
+| OPIP_NO_COLOR | Disable color when set |
+| OPIP_FORCE_COLOR | Force color when set |
+| OPIP_NO_INTERACTIVE | Disable prompts when set |
+| NO_COLOR | Standard. Disables colors when set |
+| FORCE_COLOR | Standard. Enables colors when set |
+| CI | disables prompts and color unless FORCE_COLOR |
+| PIP_RNS_CONFIG | pip-rns config directory. aliases are resolved for rns:// installs |
 
 ## Shell Completions
 
@@ -454,7 +474,7 @@ python -m tests.test_runner -f opip
 PIP_RNS_TEST_LIVE=1 python -m tests.test_runner -f live
 ```
 
-The test runner adds `src/` to `PYTHONPATH` automatically. Optional live tests are skipped unless `PIP_RNS_TEST_LIVE=1` is set.
+The test runner adds src/ to PYTHONPATH automatically. Optional live tests are skipped unless PIP_RNS_TEST_LIVE=1 is set.
 
 ## License
 

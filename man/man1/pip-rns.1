@@ -38,6 +38,12 @@ List or view releases on remote repos (via rngit).
 .SS bundle
 Install or verify offline .opip bundles (via opip).
 .B pip-rns bundle install \fISOURCE\fR [\fB--signer\fR \fIIDENTITY\fR]
+.SS self-install
+Install pip-rns and opip onto PATH without system pip.
+Also available as
+.B python3 pip-rns.pyz self-install --user
+.SS doctor
+Check environment health. Suggests zipapp bootstrap when pip is missing.
 .B pip-rns bundle verify \fIBUNDLE\fR
 .SH EXAMPLES
 .B Install from RNS remote:

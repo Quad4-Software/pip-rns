@@ -4,12 +4,36 @@ pip-rns installs Python packages from Reticulum remotes you choose. opip packs a
 
 ## Requirements
 
-- Python 3.7 or newer
+- Python 3.7 or newer (or a kit built with --with-runtime)
 - For mesh install and discover: a working Reticulum stack and the rns package
 - For rngit remotes: rngit on your PATH
-- At least one install backend: pip, pipx, uv, or poetry
+- An install backend helps (pip, pipx, uv, or poetry) but is not required
 
-opip itself uses only the Python standard library.
+Without pip, use zipapps, --backend manual, or self-install. opip itself uses only the Python standard library.
+
+## Bootstrap without pip
+
+From a browser-downloaded wheel (Tor-friendly, no pip):
+
+```bash
+python3 get-opip.py --from-wheel pip_rns-*.whl -o .
+python3 opip.pyz help airgap
+```
+
+Or from a release / make pyz:
+
+```bash
+python3 opip.pyz --version
+python3 pip-rns.pyz doctor
+python3 pip-rns.pyz self-install --user
+```
+
+Or from a source checkout:
+
+```bash
+PYTHONPATH=src python3 -m opip --version
+PYTHONPATH=src python3 -m pip_rns --version
+```
 
 ## Install pip-rns
 
@@ -17,6 +41,8 @@ From a local wheel:
 
 ```bash
 pip install pip_rns-*.whl
+# or without pip:
+python3 opip.pyz self-install --user
 ```
 
 From source over rngit:

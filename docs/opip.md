@@ -39,7 +39,7 @@ opip create --lockfile poetry.lock
 opip create --lockfile requirements.lock
 ```
 
-Pass `--no-lock` to ignore an auto-detected lockfile.
+Pass --no-lock to ignore an auto-detected lockfile.
 
 Target a Python and platform:
 
@@ -91,7 +91,7 @@ opip verify ./pkg.opip --signer e46112d44649266d71fe2193e00a4710
 opip verify ./pkg.opip --require-signature
 ```
 
-A present .rsg is checked via the embedded pubkey. Pass --signer to pin the identity you expect. When `--signer` is unset, opip uses the shared pip-rns trust store (default or per-remote pin).
+A present .rsg is checked via the embedded pubkey. Pass --signer to pin the identity you expect. When --signer is unset, opip uses the shared pip-rns trust store (default or per-remote pin).
 
 ## CI / automation
 
@@ -101,9 +101,9 @@ opip --json verify ./pkg.opip --require-signature
 opip --quiet install ./pkg.opip --venv .venv -y
 ```
 
-Also: `CI=1`, `OPIP_NO_INTERACTIVE=1`, or a non-TTY. Exit codes: 0 ok, 1 failure, 2 usage.
+Also set CI=1 or OPIP_NO_INTERACTIVE=1, or run on a non-TTY. Exit codes: 0 ok, 1 failure, 2 usage.
 
-`--json` works on verify, info, list, and trust ls. `--quiet` / `-q` suppresses success stdout.
+--json works on verify, info, list, and trust ls. --quiet / -q suppresses success stdout.
 
 ## Install
 
@@ -126,6 +126,22 @@ opip install ./pkg.opip --venv .venv --backend uv
 ```
 
 Default backend is pip. If a venv has no pip and uv is on PATH, install falls back to uv.
+
+```bash
+opip install ./pkg.opip --backend manual
+opip install ./pkg.opip --user --break-system-packages
+```
+
+## Kit and zipapps
+
+```bash
+make pyz
+python3 dist/opip.pyz help airgap
+opip kit create nomadnet -o /media/usb --with-runtime --as-app \
+  --proxy socks5h://127.0.0.1:9050
+opip kit verify /media/usb
+python3 opip.pyz self-install --user
+```
 
 Into a specific directory:
 
@@ -153,7 +169,7 @@ On PEP 668 protected interpreters, install can prompt for a venv, --user, or --t
 
 ## Hand-off for other package managers
 
-`.opip` is not a pip/uv/poetry format. Extract wheels first:
+.opip is not a pip/uv/poetry format. Extract wheels first:
 
 ```bash
 opip extract ./pkg.opip -o ./wheelhouse --require-signature
@@ -184,11 +200,11 @@ opip delta ./pkg-v1.opip ./pkg-v2.opip -o ./pkg-v1-to-v2.opipd
 opip apply ./pkg-v1.opip ./pkg-v1-to-v2.opipd -o ./pkg-v2.opip
 ```
 
-`apply` fails closed if the base file hash does not match the delta.
+Apply fails closed if the base file hash does not match the delta.
 
 ## Trust store
 
-Same store as pip-rns (`~/.config/pip-rns/trust.json`):
+Same store as pip-rns (~/.config/pip-rns/trust.json):
 
 ```bash
 opip trust add default e46112d44649266d71fe2193e00a4710
@@ -210,7 +226,7 @@ opip update nomadnet --emit-delta ./nomadnet.patch.opipd
 opip uninstall nomadnet
 ```
 
-`opip update` rebuilds from pinned requirements, reuses unchanged wheels from the previous bundle when hashes match, then reinstalls with upgrade/force-reinstall into the previous destination when known. Pass `--identity` to re-sign if the old bundle was signed.
+opip update rebuilds from pinned requirements, reuses unchanged wheels from the previous bundle when hashes match, then reinstalls with upgrade/force-reinstall into the previous destination when known. Pass --identity to re-sign if the old bundle was signed.
 
 Remembered destinations:
 

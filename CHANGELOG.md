@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0 - 2026-09-05
+
+- Signed zipapps: opip.pyz and pip-rns.pyz (run without prior pip install)
+- self-install places opip/pip-rns on PATH via manual extract, uv, or ensurepip
+- opip kit create|verify builds USB/airgap kits with optional portable CPython
+- get-opip.py bootstraps zipapps from a browser-downloaded wheel or Tor URL (no pip)
+- opip kit create --as-app writes AppImage-style ./Run launchers
+- SOCKS5(h)/HTTP proxy support for create and kit downloads (--proxy, OPIP_PROXY)
+- Explicit --break-system-packages and --backend manual for no-pip installs
+- pip-rns local wheel install falls back to uv/manual when pip is missing
+- Doctor and help: opip help airgap, pip-rns help bootstrap
+
 ## 1.4.0 - 2026-09-04 [released]
 
 - Browse can listen, save, scan, and optionally install in one flow

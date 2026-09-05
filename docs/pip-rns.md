@@ -128,7 +128,7 @@ pip-rns list
 pip-rns uninstall some-package
 ```
 
-`pip-rns update` is a fresh reinstall from the remote (same options as install). Prefer `--from-release` when a wheel exists.
+pip-rns update is a fresh reinstall from the remote (same options as install). Prefer --from-release when a wheel exists.
 
 Add --pipx, --uv, or --poetry when the install used that backend.
 
