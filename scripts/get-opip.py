@@ -106,8 +106,11 @@ def _socks5_connect(
 
 
 def _build_opener(proxy: str | None):
-    ctx = ssl.create_default_context()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.minimum_version = ssl.TLSVersion.TLS_1_2
+    ctx.load_default_certs()
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.check_hostname = True
     if not proxy:
         return urllib_request.build_opener(urllib_request.HTTPSHandler(context=ctx))
     parsed = urlparse(proxy)

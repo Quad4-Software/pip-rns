@@ -20,8 +20,11 @@ class ProxyError(Exception):
 
 def tls_context() -> ssl.SSLContext:
     """Default TLS context that rejects TLS 1.0 and 1.1."""
-    ctx = ssl.create_default_context()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.minimum_version = ssl.TLSVersion.TLS_1_2
+    ctx.load_default_certs()
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.check_hostname = True
     return ctx
 
 
