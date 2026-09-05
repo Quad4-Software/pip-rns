@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Warn before expensive Reticulum source clones."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Import pins from uv.lock, poetry.lock, and pip-tools hashed requirements."""
 
 from __future__ import annotations

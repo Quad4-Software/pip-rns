@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Lockfile and CycloneDX SBOM generation for bundles."""
 
 import json

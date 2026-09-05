@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Guided browse: listen, save, scan, alias, and optional install."""
 
 from __future__ import annotations
@@ -46,7 +47,8 @@ def run_browse(
     if not no_listen:
         if noninteractive:
             print(
-                "Non-interactive: skipping listen. Use saved nodes or drop --no-interactive.",
+                "Non-interactive: skipping listen."
+                " Use saved nodes or drop --no-interactive.",
                 file=sys.stderr,
             )
         else:

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Interactive handler for opening .opip bundles (Windows double-click)."""
 
 import os

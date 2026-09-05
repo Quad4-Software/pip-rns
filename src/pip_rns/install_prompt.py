@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Interactive install mode chooser for bare remotes."""
 
 from __future__ import annotations

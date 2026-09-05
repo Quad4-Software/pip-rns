@@ -223,7 +223,7 @@ def test_extract_and_simple_index():
         (work / "requirements.txt").write_text("demo==1.0\n", encoding="utf-8")
         integrity = build_integrity(collect_files(str(work)), base_dir=str(work))
         (work / "integrity.json").write_text(
-            dump_integrity(integrity), encoding="utf-8"
+            dump_integrity(integrity), encoding="utf-8",
         )
         bundle = tmp_path / "demo.opip"
         with zipfile.ZipFile(bundle, "w") as zf:

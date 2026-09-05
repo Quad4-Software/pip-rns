@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Shared exception types for pip-rns CLI flows."""
 
 

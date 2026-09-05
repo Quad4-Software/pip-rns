@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Export bundles for sharing on sneakernet or other offline transfer."""
 
 import os

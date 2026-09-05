@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Shared wheel cache to avoid re-downloading identical wheels across bundles."""
 
 import os

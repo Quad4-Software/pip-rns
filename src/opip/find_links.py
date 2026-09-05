@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Local wheel directory discovery for air-gap create."""
 
 from __future__ import annotations

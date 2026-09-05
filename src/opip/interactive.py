@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Non-interactive / CI detection for prompts and automation."""
 
 import os

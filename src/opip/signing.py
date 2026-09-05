@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Bundle authenticity signing and verification (Reticulum RSG via rnid)."""
 
 import os

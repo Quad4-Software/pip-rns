@@ -1,4 +1,7 @@
-"""Remote package index manager: register, sync, and resolve short names from RNS-hosted indexes.
+# Copyright (c) 2026, Quad4 (quad4.io)
+"""Remote package index manager.
+
+Register, sync, and resolve short names from RNS-hosted indexes.
 
 An index is an rngit repository containing a plain-text packages file:
   lxmfy=06a54b50.../public/LXMFy

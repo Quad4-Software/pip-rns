@@ -66,12 +66,14 @@ line-length = 88
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "W"]
+select = ["E", "F", "I", "UP", "B", "SIM", "W", "CPY", "PERF"]
 ignore = [
     "B904",
-    "E501",
     "SIM117",
 ]
+
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "(?i)Copyright \\(c\\) \\d{4}, Quad4"
 
 [tool.ruff.format]
 quote-style = "double"

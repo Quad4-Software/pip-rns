@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Wheel provenance records and PyPI digest validation."""
 
 from opip.integrity import file_hash
@@ -40,7 +41,8 @@ def build_wheel_record(wheel_path, spec=None, source="pypi", built_from=None):
         if source_sha:
             if bundled != source_sha:
                 raise ProvenanceError(
-                    f"Wheel {filename} hash {bundled[:16]} does not match source digest {source_sha[:16]}",
+                    f"Wheel {filename} hash {bundled[:16]} does not match "
+                    f"source digest {source_sha[:16]}",
                 )
             record["provenance_verified"] = True
         else:

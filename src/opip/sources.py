@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Fetch bundles from git, HTTP, FTP, RNS, and local paths."""
 
 import os

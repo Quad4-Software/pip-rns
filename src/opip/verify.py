@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Verify bundle integrity, authenticity, and provenance."""
 
 from opip.bundle import verify_bundle

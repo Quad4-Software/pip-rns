@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Release metadata and artifact downloads via rngit."""
 
 from __future__ import annotations
@@ -62,7 +63,8 @@ def release_info(remote: str, tag: str) -> dict:
     with RnsWait("Waiting on Reticulum (release view)"):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        msg = f"rngit release view failed: {result.stderr.strip() or result.stdout.strip()}"
+        detail = result.stderr.strip() or result.stdout.strip()
+        msg = f"rngit release view failed: {detail}"
         raise RuntimeError(msg)
     return _parse_release_view(result.stdout)
 
@@ -100,7 +102,8 @@ def list_releases(remote: str) -> list[dict]:
     with RnsWait("Waiting on Reticulum (release list)"):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        msg = f"rngit release list failed: {result.stderr.strip() or result.stdout.strip()}"
+        detail = result.stderr.strip() or result.stdout.strip()
+        msg = f"rngit release list failed: {detail}"
         raise RuntimeError(msg)
     return _parse_release_list(result.stdout)
 

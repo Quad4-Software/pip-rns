@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Detect project name and dependencies from common Python project layouts."""
 
 import os
@@ -204,8 +205,7 @@ def _from_setup_py(path, project_dir):
     requires_match = re.search(r"install_requires\s*=\s*\[(.*?)\]", text, re.DOTALL)
     if requires_match:
         block = requires_match.group(1)
-        for item in re.findall(r"""['"]([^'"]+)['"]""", block):
-            requirements.append(item)
+        requirements.extend(re.findall(r"""['"]([^'"]+)['"]""", block))
 
     return ProjectInfo(
         name=_normalize_name(name) if name else _name_from_dir(project_dir),

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Unified package catalog from aliases, indexes, and discovery."""
 
 from __future__ import annotations
@@ -101,7 +102,8 @@ def offer_package_picker(
     """
     if is_noninteractive(no_interactive):
         raise RuntimeError(
-            "No package specified. Use: pip-rns install <name> or pip-rns browse --install",
+            "No package specified."
+            " Use: pip-rns install <name> or pip-rns browse --install",
         )
 
     entries = all_entries(config_dir)

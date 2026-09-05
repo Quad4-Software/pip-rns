@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Reticulum identity management for bundle signing."""
 
 import os

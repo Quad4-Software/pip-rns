@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Local storage for bundle registry, install records, and preferred destinations."""
 
 import json

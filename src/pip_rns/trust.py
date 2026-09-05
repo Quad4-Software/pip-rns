@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Trusted publisher identities for release verification."""
 
 from __future__ import annotations
@@ -102,8 +103,7 @@ class TrustStore:
         if default:
             rows.append(("default", default))
         remotes = self._data.get("remotes") or {}
-        for key in sorted(remotes):
-            rows.append((key, remotes[key]))
+        rows.extend((key, remotes[key]) for key in sorted(remotes))
         return rows
 
     def resolve(self, remote: str, explicit: str | None = None) -> str | None:

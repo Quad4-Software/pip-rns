@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Disk cache for PyPI JSON metadata."""
 
 import hashlib

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Scan discovered rngit nodes for Python-installable repositories."""
 
 from __future__ import annotations

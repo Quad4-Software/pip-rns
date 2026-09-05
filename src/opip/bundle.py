@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Create, read, write, and verify offline wheel bundles (.opip)."""
 
 import json
@@ -156,7 +157,8 @@ def create_bundle(
         for spec in wheels_specs:
             if "sha256" not in (spec.get("digests") or {}):
                 raise BundleError(
-                    "Index provides no sha256 for {}. cannot satisfy --require-pypi-hash".format(
+                    "Index provides no sha256 for {}."
+                    " cannot satisfy --require-pypi-hash".format(
                         spec.get("filename"),
                     ),
                 )

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Discover rngit repository nodes via Reticulum announces."""
 
 from __future__ import annotations

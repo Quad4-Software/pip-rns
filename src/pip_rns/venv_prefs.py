@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Remembered virtualenv destinations for pip-rns installs."""
 
 from __future__ import annotations
@@ -103,8 +104,7 @@ class VenvPrefs:
         if default:
             rows.append(("default", default))
         remotes = self._data.get("remotes") or {}
-        for key in sorted(remotes):
-            rows.append((key, remotes[key]))
+        rows.extend((key, remotes[key]) for key in sorted(remotes))
         return rows
 
 

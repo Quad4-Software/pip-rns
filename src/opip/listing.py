@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """List bundles and installed packages."""
 
 import json
@@ -20,23 +21,25 @@ def list_installed(store=None):
 
 
 def format_bundle_table(bundles):
+    """Return a fixed-width table of registered bundles."""
     if not bundles:
         return "No bundles registered."
     lines = ["{:<24} {:<8} {:<12} {}".format("NAME", "WHEELS", "PYTHON", "PATH")]
     lines.append("-" * 72)
-    for b in bundles:
-        lines.append(
-            "{:<24} {:<8} {:<12} {}".format(
-                b.get("name", "")[:24],
-                str(b.get("wheel_count", "")),
-                b.get("python_version", ""),
-                b.get("path", ""),
-            ),
+    lines.extend(
+        "{:<24} {:<8} {:<12} {}".format(
+            b.get("name", "")[:24],
+            str(b.get("wheel_count", "")),
+            b.get("python_version", ""),
+            b.get("path", ""),
         )
+        for b in bundles
+    )
     return "\n".join(lines)
 
 
 def format_install_table(installs):
+    """Return a fixed-width table of recorded bundle installs."""
     if not installs:
         return "No bundle installs recorded."
     lines = ["{:<24} {}".format("BUNDLE", "PACKAGES")]
@@ -48,10 +51,12 @@ def format_install_table(installs):
 
 
 def bundles_as_json(bundles):
+    """Serialize registered bundles for --json list."""
     return json.dumps(bundles, indent=2, sort_keys=True)
 
 
 def installs_as_json(installs):
+    """Serialize install records for --json list installed."""
     return json.dumps(installs, indent=2, sort_keys=True)
 
 
@@ -82,6 +87,7 @@ def bundle_info_dict(bundle_path):
 
 
 def verify_result_dict(ok, path, errors, manifest):
+    """Structured verify result for --json verify."""
     summary = None
     if manifest:
         summary = {
@@ -124,8 +130,7 @@ def show_bundle_info(bundle_path):
     if platforms and manifest.get("platform") == "universal":
         lines.append("Includes: {}".format(", ".join(platforms)))
     lines.extend(["", "Requirements:"])
-    for req in manifest.get("requirements", []):
-        lines.append(f"  {req}")
+    lines.extend(f"  {req}" for req in manifest.get("requirements", []))
     lines.append("")
     lines.append("Packages:")
     for w in manifest.get("wheels", []):

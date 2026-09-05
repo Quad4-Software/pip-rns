@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Thin .opipd delta packs for scarce USB/RNS updates."""
 
 from __future__ import annotations

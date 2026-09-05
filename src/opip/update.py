@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Update bundles by re-fetching wheels and rebuilding."""
 
 import os

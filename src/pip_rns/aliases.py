@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Alias manager: short remote names stored in a plain-text file.
 
 File location (no extension):

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Safe zip extraction with Zip Slip and zip-bomb guards."""
 
 import contextlib
@@ -81,7 +82,8 @@ def extract_zip_safe(
             total += info.file_size
             if total > max_total_bytes:
                 raise UnsafeZipError(
-                    f"Zip total uncompressed size exceeds limit ({max_total_bytes} bytes)",
+                    f"Zip total uncompressed size exceeds limit "
+                    f"({max_total_bytes} bytes)",
                 )
 
             dest = safe_member_path(dest_root, info.filename)
@@ -103,7 +105,8 @@ def extract_zip_safe(
                 )
             if os.path.lexists(dest) and os.path.islink(dest):
                 raise UnsafeZipError(
-                    f"Refusing to overwrite symlink at zip member path: {info.filename}",
+                    "Refusing to overwrite symlink at zip member path: "
+                    f"{info.filename}",
                 )
 
             written = 0
@@ -119,7 +122,8 @@ def extract_zip_safe(
                                 with contextlib.suppress(OSError):
                                     os.remove(dest)
                                 raise UnsafeZipError(
-                                    f"Zip member exceeded size limit while reading: {info.filename}",
+                                    "Zip member exceeded size limit while "
+                                    f"reading: {info.filename}",
                                 )
                             out.write(chunk)
             except OSError as exc:

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Terminal colors and styling (stdlib only, Linux/macOS/Windows)."""
 
 import contextlib

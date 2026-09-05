@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Uninstall packages that were installed from a bundle."""
 
 import os

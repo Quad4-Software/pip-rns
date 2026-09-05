@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """SHA-256 integrity computation and verification for bundles."""
 
 import hashlib
@@ -100,7 +101,8 @@ def verify_integrity(base_dir, integrity, all_files=None):
         actual = file_hash(full)
         if actual != expected:
             errors.append(
-                f"Hash mismatch for {rel_path}: expected {expected[:16]}, got {actual[:16]}",
+                f"Hash mismatch for {rel_path}:"
+                f" expected {expected[:16]}, got {actual[:16]}",
             )
 
     if all_files is not None:

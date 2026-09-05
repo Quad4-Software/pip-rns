@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Fetch .rsg signature sidecars alongside .opip bundles."""
 
 import contextlib

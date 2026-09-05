@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Resolve pip-rns aliases and indexes for opip remote sources."""
 
 import os

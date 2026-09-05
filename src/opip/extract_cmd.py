@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Extract .opip bundles to a wheelhouse for pip/uv hand-off."""
 
 from __future__ import annotations
