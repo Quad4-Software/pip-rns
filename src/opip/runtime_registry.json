@@ -1,0 +1,37 @@
+{
+  "note": "Pinned python-build-standalone install_only archives.",
+  "runtimes": {
+    "3.12-x86_64-linux": {
+      "python": "3.12",
+      "arch": "x86_64",
+      "os": "linux",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/cpython-3.12.9%2B20250317-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "ef382fb88cbb41a3b0801690bd716b8a1aec07a6c6471010bcc6bd14cd575226",
+      "strip_components": 1
+    },
+    "3.12-aarch64-linux": {
+      "python": "3.12",
+      "arch": "aarch64",
+      "os": "linux",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/cpython-3.12.9%2B20250317-aarch64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "00c6bf9acef21ac741fea24dc449d0149834d30e9113429e50a95cce4b00bb80",
+      "strip_components": 1
+    },
+    "3.11-x86_64-linux": {
+      "python": "3.11",
+      "arch": "x86_64",
+      "os": "linux",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/cpython-3.11.11%2B20250317-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "51e47bc0d1b9f4bf68dd395f7a39f60c58a87cde854cab47264a859eb666bb69",
+      "strip_components": 1
+    },
+    "3.11-aarch64-linux": {
+      "python": "3.11",
+      "arch": "aarch64",
+      "os": "linux",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/cpython-3.11.11%2B20250317-aarch64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "7d52b5206afe617de2899af477f5a1d275ecbce80fb8300301b254ebf1da5a90",
+      "strip_components": 1
+    }
+  }
+}
