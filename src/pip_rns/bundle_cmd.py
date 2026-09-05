@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """pip-rns bundle subcommand: install and verify .opip bundles via opip."""
 
 from __future__ import annotations
@@ -84,7 +85,7 @@ def dispatch(args, config_dir: str | None) -> None:
     apply_defaults(args)
 
     if args.bundle_command == "install":
-        print(f"{header('⤵ Bundle')} {bold(args.source)}")
+        print(f"{header('Bundle')} {bold(args.source)}")
         store = Store(data_dir=getattr(args, "data_dir", None))
         from opip.trust_cmd import resolve_signer
 
@@ -113,7 +114,7 @@ def dispatch(args, config_dir: str | None) -> None:
             print(str(exc))
             raise SystemExit(1) from exc
         print(f"  {green('installed')} {len(packages)} package(s)")
-        print(f"{success('✓ Done')}")
+        print(f"{success('Done')}")
         return
 
     if args.bundle_command == "verify":
@@ -135,4 +136,4 @@ def dispatch(args, config_dir: str | None) -> None:
             for err in errors:
                 print(f"  - {err}")
             raise SystemExit(1)
-        print(f"{success('✓ Bundle verified')}")
+        print(f"{success('Bundle verified')}")

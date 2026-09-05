@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Interactive and per-command help for pip-rns."""
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ COMMAND_SUMMARY = [
     ("search", "Search aliases, indexes, and discovery"),
     ("discover", "Listen for rngit nodes on Reticulum"),
     ("export", "Mirror release wheels for sneakernet"),
+    ("self-install", "Install pip-rns/opip without system pip"),
     ("trust", "Remember release publisher identities"),
     ("alias", "Short names for long remotes"),
     ("index", "Opt-in package indexes"),
@@ -25,9 +27,11 @@ COMMAND_SUMMARY = [
 ]
 
 EXAMPLES = [
+    ("pip-rns help bootstrap", "No-pip / zipapp recipes"),
     ("pip-rns browse --install", "Discover and install interactively"),
     ("pip-rns install lxmfy", "Install by short name"),
     ("pip-rns install ./pkg.whl", "Install exported wheel from USB"),
+    ("python3 pip-rns.pyz self-install --user", "Install tools without pip"),
     ("pip-rns export rns://id/g/repo -o /media/usb", "Mirror for sneakernet"),
 ]
 

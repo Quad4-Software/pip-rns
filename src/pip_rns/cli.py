@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """pip-rns CLI: install/update/list/uninstall packages from custom protocol remotes."""
 
 from __future__ import annotations
@@ -189,7 +190,7 @@ def _looks_like_remote(token: str) -> bool:
 
 
 def _inject_install_command(argv: list[str]) -> list[str]:
-    """Allow `pip-rns rns://...` as shorthand for `pip-rns install rns://...`."""
+    """Allow pip-rns rns://... as shorthand for pip-rns install rns://..."""
     if len(argv) < 2:
         return argv
     # skip global flags before the first positional
@@ -494,6 +495,23 @@ def main(argv: list[str] | None = None) -> None:
         help="Interactive command browser",
     )
 
+    p = sub.add_parser(
+        "self-install",
+        help="Install pip-rns/opip onto PATH without system pip",
+    )
+    p.add_argument(
+        "--user",
+        action="store_true",
+        help="Install to user site (default when no target/venv)",
+    )
+    p.add_argument("--target", default=None, metavar="DIR", help="Extract into DIR")
+    p.add_argument(
+        "--venv",
+        default=None,
+        metavar="PATH",
+        help="Create/use a venv and install into it",
+    )
+
     p = sub.add_parser("doctor", help="Check pip-rns environment health")
     p.add_argument(
         "--fix",
@@ -549,10 +567,10 @@ def main(argv: list[str] | None = None) -> None:
         assert alias_mgr is not None
         if args.alias_command in ("add", "set"):
             alias_mgr.set(args.name, args.remote)
-            print(f"{green('✔')} alias {bold(args.name)} \u2192 {args.remote}")
+            print(f"{green('ok')} alias {bold(args.name)} -> {args.remote}")
         elif args.alias_command == "rm":
             alias_mgr.remove(args.name)
-            print(f"{green('✔')} alias {bold(args.name)} removed")
+            print(f"{green('ok')} alias {bold(args.name)} removed")
         elif args.alias_command == "ls":
             for name, remote in alias_mgr.list().items():
                 print(f"{name}={remote}")
@@ -564,18 +582,18 @@ def main(argv: list[str] | None = None) -> None:
         assert index_mgr is not None
         if args.index_command == "add":
             index_mgr.add(args.url)
-            print(f"{green('✔')} index added: {args.url}")
+            print(f"{green('ok')} index added: {args.url}")
         elif args.index_command == "rm":
             index_mgr.remove(args.url)
-            print(f"{green('✔')} index removed: {args.url}")
+            print(f"{green('ok')} index removed: {args.url}")
         elif args.index_command == "ls":
             for url in index_mgr.list():
                 print(url)
         elif args.index_command == "sync":
-            print(f"{header('⤵ Syncing indexes')}")
+            print(f"{header('Syncing indexes')}")
             index_mgr.sync()
             count = len(index_mgr.packages())
-            print(f"{green('✔')} {count} package{'s' if count != 1 else ''} synced")
+            print(f"{green('ok')} {count} package{'s' if count != 1 else ''} synced")
         elif args.index_command in ("list", "packages"):
             for name, remote in sorted(index_mgr.packages().items()):
                 print(f"{name}={remote}")
@@ -590,14 +608,14 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "release":
         if args.release_command == "list":
-            print(f"{header('⤵ Releases')} {bold(args.remote)}")
+            print(f"{header('Releases')} {bold(args.remote)}")
             for rel in list_releases(args.remote):
                 tag = rel.get("tag", "?")
                 status = dim(rel.get("status", ""))
                 print(f"  {bold(tag)} {status}")
         elif args.release_command == "view":
             info = release_info(args.remote, args.tag)
-            print(f"{header('⤵ Release')} {bold(info.get('tag', args.tag))}")
+            print(f"{header('Release')} {bold(info.get('tag', args.tag))}")
             print(f"  status: {info.get('status', '?')}")
             print("  artifacts:")
             for a in info.get("artifacts", []):
@@ -609,7 +627,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "doctor":
-        print(f"{header('⤵ Doctor')}")
+        print(f"{header('Doctor')}")
         code = print_doctor(
             run_doctor(
                 online=args.online,
@@ -627,7 +645,7 @@ def main(argv: list[str] | None = None) -> None:
             print(f"  no packages match {bold(repr(args.query or ''))}")
             print(dim("Try: pip-rns browse"))
             return
-        print(f"{header('⤵ Search')} {len(hits)} result(s)")
+        print(f"{header('Search')} {len(hits)} result(s)")
         for entry in hits:
             wheel = (
                 f"wheel:{entry.latest_tag}"
@@ -635,12 +653,34 @@ def main(argv: list[str] | None = None) -> None:
                 else ("wheel" if entry.has_wheel else "no-wheel")
             )
             print(
-                f"  {bold(entry.name)}  {dim(entry.source)}  {dim(wheel)}  {dim(entry.remote)}",
+                f"  {bold(entry.name)}  {dim(entry.source)}  "
+                f"{dim(wheel)}  {dim(entry.remote)}",
             )
         return
 
     if args.command == "help":
         from .help_pages import interactive_help, show_command_help, show_main_help
+
+        if args.topic == "bootstrap":
+            print(header("pip-rns bootstrap (no pip required)"))
+            print()
+            print(bold("Run from zipapp:"))
+            print(dim("  python3 pip-rns.pyz --version"))
+            print(dim("  python3 pip-rns.pyz doctor"))
+            print(dim("  python3 pip-rns.pyz install ./pkg.whl --offline"))
+            print()
+            print(bold("Install onto PATH:"))
+            print(dim("  python3 pip-rns.pyz self-install --user"))
+            print()
+            print(bold("Airgap kit (via opip):"))
+            print(
+                dim(
+                    "  opip kit create nomadnet -o /media/usb --with-runtime "
+                    "--proxy socks5h://127.0.0.1:9050",
+                ),
+            )
+            print(dim("  /media/usb/install.sh"))
+            return
 
         if args.topic:
             code = show_command_help(parser, args.topic)
@@ -649,6 +689,22 @@ def main(argv: list[str] | None = None) -> None:
         if args.interactive or (not no_interactive and sys.stdin.isatty()):
             code = interactive_help(parser)
             raise SystemExit(code or 0)
+        return
+
+    if args.command == "self-install":
+        from opip.install import InstallError
+        from opip.self_install import self_install
+
+        try:
+            self_install(
+                user=bool(args.user) or not (args.target or args.venv),
+                target=args.target,
+                venv=args.venv,
+                no_interactive=no_interactive,
+            )
+        except InstallError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
         return
 
     if args.command == "browse":
@@ -700,7 +756,7 @@ def main(argv: list[str] | None = None) -> None:
                 prefs.set_default(args.path)
             else:
                 prefs.set_remote(args.name, args.path)
-            print(f"{green('✔')} remembered {args.name} -> {args.path}")
+            print(f"{green('ok')} remembered {args.name} -> {args.path}")
         elif args.venv_command == "forget":
             ok = (
                 prefs.forget_default()
@@ -708,7 +764,7 @@ def main(argv: list[str] | None = None) -> None:
                 else prefs.forget_remote(args.name)
             )
             if ok:
-                print(f"{green('✔')} forgot {args.name}")
+                print(f"{green('ok')} forgot {args.name}")
             else:
                 print(f"No remembered venv for {args.name}")
         return
@@ -724,13 +780,13 @@ def main(argv: list[str] | None = None) -> None:
         elif args.trust_command == "add":
             if args.remote_or_default == "default":
                 store.set_default(args.identity)
-                print(f"{green('✔')} default signer -> {args.identity}")
+                print(f"{green('ok')} default signer -> {args.identity}")
             else:
                 from .releases import _normalize_remote
 
                 remote = _normalize_remote(args.remote_or_default)
                 store.set_remote(remote, args.identity)
-                print(f"{green('✔')} trusted {remote} -> {args.identity}")
+                print(f"{green('ok')} trusted {remote} -> {args.identity}")
         elif args.trust_command == "rm":
             if args.remote_or_default == "default":
                 ok = store.forget_default()
@@ -739,15 +795,15 @@ def main(argv: list[str] | None = None) -> None:
 
                 ok = store.forget_remote(_normalize_remote(args.remote_or_default))
             if ok:
-                print(f"{green('✔')} forgot {args.remote_or_default}")
+                print(f"{green('ok')} forgot {args.remote_or_default}")
             else:
                 print(f"No trust entry for {args.remote_or_default}")
         elif args.trust_command == "set-default":
             store.set_default(args.identity)
-            print(f"{green('✔')} default signer -> {args.identity}")
+            print(f"{green('ok')} default signer -> {args.identity}")
         elif args.trust_command == "forget-default":
             if store.forget_default():
-                print(f"{green('✔')} forgot default signer")
+                print(f"{green('ok')} forgot default signer")
             else:
                 print("No default signer set")
         return
@@ -783,7 +839,7 @@ def main(argv: list[str] | None = None) -> None:
                 print("No Python packages cataloged yet.")
                 print(dim("Run: pip-rns discover scan"))
                 return
-            print(f"{header('⤵ Packages')} {len(catalog)} from discovery")
+            print(f"{header('Packages')} {len(catalog)} from discovery")
             for raw in catalog:
                 from .discover_scan import DiscoveredPackage
 
@@ -811,7 +867,7 @@ def main(argv: list[str] | None = None) -> None:
             return
         if cmd == "clear":
             n = discover_store.clear()
-            print(f"{green('✔')} cleared {n} discovered node(s)")
+            print(f"{green('ok')} cleared {n} discovered node(s)")
             return
         if cmd == "scan":
             saved_nodes = discover_store.list_nodes()
@@ -821,7 +877,7 @@ def main(argv: list[str] | None = None) -> None:
                     file=sys.stderr,
                 )
                 raise SystemExit(1)
-            print(f"{header('⤵ Scan')} {len(saved_nodes)} node(s) for Python packages")
+            print(f"{header('Scan')} {len(saved_nodes)} node(s) for Python packages")
             try:
                 scanned = scan_nodes(
                     saved_nodes,
@@ -836,13 +892,13 @@ def main(argv: list[str] | None = None) -> None:
             _print_packages(discover_store.list_packages())
             if scanned:
                 print(
-                    f"{green('✔')} {len(scanned)} package(s) saved. "
+                    f"{green('ok')} {len(scanned)} package(s) saved. "
                     f"Install with short name: pip-rns install <name>",
                 )
             return
 
         print(
-            f"{header('⤵ Discover')} listening for "
+            f"{header('Discover')} listening for "
             f"{bold('git.repositories')} "
             f"{dim(f'({args.seconds:g}s)')}",
         )
@@ -870,7 +926,8 @@ def main(argv: list[str] | None = None) -> None:
         if args.save and heard_nodes:
             discover_store.merge(heard_nodes)
             print(
-                f"{green('✔')} saved {len(heard_nodes)} node(s) to {discover_store.path}",
+                f"{green('ok')} saved {len(heard_nodes)} node(s) "
+                f"to {discover_store.path}",
             )
         elif not heard_nodes:
             print(f"  {dim('no announces heard in window')}")
@@ -883,7 +940,7 @@ def main(argv: list[str] | None = None) -> None:
 
         if args.scan and heard_nodes:
             scan_targets = discover_store.list_nodes() if args.save else heard_nodes
-            print(f"{header('⤵ Scan')} {len(scan_targets)} node(s) for Python packages")
+            print(f"{header('Scan')} {len(scan_targets)} node(s) for Python packages")
             try:
                 scanned = scan_nodes(
                     scan_targets,
@@ -897,7 +954,7 @@ def main(argv: list[str] | None = None) -> None:
             discover_store.merge_packages(scanned)
             _print_packages(discover_store.list_packages())
             if scanned:
-                print(f"{green('✔')} install with short name: pip-rns install <name>")
+                print(f"{green('ok')} install with short name: pip-rns install <name>")
         return
 
     _boot(args)

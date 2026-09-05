@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Interactive and per-command help for opip."""
 
 import argparse

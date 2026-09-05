@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """TTY progress spinner for long RNS / subprocess waits."""
 
 from __future__ import annotations
@@ -65,7 +66,7 @@ class RnsWait:
             frame = frames[i % len(frames)]
             i += 1
             try:
-                sys.stderr.write(f"\r{frame} {self.message}… {elapsed}s")
+                sys.stderr.write(f"\r{frame} {self.message}... {elapsed}s")
                 sys.stderr.flush()
             except Exception:
                 break

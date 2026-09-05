@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """High-level orchestration: resolve a remote, clone it, install it, clean up."""
 
 from __future__ import annotations
@@ -248,7 +249,7 @@ def _install_package(
         try:
             current.install(package_path, editable=editable, extra_args=extra_args)
             return current, current_venv
-        except InstallerError as exc:
+        except InstallerError as exc:  # noqa: PERF203
             if exc.kind not in ("externally_managed", "permission", "missing_pip"):
                 raise
             attempts += 1
@@ -324,7 +325,7 @@ def _run(
     use_cache = use_cache or os.environ.get("PIP_RNS_USE_CACHE", "") == "1"
     resolved = _resolve_remote_label(remote)
 
-    print(f"{header('⤵ Resolving')} {bold(label)}")
+    print(f"{header('Resolving')} {bold(label)}")
     if offline:
         print(f"  {dim('offline: cache / local only')}")
 
@@ -403,7 +404,7 @@ def _run(
         dest=_dest_label(venv),
         signer="not requested",
     )
-    print(f"{success('✓ Done')}")
+    print(f"{success('Done')}")
 
 
 def install(
@@ -543,9 +544,8 @@ def install(
             if hit:
                 tag, _whl = hit
                 hint = input_name if "/" not in remote_base else resolved
-                print(
-                    f"  {dim(f'A release wheel exists ({tag}). Faster: pip-rns install {hint}')}",
-                )
+                msg = f"A release wheel exists ({tag}). Faster: pip-rns install {hint}"
+                print(f"  {dim(msg)}")
         if explicit_from_source:
             print(f"  {dim('Cloning source (--from-source)')}")
         elif ref:
@@ -750,7 +750,7 @@ def install_from_release(
     _, group, repo = _parse_rns_url(remote)
     tag = ref or "latest"
 
-    print(f"{header('⤵ Release')} {bold(tag)} {dim(f'{group}/{repo}')}")
+    print(f"{header('Release')} {bold(tag)} {dim(f'{group}/{repo}')}")
     info = release_info(remote, tag)
     artifacts = info.get("artifacts", [])
     if not artifacts:
@@ -832,7 +832,7 @@ def install_from_release(
         dest=_dest_label(venv),
         signer=signer_status,
     )
-    print(f"{success('✓ Done')}")
+    print(f"{success('Done')}")
     return venv
 
 

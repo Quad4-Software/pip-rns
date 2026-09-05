@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Command-line interface for opip."""
 
 import argparse
@@ -9,10 +10,12 @@ from opip import __version__, terminal
 from opip.bundle import BundleError, bundle_info, create_bundle, read_requirements_file
 from opip.config import apply_defaults
 from opip.export import ExportError, export_bundle
+from opip.fetch import FetchError
 from opip.help_pages import interactive_help, show_command_help, show_main_help
 from opip.install import InstallError, install_from_source, uninstall_from_file
 from opip.interactive import is_noninteractive
 from opip.keys import IdentityError, generate_identity, identity_hash
+from opip.kit import KitError
 from opip.listing import (
     bundle_info_dict,
     bundles_as_json,
@@ -27,6 +30,7 @@ from opip.listing import (
 from opip.manifest import BUNDLE_EXTENSION
 from opip.open_handler import OpenError, open_bundle
 from opip.project import ProjectError, detect_project, merge_optional_requirements
+from opip.proxy import ProxyError
 from opip.signing import SigningError
 from opip.storage import Store
 from opip.trust_cmd import dispatch_trust, resolve_signer
@@ -228,6 +232,12 @@ def build_parser():
         default=None,
         help="Reticulum identity file for RSG signing (env: OPIP_IDENTITY).",
     )
+    p_create.add_argument(
+        "--proxy",
+        default=None,
+        help="HTTP/HTTPS/SOCKS5(h) proxy for downloads (env: OPIP_PROXY). "
+        "Tor example: socks5h://127.0.0.1:9050",
+    )
 
     p_install = sub.add_parser(
         "install",
@@ -294,9 +304,142 @@ def build_parser():
     )
     p_install.add_argument(
         "--backend",
-        choices=("pip", "uv"),
+        choices=("pip", "uv", "manual"),
         default=None,
-        help="Install backend (env: OPIP_BACKEND, default pip).",
+        help="Install backend (env: OPIP_BACKEND, default pip). "
+        "manual extracts wheels without pip.",
+    )
+    p_install.add_argument(
+        "--break-system-packages",
+        action="store_true",
+        help="Pass --break-system-packages to pip/uv (PEP 668).",
+    )
+
+    p_self = sub.add_parser(
+        "self-install",
+        help="Install opip and pip-rns onto PATH without system pip.",
+    )
+    p_self.add_argument(
+        "--user",
+        action="store_true",
+        help="Install to user site (default when no target/venv).",
+    )
+    p_self.add_argument(
+        "--target",
+        default=None,
+        metavar="DIR",
+        help="Extract packages into DIR.",
+    )
+    p_self.add_argument(
+        "--venv",
+        default=None,
+        metavar="PATH",
+        help="Create/use a venv and install into it.",
+    )
+
+    p_kit = sub.add_parser(
+        "kit",
+        help="Build or verify USB/airgap kits (zipapps + bundle + optional runtime).",
+    )
+    kit_sub = p_kit.add_subparsers(dest="kit_command", help="kit actions")
+    p_kit_create = kit_sub.add_parser(
+        "create",
+        help="Create a sneakernet kit directory.",
+    )
+    p_kit_create.add_argument(
+        "packages",
+        nargs="+",
+        help="Package requirements (e.g. nomadnet).",
+    )
+    p_kit_create.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Output kit directory (must be empty or new).",
+    )
+    p_kit_create.add_argument("--name", default=None, help="Bundle/kit name.")
+    p_kit_create.add_argument(
+        "--python",
+        default=None,
+        dest="python_version",
+        help="Target Python version.",
+    )
+    p_kit_create.add_argument(
+        "--platform",
+        default=None,
+        help="Platform tag for wheels.",
+    )
+    p_kit_create.add_argument(
+        "--with-runtime",
+        action="store_true",
+        help="Embed portable CPython (python-build-standalone).",
+    )
+    p_kit_create.add_argument(
+        "--as-app",
+        action="store_true",
+        help="Pre-extract wheels and write an AppImage-style ./Run launcher.",
+    )
+    p_kit_create.add_argument(
+        "--entry",
+        default=None,
+        metavar="NAME",
+        help="Console script / launcher name for --as-app (default: package name).",
+    )
+    p_kit_create.add_argument(
+        "--no-tools",
+        action="store_true",
+        help="Do not copy opip.pyz / pip-rns.pyz into the kit.",
+    )
+    p_kit_create.add_argument(
+        "--runtime-arch",
+        choices=("x86_64", "aarch64"),
+        default=None,
+        help="Architecture for --with-runtime (default: this machine).",
+    )
+    p_kit_create.add_argument(
+        "--runtime-dir",
+        default=None,
+        help="Use an existing portable Python directory instead of downloading.",
+    )
+    p_kit_create.add_argument(
+        "--runtime-tarball",
+        default=None,
+        help="Use a local install_only tarball instead of downloading.",
+    )
+    p_kit_create.add_argument(
+        "--proxy",
+        default=None,
+        help="Proxy for PyPI / runtime downloads (env: OPIP_PROXY).",
+    )
+    p_kit_create.add_argument(
+        "--find-links",
+        default=None,
+        help="Local wheel directory (offline create).",
+    )
+    p_kit_create.add_argument(
+        "--offline",
+        action="store_true",
+        help="Refuse network during bundle create.",
+    )
+    p_kit_create.add_argument(
+        "--require-pypi-hash",
+        action="store_true",
+        help="Require index sha256 digests for every wheel.",
+    )
+    p_kit_create.add_argument(
+        "--dist-dir",
+        default=None,
+        help="Directory containing prebuilt opip.pyz / pip-rns.pyz.",
+    )
+    p_kit_verify = kit_sub.add_parser(
+        "verify",
+        help="Verify kit SHA256SUMS and optional signatures.",
+    )
+    p_kit_verify.add_argument("directory", help="Kit directory.")
+    p_kit_verify.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="Require .rsg on bundled .opip files.",
     )
 
     p_dest = sub.add_parser(
@@ -592,6 +735,8 @@ def main(argv=None):
     )
 
     if args.command == "help":
+        if args.topic == "airgap":
+            return _show_airgap_help()
         if args.topic:
             return show_command_help(parser, args.topic)
         if args.interactive and not is_noninteractive(args.no_interactive):
@@ -622,6 +767,9 @@ def main(argv=None):
         OpenError,
         IdentityError,
         SigningError,
+        KitError,
+        ProxyError,
+        FetchError,
     ) as exc:
         terminal.error(str(exc))
         return 1
@@ -715,8 +863,44 @@ def _prompt_bundle_name(no_interactive):
     return answer
 
 
+def _show_airgap_help():
+    terminal.heading("opip airgap")
+    terminal.write_out("")
+    terminal.write_out("1) Bootstrap with NO pip (browser-downloaded pip_rns wheel):")
+    terminal.bullet(
+        "python3 get-opip.py --from-wheel pip_rns-*.whl -o .",
+        "stdlib only",
+    )
+    terminal.bullet(
+        "python3 get-opip.py --proxy socks5h://127.0.0.1:9050 -o .",
+        "or Tor download",
+    )
+    terminal.write_out("")
+    terminal.write_out("2) Build a USB kit (hand wheels + Tor + AppImage-like run):")
+    terminal.bullet(
+        "python3 opip.pyz kit create nomadnet -o /media/usb",
+        "--find-links ./wheels --offline --with-runtime --as-app",
+    )
+    terminal.bullet(
+        "python3 opip.pyz kit create nomadnet -o /media/usb --with-runtime --as-app",
+        "--proxy socks5h://127.0.0.1:9050",
+    )
+    terminal.write_out("")
+    terminal.write_out("3) Offline machine (like MeshChat AppImage):")
+    terminal.bullet("/media/usb/NomadNet", "or ./Run  (no install.sh needed)")
+    terminal.bullet("/media/usb/install.sh", "optional: also install into a venv")
+    terminal.write_out("")
+    terminal.info("Also: opip help kit   pip-rns help bootstrap")
+    return 0
+
+
 def _dispatch(args, store):
     if args.command == "create":
+        proxy = getattr(args, "proxy", None)
+        if proxy:
+            from opip.proxy import set_proxy
+
+            set_proxy(proxy)
         output, reqs, name, project_dir, include_project, lock_pins = (
             _resolve_create_plan(args)
         )
@@ -757,6 +941,20 @@ def _dispatch(args, store):
             )
         return 0
 
+    if args.command == "self-install":
+        from opip.self_install import self_install
+
+        self_install(
+            user=bool(args.user) or not (args.target or args.venv),
+            target=args.target,
+            venv=args.venv,
+            no_interactive=args.no_interactive,
+        )
+        return 0
+
+    if args.command == "kit":
+        return _dispatch_kit(args)
+
     if args.command == "install":
         if args.system and args.user:
             terminal.error("use either --user or --system, not both.")
@@ -785,6 +983,7 @@ def _dispatch(args, store):
             no_interactive=args.no_interactive,
             venv=args.venv,
             backend=getattr(args, "backend", None),
+            break_system_packages=bool(getattr(args, "break_system_packages", False)),
         )
         if not getattr(args, "quiet", False):
             terminal.success(f"Installed {len(packages)} packages from bundle.")
@@ -1083,6 +1282,45 @@ def _dispatch(args, store):
         return 0
 
     return 1
+
+
+def _dispatch_kit(args):
+    from opip.kit import create_kit, verify_kit
+
+    if args.kit_command == "create":
+        create_kit(
+            list(args.packages),
+            args.output,
+            python_version=args.python_version,
+            platform_tag=args.platform,
+            with_runtime=bool(args.with_runtime),
+            with_tools=not bool(args.no_tools),
+            runtime_arch=args.runtime_arch,
+            runtime_dir=args.runtime_dir,
+            runtime_tarball=args.runtime_tarball,
+            proxy=args.proxy,
+            find_links=args.find_links,
+            offline=bool(args.offline),
+            name=args.name,
+            require_pypi_hash=bool(args.require_pypi_hash),
+            dist_dir=args.dist_dir,
+            as_app=bool(getattr(args, "as_app", False)),
+            entry=getattr(args, "entry", None),
+        )
+        return 0
+    if args.kit_command == "verify":
+        errors = verify_kit(
+            args.directory,
+            require_signature=bool(args.require_signature),
+        )
+        if errors:
+            for err in errors:
+                terminal.error(err)
+            return 1
+        terminal.success(f"Kit OK: {args.directory}")
+        return 0
+    terminal.error("Usage: opip kit create|verify ...")
+    return 2
 
 
 def _dispatch_dest(args, store):

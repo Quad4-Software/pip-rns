@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """URL resolution and remote repository cloning for custom protocol schemes."""
 
 from __future__ import annotations
@@ -206,7 +207,7 @@ class OfflineError(RuntimeError):
 
 
 class Resolver:
-    """Facade that normalizes a remote string, selects the right resolver, and produces a local clone."""
+    """Normalize a remote, pick a resolver, and produce a local clone."""
 
     def resolve(
         self,

@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Dependency resolution via PyPI JSON API (stdlib only)."""
 
 import json
@@ -261,8 +262,11 @@ def _rel_json_url(package, version, index_url=None):
 
 
 def _fetch_url(url, timeout=60):
+    from opip.proxy import build_opener
+
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    opener = build_opener()
+    with opener.open(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -500,7 +504,7 @@ def resolve_requirements(
 ):
     """Resolve requirements to a list of wheel download specs.
 
-    When platform_tag is ``universal``, wheels for all UNIVERSAL_PLATFORMS are
+    When platform_tag is universal, wheels for all UNIVERSAL_PLATFORMS are
     merged into one bundle. Install picks compatible wheels on each machine.
     """
     if is_universal_platform(platform_tag):

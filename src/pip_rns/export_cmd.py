@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Export / mirror rngit release artifacts for sneakernet."""
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ def export_release(
         config_dir=config_dir,
     )
 
-    print(f"{header('⤵ Export')} {bold(tag)} {dim(f'{group}/{repo}')}")
+    print(f"{header('Export')} {bold(tag)} {dim(f'{group}/{repo}')}")
     info = release_info(remote, tag)
     artifacts = info.get("artifacts", [])
     if not artifacts:
@@ -75,5 +76,5 @@ def export_release(
             who = signer or fetched.signer or "release .rsm/.rsg"
             print(f"  {green('signature valid')} {dim(who)}")
 
-    print(f"{success('✓ Exported')} {len(written)} file(s) → {out}")
+    print(f"{success('Exported')} {len(written)} file(s) -> {out}")
     return written

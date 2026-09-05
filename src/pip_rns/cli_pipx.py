@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """pipx-rns CLI: pipx-only variant with install/inject/update/list/uninstall."""
 
 from __future__ import annotations
@@ -178,7 +179,7 @@ def main() -> None:
     index_init()
 
     if args.command == "doctor":
-        print(f"{header('⤵ Doctor')}")
+        print(f"{header('Doctor')}")
         raise SystemExit(
             print_doctor(
                 run_doctor(
