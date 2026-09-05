@@ -45,6 +45,7 @@ opip install /media/usb/pkg.opip
 
 ## Also available
 
-- Root [README](../README.md) for a compact reference
+- Site: https://pip-rns.quad4.io/
+- Source and compact reference: https://github.com/Quad4-Software/pip-rns
 - pip-rns help and opip help (add -i for a menu)
 - Man pages under man/man1/

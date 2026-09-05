@@ -3,7 +3,8 @@
 # (Trusted Publishing / OIDC). Actions pinned to full commit SHAs per
 # https://docs.github.com/en/actions/reference/security/secure-use
 #
-# Immutable by design:
+# Immutable by design (repo immutable-releases enabled):
+# - draft release first, attach all assets, then publish once
 # - refuses to mutate an existing GitHub Release or its assets
 # - builds without restoring Actions caches (no cache poisoning on tags)
 # - requires --verify-tag and attaches digests plus build provenance
@@ -212,10 +213,14 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           set -euo pipefail
+          # Draft with all assets first. Publishing locks assets/tags when
+          # repository immutable-releases is enabled.
           gh release create "$TAG" dist/* \
+            --draft \
             --title "pip-rns ${VERSION}" \
             --notes-file release-notes.md \
             --verify-tag
+          gh release edit "$TAG" --draft=false
 
   publish-pypi:
     name: Publish to PyPI

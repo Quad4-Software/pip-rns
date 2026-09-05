@@ -10,7 +10,7 @@ rngit page (optional peer docs):
 132f67e79d9b24aad014e93015fb858f:/page/index.mu
 ```
 
-Read the [docs](docs/README.md)
+Read the docs at [pip-rns.quad4.io](https://pip-rns.quad4.io/) (or [docs/](docs/) in the repo).
 
 ## Tools
 

@@ -1,0 +1,332 @@
+:root {
+  --bg: #0c1017;
+  --bg-elevated: #141a24;
+  --bg-sidebar: #0a0e14;
+  --bg-code: #080b10;
+  --border: #243041;
+  --text: #d7dee8;
+  --text-muted: #8b97a8;
+  --heading: #f0f4fa;
+  --accent: #5ec8c0;
+  --accent-dim: #3a8f89;
+  --accent-soft: rgba(94, 200, 192, 0.12);
+  --warn: #d4a35c;
+  --danger: #d4676a;
+  --link: #7ed8d1;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --font-sans: "Instrument Sans", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --sidebar-width: 280px;
+  --content-max: 52rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(900px 500px at 12% -10%, rgba(94, 200, 192, 0.14), transparent 60%),
+    radial-gradient(700px 420px at 100% 0%, rgba(84, 110, 180, 0.12), transparent 55%),
+    linear-gradient(180deg, #0c1017 0%, #0a0d13 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 30% 20%, black, transparent 70%);
+}
+
+.app-nav {
+  display: none;
+}
+
+.sidebar {
+  width: var(--sidebar-width) !important;
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border) !important;
+  padding: 1.25rem 0 2rem !important;
+}
+
+.sidebar .app-name {
+  margin: 0 1.25rem 1.25rem !important;
+  padding: 1rem 1rem 1.1rem !important;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(94, 200, 192, 0.1), transparent 55%),
+    var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+
+.sidebar .app-name-link {
+  color: var(--heading) !important;
+  font-weight: 700 !important;
+  font-size: 1.35rem !important;
+  letter-spacing: -0.03em !important;
+  text-decoration: none !important;
+}
+
+.sidebar .app-name-link::after {
+  content: "docs";
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  padding: 0 0.75rem !important;
+}
+
+.sidebar-nav ul {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sidebar-nav li {
+  margin: 0.15rem 0 !important;
+}
+
+.sidebar-nav a {
+  color: var(--text-muted) !important;
+  border-radius: 10px !important;
+  padding: 0.55rem 0.8rem !important;
+  font-weight: 500 !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-nav a:hover {
+  color: var(--heading) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.sidebar-nav li.active > a {
+  color: var(--heading) !important;
+  background: var(--accent-soft) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.search {
+  margin: 0 1rem 1rem !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.search input {
+  width: 100%;
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  padding: 0.7rem 0.9rem !important;
+  font-family: var(--font-sans) !important;
+}
+
+.search input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.search .matching-post {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.search h2,
+.search a {
+  color: var(--heading) !important;
+}
+
+.sidebar-toggle {
+  background-color: transparent !important;
+}
+
+.sidebar-toggle span {
+  background-color: var(--accent) !important;
+}
+
+main {
+  background: transparent !important;
+}
+
+.content {
+  padding-top: 2rem !important;
+}
+
+.markdown-section {
+  max-width: var(--content-max) !important;
+  color: var(--text) !important;
+  padding: 1.5rem 2rem 4rem !important;
+}
+
+.markdown-section h1,
+.markdown-section h2,
+.markdown-section h3,
+.markdown-section h4 {
+  color: var(--heading) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em;
+  border: none !important;
+}
+
+.markdown-section h1 {
+  font-size: 2.35rem !important;
+  margin-bottom: 0.85rem !important;
+}
+
+.markdown-section h2 {
+  margin-top: 2.4rem !important;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border) !important;
+}
+
+.markdown-section p,
+.markdown-section ul,
+.markdown-section ol {
+  color: var(--text);
+}
+
+.markdown-section a {
+  color: var(--link) !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent;
+}
+
+.markdown-section a:hover {
+  border-bottom-color: var(--accent-dim);
+}
+
+.markdown-section strong {
+  color: var(--heading);
+  font-weight: 600;
+}
+
+.markdown-section blockquote {
+  border-left: 3px solid var(--accent) !important;
+  background: var(--accent-soft);
+  color: var(--text) !important;
+  margin: 1.2rem 0 !important;
+  padding: 0.85rem 1rem !important;
+  border-radius: 0 12px 12px 0;
+}
+
+.markdown-section code {
+  font-family: var(--font-mono) !important;
+  background: var(--bg-code) !important;
+  color: #b7f0ea !important;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.12rem 0.35rem !important;
+  font-size: 0.88em !important;
+}
+
+.markdown-section pre {
+  background: var(--bg-code) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  padding: 1rem 1.1rem !important;
+  box-shadow: var(--shadow);
+}
+
+.markdown-section pre > code {
+  border: none !important;
+  background: transparent !important;
+  color: #d7e4ef !important;
+  padding: 0 !important;
+  font-size: 0.86rem !important;
+  line-height: 1.55 !important;
+}
+
+.markdown-section table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+}
+
+.markdown-section th,
+.markdown-section td {
+  border: 1px solid var(--border) !important;
+  padding: 0.7rem 0.85rem !important;
+}
+
+.markdown-section th {
+  background: rgba(94, 200, 192, 0.08);
+  color: var(--heading);
+  font-weight: 600;
+}
+
+.markdown-section tr:nth-child(2n) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.docsify-pagination-container {
+  border-top: 1px solid var(--border) !important;
+  margin-top: 3rem !important;
+  padding-top: 1.25rem !important;
+}
+
+.pagination-item-title {
+  color: var(--heading) !important;
+  font-weight: 600 !important;
+}
+
+.pagination-item a {
+  color: var(--text-muted) !important;
+}
+
+.pagination-item a:hover {
+  color: var(--accent) !important;
+}
+
+.docsify-copy-code-button {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  border-radius: 8px !important;
+  font-family: var(--font-sans) !important;
+}
+
+.github-corner svg {
+  fill: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+@media (max-width: 768px) {
+  .markdown-section {
+    padding: 1.25rem 1.1rem 3rem !important;
+  }
+
+  .markdown-section h1 {
+    font-size: 1.85rem !important;
+  }
+}
