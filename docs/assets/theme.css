@@ -62,11 +62,34 @@ div#app {
 
 .sidebar {
   width: var(--sidebar-width) !important;
-  padding-top: 1.5rem !important;
+  padding-top: 1rem !important;
+  padding-bottom: 3.25rem !important;
+}
+
+.sidebar-toggle {
+  width: var(--sidebar-width) !important;
+  box-sizing: border-box !important;
+  padding: 0.75rem 1rem !important;
+  text-align: left !important;
+  background: var(--panel) !important;
+  border-top: 1px solid var(--line) !important;
+}
+
+.sidebar-toggle .sidebar-toggle-button {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  opacity: 1 !important;
+}
+
+body.close .sidebar-toggle {
+  width: auto !important;
+  border-top: none !important;
+  padding: 0.75rem !important;
 }
 
 .sidebar > h1 {
-  margin: 0 1.25rem 1.25rem !important;
+  margin: 0 1rem 1rem !important;
   text-align: left !important;
   font-size: 1.15rem !important;
   font-weight: 600 !important;
@@ -94,30 +117,124 @@ div#app {
 
 .sidebar-toggle span {
   background-color: var(--accent) !important;
+  margin-bottom: 0 !important;
 }
 
+/* Search: results cover nav cleanly, scroll inside panel */
 .search {
-  margin: 0 1rem 1rem !important;
+  position: relative !important;
+  z-index: 4 !important;
+  margin: 0 0.75rem 0.75rem !important;
   padding: 0 !important;
   border-bottom: none !important;
 }
 
-.search input {
+.search .input-wrap {
   background: var(--bg) !important;
   border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+  padding: 0 0.25rem 0 0 !important;
+}
+
+.search input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--text) !important;
   border-radius: 4px !important;
   font-family: inherit !important;
 }
 
+.search input:focus {
+  box-shadow: none !important;
+  border: none !important;
+  outline: 1px solid var(--accent) !important;
+  outline-offset: -1px;
+}
+
+.search .clear-button svg circle {
+  fill: var(--line) !important;
+}
+
+.search .results-panel {
+  display: none;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: calc(100% + 0.35rem) !important;
+  max-height: min(55vh, 28rem) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+  z-index: 5 !important;
+  padding: 0.25rem 0 !important;
+}
+
+.search .results-panel.show {
+  display: block !important;
+}
+
 .search .matching-post {
-  border-bottom-color: var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+  margin: 0 !important;
+  padding: 0.55rem 0.75rem !important;
+}
+
+.search .matching-post:last-child {
+  border-bottom: none !important;
+}
+
+.search .matching-post h2 {
+  color: var(--title) !important;
+  font-size: 0.95rem !important;
+  margin: 0 0 0.25rem !important;
+}
+
+.search .matching-post p {
+  color: var(--muted) !important;
+  margin: 0 !important;
+}
+
+.search .matching-post a {
+  color: inherit !important;
+}
+
+.search .search-keyword {
+  color: var(--accent) !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+}
+
+.search p.empty {
+  color: var(--muted) !important;
+  padding: 0.75rem !important;
+  margin: 0 !important;
+}
+
+.app-name.hide,
+.sidebar-nav.hide {
+  display: none !important;
+}
+
+.sidebar-nav {
+  position: relative;
+  z-index: 1;
 }
 
 .content {
   left: var(--sidebar-width) !important;
   background: var(--bg) !important;
   padding-top: 2rem !important;
+}
+
+body.close .sidebar {
+  transform: translateX(calc(-1 * var(--sidebar-width))) !important;
+}
+
+body.close .content {
+  left: 0 !important;
 }
 
 .markdown-section {
@@ -240,6 +357,41 @@ div#app {
   border-radius: 3px !important;
 }
 
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.sidebar::-webkit-scrollbar,
+.search .results-panel::-webkit-scrollbar,
+.markdown-section pre::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
 @media screen and (max-width: 768px) {
   .content {
     left: 0 !important;
@@ -251,5 +403,19 @@ div#app {
 
   body.close .sidebar {
     transform: translateX(var(--sidebar-width)) !important;
+  }
+
+  .sidebar-toggle {
+    width: auto !important;
+    border-top: none !important;
+    background: transparent !important;
+    padding: 1.25rem !important;
+  }
+
+  body.close .sidebar-toggle {
+    width: var(--sidebar-width) !important;
+    background: var(--panel) !important;
+    border-top: 1px solid var(--line) !important;
+    padding: 0.75rem 1rem !important;
   }
 }
