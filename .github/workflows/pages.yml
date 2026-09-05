@@ -48,7 +48,11 @@ jobs:
           test -f docs/CNAME
           test -f docs/.nojekyll
           test -f docs/assets/theme.css
+          test -f docs/vendor/docsify.min.js
+          test -f docs/vendor/dark.css
           grep -qx 'pip-rns.quad4.io' docs/CNAME
+          ! grep -E 'cdn\.jsdelivr\.net|fonts\.googleapis\.com' docs/index.html
+          ! grep -E 'cdn\.jsdelivr\.net|fonts\.googleapis\.com' docs/assets/theme.css
 
       - name: Upload docs artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

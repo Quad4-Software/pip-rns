@@ -1,319 +1,217 @@
-:root {
-  --bg: #0c1017;
-  --bg-elevated: #141a24;
-  --bg-sidebar: #0a0e14;
-  --bg-code: #080b10;
-  --border: #243041;
-  --text: #d7dee8;
-  --text-muted: #8b97a8;
-  --heading: #f0f4fa;
-  --accent: #5ec8c0;
-  --accent-dim: #3a8f89;
-  --accent-soft: rgba(94, 200, 192, 0.12);
-  --warn: #d4a35c;
-  --danger: #d4676a;
-  --link: #7ed8d1;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  --font-sans: "Instrument Sans", "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --sidebar-width: 280px;
-  --content-max: 52rem;
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");
 }
 
-* {
-  box-sizing: border-box;
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+}
+
+/* pip-rns docs: flat dark override on Docsify dark.css */
+
+:root {
+  --bg: #121212;
+  --panel: #1a1a1a;
+  --line: #2a2a2a;
+  --text: #d6d6d6;
+  --muted: #8f8f8f;
+  --title: #f2f2f2;
+  --accent: #c4a574;
+  --code-bg: #0e0e0e;
+  --theme-color: #c4a574;
+  --sidebar-width: 260px;
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 16.5px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif !important;
+  font-size: 16px !important;
+  letter-spacing: 0 !important;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(900px 500px at 12% -10%, rgba(94, 200, 192, 0.14), transparent 60%),
-    radial-gradient(700px 420px at 100% 0%, rgba(84, 110, 180, 0.12), transparent 55%),
-    linear-gradient(180deg, #0c1017 0%, #0a0d13 100%);
+div#app {
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  margin: 30vh auto !important;
+  color: var(--muted) !important;
 }
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.35;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(circle at 30% 20%, black, transparent 70%);
-}
-
-.app-nav {
-  display: none;
+.sidebar,
+.sidebar-toggle {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-right: 1px solid var(--line) !important;
 }
 
 .sidebar {
   width: var(--sidebar-width) !important;
-  background: var(--bg-sidebar) !important;
-  border-right: 1px solid var(--border) !important;
-  padding: 1.25rem 0 2rem !important;
+  padding-top: 1.5rem !important;
 }
 
-.sidebar .app-name {
+.sidebar > h1 {
   margin: 0 1.25rem 1.25rem !important;
-  padding: 1rem 1rem 1.1rem !important;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background:
-    linear-gradient(145deg, rgba(94, 200, 192, 0.1), transparent 55%),
-    var(--bg-elevated);
-  box-shadow: var(--shadow);
+  text-align: left !important;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
 }
 
-.sidebar .app-name-link {
-  color: var(--heading) !important;
-  font-weight: 700 !important;
-  font-size: 1.35rem !important;
-  letter-spacing: -0.03em !important;
+.sidebar > h1 a {
+  color: var(--title) !important;
+}
+
+.sidebar ul li a {
+  color: var(--muted) !important;
+  font-size: 0.92rem !important;
+}
+
+.sidebar ul li a:hover {
+  color: var(--title) !important;
   text-decoration: none !important;
 }
 
-.sidebar .app-name-link::after {
-  content: "docs";
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.sidebar-nav {
-  padding: 0 0.75rem !important;
-}
-
-.sidebar-nav ul {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.sidebar-nav li {
-  margin: 0.15rem 0 !important;
-}
-
-.sidebar-nav a {
-  color: var(--text-muted) !important;
-  border-radius: 10px !important;
-  padding: 0.55rem 0.8rem !important;
-  font-weight: 500 !important;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.sidebar-nav a:hover {
-  color: var(--heading) !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-}
-
-.sidebar-nav li.active > a {
-  color: var(--heading) !important;
-  background: var(--accent-soft) !important;
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.search {
-  margin: 0 1rem 1rem !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-.search input {
-  width: 100%;
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  color: var(--text) !important;
-  padding: 0.7rem 0.9rem !important;
-  font-family: var(--font-sans) !important;
-}
-
-.search input::placeholder {
-  color: var(--text-muted) !important;
-}
-
-.search .matching-post {
-  border-bottom: 1px solid var(--border) !important;
-}
-
-.search h2,
-.search a {
-  color: var(--heading) !important;
-}
-
-.sidebar-toggle {
-  background-color: transparent !important;
+.sidebar ul li.active > a {
+  color: var(--accent) !important;
+  font-weight: 600 !important;
+  border-right: 2px solid var(--accent) !important;
 }
 
 .sidebar-toggle span {
   background-color: var(--accent) !important;
 }
 
-main {
-  background: transparent !important;
+.search {
+  margin: 0 1rem 1rem !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.search input {
+  background: var(--bg) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--text) !important;
+  border-radius: 4px !important;
+  font-family: inherit !important;
+}
+
+.search .matching-post {
+  border-bottom-color: var(--line) !important;
 }
 
 .content {
+  left: var(--sidebar-width) !important;
+  background: var(--bg) !important;
   padding-top: 2rem !important;
 }
 
 .markdown-section {
-  max-width: var(--content-max) !important;
+  max-width: 44rem !important;
   color: var(--text) !important;
-  padding: 1.5rem 2rem 4rem !important;
 }
 
 .markdown-section h1,
 .markdown-section h2,
 .markdown-section h3,
-.markdown-section h4 {
-  color: var(--heading) !important;
-  font-weight: 650 !important;
-  letter-spacing: -0.02em;
-  border: none !important;
+.markdown-section h4,
+.markdown-section strong {
+  color: var(--title) !important;
+  font-weight: 600 !important;
 }
 
 .markdown-section h1 {
-  font-size: 2.35rem !important;
-  margin-bottom: 0.85rem !important;
+  font-size: 1.9rem !important;
+  margin: 0 0 1rem !important;
 }
 
 .markdown-section h2 {
-  margin-top: 2.4rem !important;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--border) !important;
-}
-
-.markdown-section p,
-.markdown-section ul,
-.markdown-section ol {
-  color: var(--text);
+  font-size: 1.35rem !important;
+  margin: 2.2rem 0 0.75rem !important;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
 }
 
 .markdown-section a {
-  color: var(--link) !important;
+  color: var(--accent) !important;
+  font-weight: 500 !important;
   text-decoration: none !important;
-  border-bottom: 1px solid transparent;
 }
 
 .markdown-section a:hover {
-  border-bottom-color: var(--accent-dim);
-}
-
-.markdown-section strong {
-  color: var(--heading);
-  font-weight: 600;
+  text-decoration: underline !important;
 }
 
 .markdown-section blockquote {
   border-left: 3px solid var(--accent) !important;
-  background: var(--accent-soft);
-  color: var(--text) !important;
-  margin: 1.2rem 0 !important;
-  padding: 0.85rem 1rem !important;
-  border-radius: 0 12px 12px 0;
+  color: var(--muted) !important;
+  background: transparent !important;
+  margin: 1.25rem 0 !important;
+  padding: 0.15rem 0 0.15rem 1rem !important;
 }
 
 .markdown-section code {
-  font-family: var(--font-mono) !important;
-  background: var(--bg-code) !important;
-  color: #b7f0ea !important;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.12rem 0.35rem !important;
-  font-size: 0.88em !important;
+  background: var(--code-bg) !important;
+  color: #e8d4b0 !important;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace !important;
+  font-size: 0.86em !important;
 }
 
 .markdown-section pre {
-  background: var(--bg-code) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 14px !important;
-  padding: 1rem 1.1rem !important;
-  box-shadow: var(--shadow);
+  background: var(--code-bg) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+  padding: 0.9rem 1rem !important;
 }
 
 .markdown-section pre > code {
-  border: none !important;
   background: transparent !important;
-  color: #d7e4ef !important;
-  padding: 0 !important;
-  font-size: 0.86rem !important;
-  line-height: 1.55 !important;
+  border: none !important;
+  color: #d8d8d8 !important;
+  font-size: 0.84rem !important;
 }
 
 .markdown-section table {
-  display: block;
-  overflow-x: auto;
-  border-collapse: collapse;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elevated);
+  border: 1px solid var(--line) !important;
+  background: var(--panel);
 }
 
 .markdown-section th,
 .markdown-section td {
-  border: 1px solid var(--border) !important;
-  padding: 0.7rem 0.85rem !important;
+  border-color: var(--line) !important;
 }
 
 .markdown-section th {
-  background: rgba(94, 200, 192, 0.08);
-  color: var(--heading);
-  font-weight: 600;
+  background: #202020;
+  color: var(--title);
 }
 
 .markdown-section tr:nth-child(2n) {
-  background: rgba(255, 255, 255, 0.02);
+  background: #161616 !important;
 }
 
-.docsify-pagination-container {
-  border-top: 1px solid var(--border) !important;
-  margin-top: 3rem !important;
-  padding-top: 1.25rem !important;
+.markdown-section hr {
+  border-bottom-color: var(--line) !important;
 }
 
-.pagination-item-title {
-  color: var(--heading) !important;
-  font-weight: 600 !important;
-}
-
-.pagination-item a {
-  color: var(--text-muted) !important;
-}
-
-.pagination-item a:hover {
-  color: var(--accent) !important;
-}
-
-.docsify-copy-code-button {
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
-  border-radius: 8px !important;
-  font-family: var(--font-sans) !important;
+.progress {
+  background-color: var(--accent) !important;
 }
 
 .github-corner svg {
@@ -321,12 +219,37 @@ main {
   color: var(--bg) !important;
 }
 
-@media (max-width: 768px) {
-  .markdown-section {
-    padding: 1.25rem 1.1rem 3rem !important;
+.docsify-pagination-container {
+  border-top: 1px solid var(--line) !important;
+}
+
+.pagination-item a,
+.pagination-item-title {
+  color: var(--muted) !important;
+}
+
+.pagination-item a:hover,
+.pagination-item-title {
+  color: var(--title) !important;
+}
+
+.docsify-copy-code-button {
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+  border-radius: 3px !important;
+}
+
+@media screen and (max-width: 768px) {
+  .content {
+    left: 0 !important;
   }
 
-  .markdown-section h1 {
-    font-size: 1.85rem !important;
+  .sidebar {
+    left: calc(-1 * var(--sidebar-width)) !important;
+  }
+
+  body.close .sidebar {
+    transform: translateX(var(--sidebar-width)) !important;
   }
 }
