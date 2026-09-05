@@ -44,6 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f docs/index.html
+          test -f docs/404.html
           test -f docs/_sidebar.md
           test -f docs/CNAME
           test -f docs/.nojekyll
@@ -51,6 +52,8 @@ jobs:
           test -f docs/vendor/docsify.min.js
           test -f docs/vendor/dark.css
           grep -qx 'pip-rns.quad4.io' docs/CNAME
+          grep -q 'routerMode: "history"' docs/index.html
+          cmp -s docs/index.html docs/404.html
           ! grep -E 'cdn\.jsdelivr\.net|fonts\.googleapis\.com' docs/index.html
           ! grep -E 'cdn\.jsdelivr\.net|fonts\.googleapis\.com' docs/assets/theme.css
 

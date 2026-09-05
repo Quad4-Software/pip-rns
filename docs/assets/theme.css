@@ -351,10 +351,61 @@ body.close .content {
 }
 
 .docsify-copy-code-button {
+  position: absolute !important;
+  top: 0.45rem !important;
+  right: 0.45rem !important;
+  z-index: 2 !important;
+  min-width: 4.25rem;
+  height: 1.7rem;
+  padding: 0 0.6rem !important;
   background: var(--panel) !important;
   border: 1px solid var(--line) !important;
   color: var(--muted) !important;
   border-radius: 3px !important;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif !important;
+  font-size: 0.75rem !important;
+  line-height: 1.7rem !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+}
+
+.docsify-copy-code-button > span {
+  display: inline-block;
+  transition: opacity 0.12s ease;
+}
+
+.docsify-copy-code-button .error,
+.docsify-copy-code-button .success {
+  position: absolute !important;
+  inset: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  z-index: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--panel) !important;
+  color: var(--accent) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  -webkit-transform: none !important;
+  transition: opacity 0.12s ease !important;
+}
+
+.docsify-copy-code-button.success .success,
+.docsify-copy-code-button.error .error {
+  opacity: 1 !important;
+  right: 0 !important;
+  transform: none !important;
+  -webkit-transform: none !important;
+}
+
+.docsify-copy-code-button.success > span:first-child,
+.docsify-copy-code-button.error > span:first-child {
+  opacity: 0 !important;
 }
 
 /* Scrollbars */
