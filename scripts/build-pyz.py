@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Build standalone zipapps: dist/opip.pyz and dist/pip-rns.pyz."""
 
 from __future__ import annotations

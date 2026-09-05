@@ -75,5 +75,9 @@ ignore = [
 [tool.ruff.lint.flake8-copyright]
 notice-rgx = "(?i)Copyright \\(c\\) \\d{4}, Quad4"
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["CPY001", "E501", "PERF"]
+"scripts/**" = ["E501"]
+
 [tool.ruff.format]
 quote-style = "double"

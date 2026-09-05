@@ -160,6 +160,9 @@ def test_kit_create_offline_with_fake_runtime():
         assert (kit_dir / "app" / "site-packages" / "demo").is_dir()
         errors = verify_kit(str(kit_dir))
         assert errors == [], errors
+        if os.name == "nt":
+            # AppDir launchers are POSIX sh scripts for Linux sneakernet kits
+            return
         r = subprocess.run(
             [str(kit_dir / "demo")],
             capture_output=True,
