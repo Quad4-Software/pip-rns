@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# rngit release notes helper — $1 = temp notes file (rngit seeds it before calling EDITOR)
+# rngit release notes helper. $1 = temp notes file (rngit seeds it before calling EDITOR)
 set -e
 
 notes_file=$1

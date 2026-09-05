@@ -7,7 +7,7 @@ TAG ?= v$(VERSION)
 PREFIX ?= /usr/local
 RELEASE_DIR := dist/release
 
-.PHONY: all clean build sign upload publish-pypi release release-rns tag retag test typecheck lint ci install install-user
+.PHONY: all clean build pyz sign upload publish-pypi release release-rns tag retag test typecheck lint ci install install-user
 
 all: build
 
@@ -19,10 +19,14 @@ build:
 	# Drop stray non-package files that must not ship in releases
 	find dist -maxdepth 1 -type f ! -name '*.whl' ! -name '*.tar.gz' \
 		! -name '*.whl.rsg' ! -name '*.tar.gz.rsg' ! -name '*.rsm' \
+		! -name '*.pyz' ! -name '*.pyz.rsg' \
 		-delete 2>/dev/null || true
 
-sign: build
-	for f in dist/*.tar.gz dist/*.whl; do \
+pyz:
+	python scripts/build-pyz.py -o dist
+
+sign: build pyz
+	for f in dist/*.tar.gz dist/*.whl dist/*.pyz; do \
 		[ -f "$$f" ] || continue; \
 		rnid -f -i $(RNID_KEY) -s "$$f" -w "$$f.rsg"; \
 	done
@@ -37,12 +41,12 @@ release: tag release-rns
 release-rns: sign
 	rm -rf $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)
-	@for f in dist/*.whl dist/*.tar.gz; do \
+	@for f in dist/*.whl dist/*.tar.gz dist/*.pyz; do \
 		[ -f "$$f" ] || continue; \
 		cp "$$f" $(RELEASE_DIR)/; \
 		[ -f "$$f.rsg" ] && cp "$$f.rsg" $(RELEASE_DIR)/; \
 	done
-	@test -n "$$(ls -A $(RELEASE_DIR) 2>/dev/null)" || (echo "No wheel/sdist in dist/"; exit 1)
+	@test -n "$$(ls -A $(RELEASE_DIR) 2>/dev/null)" || (echo "No artifacts in dist/"; exit 1)
 	RELEASE_TAG=$(TAG) EDITOR="$(PWD)/scripts/release-notes.sh" \
 		rngit release -i $(RNID_KEY) $(RNS_REMOTE) create $(TAG):./$(RELEASE_DIR)
 
