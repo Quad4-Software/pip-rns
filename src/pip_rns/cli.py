@@ -190,11 +190,14 @@ def _looks_like_remote(token: str) -> bool:
 
 
 def _inject_install_command(argv: list[str]) -> list[str]:
-    """Allow pip-rns rns://... as shorthand for pip-rns install rns://..."""
-    if len(argv) < 2:
+    """Allow pip-rns rns://... as shorthand for pip-rns install rns://...
+
+    argv is the argument list without the program name (sys.argv[1:]).
+    """
+    if not argv:
         return argv
     # skip global flags before the first positional
-    i = 1
+    i = 0
     while i < len(argv):
         arg = argv[i]
         if arg in ("--version", "-h", "--help"):

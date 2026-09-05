@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.5.0 - 2026-09-05
+## 1.5.1 - 2026-09-05
+
+- Fix pip-rns install swallowing the remote as rns://install when using
+  pip-rns install rns://... (install-command inject used the wrong argv index)
+
+## 1.5.0 - 2026-09-05 [released]
 
 ### Zipapps, kits, and no-pip bootstrap
 

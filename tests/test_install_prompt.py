@@ -16,20 +16,22 @@ def test_looks_like_remote():
 
 
 def test_inject_install_command():
-    assert _inject_install_command(["pip-rns", "rns://id/g/repo"]) == [
-        "pip-rns",
+    # argv is sys.argv[1:] (no program name), matching cli.main()
+    assert _inject_install_command(["rns://id/g/repo"]) == [
         "install",
         "rns://id/g/repo",
     ]
     assert _inject_install_command(
-        ["pip-rns", "--no-color", "id/g/repo", "--venv", ".venv"],
-    ) == ["pip-rns", "--no-color", "install", "id/g/repo", "--venv", ".venv"]
-    assert _inject_install_command(["pip-rns", "install", "rns://id/g/repo"]) == [
-        "pip-rns",
+        ["--no-color", "id/g/repo", "--venv", ".venv"],
+    ) == ["--no-color", "install", "id/g/repo", "--venv", ".venv"]
+    assert _inject_install_command(["install", "rns://id/g/repo"]) == [
         "install",
         "rns://id/g/repo",
     ]
-    assert _inject_install_command(["pip-rns", "doctor"]) == ["pip-rns", "doctor"]
+    assert _inject_install_command(["doctor"]) == ["doctor"]
+    assert _inject_install_command(
+        ["install", "rns://id/g/repo@master"],
+    ) == ["install", "rns://id/g/repo@master"]
 
 
 def test_offer_install_options_noninteractive():
