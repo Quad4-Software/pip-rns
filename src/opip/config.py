@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Environment-based configuration for opip."""
 
 import os
@@ -42,6 +43,8 @@ def apply_defaults(args):
             args.find_links = env_str("OPIP_FIND_LINKS")
         if not getattr(args, "offline", False):
             args.offline = bool(env_str("OPIP_OFFLINE"))
+        if getattr(args, "proxy", None) is None:
+            args.proxy = env_str("OPIP_PROXY")
 
     if getattr(args, "command", None) == "update":
         if getattr(args, "index_url", None) is None:
@@ -81,7 +84,8 @@ ENV_HELP = [
     ("OPIP_INDEX_URL", "Warehouse JSON index base (default https://pypi.org/pypi)"),
     ("OPIP_FIND_LINKS", "Local wheel directory for create (air-gap)"),
     ("OPIP_OFFLINE", "Refuse network during create when set"),
-    ("OPIP_BACKEND", "Install backend: pip or uv"),
+    ("OPIP_BACKEND", "Install backend: pip, uv, or manual"),
+    ("OPIP_PROXY", "HTTP/HTTPS/SOCKS5(h) proxy for create/kit downloads"),
     ("NO_COLOR", "Standard. Disables color when set"),
     ("FORCE_COLOR", "Standard. Enables color when set"),
     ("CI", "When set, disables prompts and color (unless FORCE_COLOR)"),
@@ -91,6 +95,8 @@ ENV_HELP = [
 COMMAND_SUMMARY = [
     ("create", "Build an offline .opip bundle from PyPI wheels"),
     ("install", "Install a bundle from file, rns://, URL, FTP, or git"),
+    ("kit", "USB/airgap kit with zipapps and optional portable Python"),
+    ("self-install", "Install opip/pip-rns without system pip"),
     ("export", "Copy a verified bundle for sneakernet sharing"),
     ("extract", "Unpack wheels for pip/uv hand-off"),
     ("verify", "Check integrity, authenticity, and provenance"),
@@ -113,11 +119,13 @@ COMMAND_SUMMARY = [
 ]
 
 EXAMPLES = [
+    ("opip help airgap", "Offline / no-pip / kit recipes"),
     ("opip help create", "Detailed help for create"),
     ("opip create --help", "Same as above (argparse)"),
     ("opip create", "Auto-detect project and build bundle"),
     ("opip create -r req.txt --platform win_amd64 --python 3.12", "Windows bundle"),
     ("opip create --platform universal --python 3.12", "Multi-OS bundle"),
+    ("opip kit create nomadnet -o /media/usb --with-runtime", "USB kit"),
     ("opip install ./my-bundle.opip --user", "User install offline"),
     ("opip install ./my-bundle.opip --venv .venv", "Install into a venv (PEP 668)"),
     ("opip export my-bundle -o /media/usb/pkg.opip", "Copy to USB"),

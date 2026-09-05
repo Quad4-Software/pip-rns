@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Install from local wheel files and export directories (sneakernet)."""
 
 from __future__ import annotations
@@ -79,7 +80,7 @@ def install_local_wheel(
 ) -> None:
     """Install a local .whl (and verify .rsg when present)."""
     whl_path = resolve_wheel_path(path)
-    print(f"{header('⤵ Local wheel')} {bold(whl_path.name)}")
+    print(f"{header('Local wheel')} {bold(whl_path.name)}")
 
     signer = verify_identity
     verified, discovered = verify_local_wheel(
@@ -102,6 +103,31 @@ def install_local_wheel(
     else:
         print(f"  {dim('unsigned wheel')}")
 
-    inst = get_installer(installer, venv=venv)
-    inst.install(whl_path, editable=False, extra_args=extra_args)
+    inst_name = installer
+    if installer == "pip":
+        from .installer import resolve_installer_name
+
+        inst_name = resolve_installer_name("pip", venv=venv)
+        if inst_name != "pip":
+            print(f"  {dim(f'pip missing; using {inst_name} backend')}")
+    inst = get_installer(inst_name, venv=venv)
+    try:
+        inst.install(whl_path, editable=False, extra_args=extra_args)
+    except Exception as exc:
+        from .installer import InstallerError, resolve_installer_name
+
+        if (
+            installer == "pip"
+            and isinstance(exc, InstallerError)
+            and exc.kind == "missing_pip"
+        ):
+            fallback = resolve_installer_name("manual", venv=venv)
+            print(f"  {dim(f'falling back to {fallback}')}")
+            get_installer(fallback, venv=venv).install(
+                whl_path,
+                editable=False,
+                extra_args=extra_args,
+            )
+        else:
+            raise
     print(f"{success('Done')}")

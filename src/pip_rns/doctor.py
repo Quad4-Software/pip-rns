@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Environment health checks for pip-rns."""
 
 from __future__ import annotations
@@ -77,9 +78,10 @@ def run_doctor(
                     Check(
                         "pip",
                         False,
-                        "python -m pip unavailable",
-                        "fail",
-                        fix="python -m venv .venv && source .venv/bin/activate",
+                        "python -m pip unavailable "
+                        "(python3 pip-rns.pyz / self-install / --uv / manual)",
+                        "warn",
+                        fix="python3 pip-rns.pyz self-install --user",
                     ),
                 )
         elif path:

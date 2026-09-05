@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Install wheels from offline bundles."""
 
 import os
@@ -61,7 +62,8 @@ def _interpreter_version(python):
             [
                 python,
                 "-c",
-                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+                "import sys; "
+                "print(f'{sys.version_info.major}.{sys.version_info.minor}')",
             ],
             check=True,
             capture_output=True,
@@ -110,8 +112,9 @@ def _confirm_recreate_venv(path, got, required, no_interactive):
     if answer in ("", "y", "yes"):
         return True
     raise InstallError(
-        "Cancelled."
-        f"\nUse a matching venv or: rm -rf {path} && opip install <bundle> --venv {path}",
+        "Cancelled.\n"
+        f"Use a matching venv or: rm -rf {path} && "
+        f"opip install <bundle> --venv {path}",
     )
 
 
@@ -244,15 +247,29 @@ def _offer_pep668_recovery(no_interactive=False, required_version=None):
     return {"venv": venv}
 
 
-def _select_wheels_for_install(manifest, wheels_dir):
-    """Return wheel paths compatible with this machine."""
-    py_version = detect_python_version()
-    platform_tag = detect_platform()
+def _select_wheels_for_install(
+    manifest,
+    wheels_dir,
+    *,
+    py_version=None,
+    platform_tag=None,
+    require_host_match=True,
+):
+    """Return wheel paths compatible with the target Python/platform.
+
+    When py_version/platform_tag are omitted, detect the current host.
+    Set require_host_match=False when packing an appdir for a kit runtime
+    that differs from the host interpreter.
+    """
+    host_py = detect_python_version()
+    host_plat = detect_platform()
+    py_version = py_version or host_py
+    platform_tag = platform_tag or host_plat
     required = manifest.get("python_version")
-    if required and required != py_version:
+    if require_host_match and required and required != host_py:
         raise InstallError(
             f"This bundle was built for Python {required}, "
-            f"but the current interpreter is {py_version} ({sys.executable}).",
+            f"but the current interpreter is {host_py} ({sys.executable}).",
         )
 
     def _wheel_path(record):
@@ -379,11 +396,11 @@ def _uv_available():
 
 
 def resolve_install_backend(backend=None, python=None):
-    """Return 'pip' or 'uv'."""
+    """Return 'pip', 'uv', or 'manual'."""
     explicit = backend if backend is not None else os.environ.get("OPIP_BACKEND")
     if explicit is not None and str(explicit).strip():
         chosen = str(explicit).strip().lower()
-        if chosen not in ("pip", "uv"):
+        if chosen not in ("pip", "uv", "manual"):
             raise InstallError(f"Unknown install backend: {chosen}")
         if chosen == "uv" and not _uv_available():
             raise InstallError("OPIP_BACKEND=uv but uv is not on PATH")
@@ -404,6 +421,10 @@ def install_wheels(
     break_system_packages=False,
 ):
     chosen = resolve_install_backend(backend, python=python)
+    if chosen == "manual":
+        raise InstallError(
+            "manual backend is handled by install_bundle, not install_wheels",
+        )
     # Fall back to uv only when pip is unavailable on this interpreter
     if chosen == "pip" and python and not _find_pip(python) and _uv_available():
         chosen = "uv"
@@ -483,6 +504,9 @@ def _run_pip_install_with_recovery(
     """Install via pip or uv, offering PEP 668 recovery when needed."""
     from opip import terminal
 
+    if (backend or "").lower() == "manual":
+        return target, user, venv, False
+
     current_target = target
     current_user = user
     current_venv = venv
@@ -494,6 +518,8 @@ def _run_pip_install_with_recovery(
         if current_venv and not os.path.isfile(python):
             raise InstallError(f"venv python not found: {python}")
         chosen = resolve_install_backend(backend, python=python)
+        if chosen == "manual":
+            return current_target, current_user, current_venv, False
         if chosen == "pip" and not _find_pip(python):
             want_uv = (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
             if _uv_available() and (want_uv or not _find_pip(python)):
@@ -583,6 +609,7 @@ def install_bundle(
     no_interactive=False,
     venv=None,
     backend=None,
+    break_system_packages=False,
 ):
     """Install all wheels from a bundle.
 
@@ -636,10 +663,13 @@ def install_bundle(
         packages = [w["package"] for w in manifest.get("wheels", [])]
         wheel_paths = _select_wheels_for_install(manifest, wheels_dir)
 
-        can_install = bool(
+        backend_name = (backend or os.environ.get("OPIP_BACKEND") or "").lower()
+        force_manual = backend_name == "manual"
+
+        can_install = (not force_manual) and bool(
             _find_pip()
             or (venv and _find_pip(_venv_python(venv)))
-            or (backend or os.environ.get("OPIP_BACKEND") or "").lower() == "uv"
+            or backend_name == "uv"
             or (venv and _uv_available() and not _find_pip(_venv_python(venv))),
         )
         used_pip = False
@@ -663,6 +693,7 @@ def install_bundle(
                 no_interactive=noninteractive,
                 required_version=required_version,
                 backend=use_backend,
+                break_system_packages=break_system_packages,
             )
 
         if not used_pip:
@@ -671,6 +702,7 @@ def install_bundle(
                 install_wheel_manual(whl, target_dir)
             if target is None and venv is None:
                 target = target_dir
+            terminal.info(f"Installed with manual wheel extract into {target_dir}")
 
         dest = _dest_label(target=target, user=user, venv=venv)
 
@@ -759,6 +791,7 @@ def install_from_source(
     no_interactive=False,
     venv=None,
     backend=None,
+    break_system_packages=False,
 ):
     """Acquire bundle from any source and install."""
     from opip.sources import acquire_bundle
@@ -782,6 +815,7 @@ def install_from_source(
         no_interactive=no_interactive,
         venv=venv,
         backend=backend,
+        break_system_packages=break_system_packages,
     )
 
 

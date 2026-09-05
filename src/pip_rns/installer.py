@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Pluggable package installer backends (pip, pipx, uv, poetry)."""
 
 from __future__ import annotations
@@ -5,6 +6,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -99,9 +101,10 @@ def classify_install_failure(
                 "Create a venv with pip, then retry:",
                 "  python -m venv .venv && .venv/bin/python -m ensurepip",
                 "  pip-rns install <remote> --venv .venv",
-                "Or use uv / pipx:",
+                "Or use uv / manual / zipapp (no system pip):",
                 "  pip-rns install <remote> --uv --venv .venv",
-                "  pip-rns install <remote> --pipx",
+                "  python3 pip-rns.pyz install ./pkg.whl",
+                "  python3 pip-rns.pyz self-install --user",
             ],
             output=text,
         )
@@ -146,7 +149,8 @@ def classify_install_failure(
             "Package build failed.",
             kind="build_failed",
             hints=[
-                "Install build deps for this package, or use --from-release when a wheel exists.",
+                "Install build deps for this package, or use "
+                "--from-release when a wheel exists.",
             ],
             output=text,
         )
@@ -202,10 +206,7 @@ def run_installer_cmd(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 def format_installer_error(exc: InstallerError) -> str:
     """Render InstallerError for stderr."""
-    lines = [f"error: {exc}"]
-    for hint in exc.hints:
-        lines.append(hint)
-    return "\n".join(lines)
+    return "\n".join([f"error: {exc}", *exc.hints])
 
 
 class BaseInstaller:
@@ -498,6 +499,91 @@ register_installer("pip", PipInstaller)
 register_installer("pipx", PipxInstaller)
 register_installer("uv", UvInstaller)
 register_installer("poetry", PoetryInstaller)
+
+
+class ManualInstaller(BaseInstaller):
+    """Extract a wheel into site-packages without pip."""
+
+    name = "manual"
+
+    def install(
+        self,
+        package_path: Path,
+        editable: bool = False,
+        extra_args: list[str] | None = None,
+    ) -> None:
+        if editable:
+            raise InstallerError(
+                "manual backend cannot install editable packages",
+                kind="unsupported",
+            )
+        from opip.install import install_wheel_manual
+
+        if self.venv:
+            pyver = f"python{sys.version_info.major}.{sys.version_info.minor}"
+            if os.name == "nt":
+                target = Path(self.venv) / "Lib" / "site-packages"
+            else:
+                target = Path(self.venv) / "lib" / pyver / "site-packages"
+        else:
+            import site
+
+            paths = site.getusersitepackages()
+            target = Path(paths if isinstance(paths, str) else paths[0])
+        install_wheel_manual(str(package_path), str(target))
+
+    def update(
+        self,
+        package_path: Path,
+        editable: bool = False,
+        extra_args: list[str] | None = None,
+    ) -> None:
+        self.install(package_path, editable=editable, extra_args=extra_args)
+
+    def inject(
+        self,
+        venv_name: str,
+        package_path: Path,
+        extra_args: list[str] | None = None,
+    ) -> None:
+        raise NotImplementedError("manual has no inject")
+
+    def list_packages(self) -> None:
+        raise NotImplementedError("manual has no list")
+
+    def uninstall(self, package: str) -> None:
+        raise NotImplementedError("manual has no uninstall")
+
+
+register_installer("manual", ManualInstaller)
+
+
+def _pip_module_available() -> bool:
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "--version"],
+            check=True,
+            capture_output=True,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return False
+
+
+def resolve_installer_name(preferred: str = "pip", venv: str | None = None) -> str:
+    """Pick an installer when preferred pip is missing."""
+    if preferred and preferred != "pip":
+        return preferred
+    if preferred == "pip" and _pip_module_available():
+        return "pip"
+    if shutil.which("uv") or (os.environ.get("PIP_RNS_UV")):
+        # uv may still work when python -m pip does not
+        try:
+            get_installer("uv", venv=venv)
+            return "uv"
+        except Exception:
+            pass
+    return "manual"
 
 
 def _detect_pkg_name(repo_path: Path) -> str | None:

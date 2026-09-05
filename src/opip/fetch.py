@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Download wheels and files from remote sources (stdlib only)."""
 
 import ftplib
@@ -24,14 +25,19 @@ class FetchError(Exception):
     pass
 
 
-def _build_opener():
+def _build_opener(proxy=None):
+    from opip.proxy import ProxyError, build_opener
+
     ctx = ssl.create_default_context()
-    return urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx))
+    try:
+        return build_opener(proxy=proxy, context=ctx)
+    except ProxyError as exc:
+        raise FetchError(str(exc)) from exc
 
 
-def download_url(url, dest_path, timeout=120, expected_hash=None):
+def download_url(url, dest_path, timeout=120, expected_hash=None, proxy=None):
     """Download URL to dest_path. Optionally verify SHA-256."""
-    opener = _build_opener()
+    opener = _build_opener(proxy=proxy)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with opener.open(req, timeout=timeout) as resp:
@@ -50,7 +56,8 @@ def download_url(url, dest_path, timeout=120, expected_hash=None):
         if actual != expected_hash:
             os.remove(dest_path)
             raise FetchError(
-                f"Hash mismatch for {url}: expected {expected_hash[:16]}, got {actual[:16]}",
+                f"Hash mismatch for {url}:"
+                f" expected {expected_hash[:16]}, got {actual[:16]}",
             )
     return dest_path
 
@@ -74,7 +81,8 @@ def download_wheel(
         expected = digests["sha256"]
     elif require_pypi_hash:
         raise FetchError(
-            f"PyPI provides no sha256 digest for {filename}. use without --require-pypi-hash",
+            f"PyPI provides no sha256 digest for {filename}."
+            " use without --require-pypi-hash",
         )
 
     local_path = wheel_spec.get("path")

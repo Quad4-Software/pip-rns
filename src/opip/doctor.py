@@ -1,3 +1,4 @@
+# Copyright (c) 2026, Quad4 (quad4.io)
 """Environment health checks for opip."""
 
 from __future__ import annotations
@@ -83,7 +84,28 @@ def run_doctor(*, data_dir: str | None = None) -> list[Check]:
         )
         checks.append(Check("pip", True, f"{sys.executable} -m pip", "pass"))
     except Exception:
-        checks.append(Check("pip", False, "python -m pip unavailable", "warn"))
+        checks.append(
+            Check(
+                "pip",
+                False,
+                "python -m pip unavailable "
+                "(use opip.pyz / --backend manual|uv / self-install)",
+                "warn",
+            ),
+        )
+
+    uv = shutil.which("uv")
+    if uv:
+        checks.append(Check("uv", True, uv, "pass"))
+    else:
+        checks.append(Check("uv", True, "not installed (optional)", "warn"))
+
+    try:
+        import ensurepip  # noqa: F401
+
+        checks.append(Check("ensurepip", True, "available", "pass"))
+    except Exception:
+        checks.append(Check("ensurepip", False, "not available", "warn"))
 
     return checks
 
