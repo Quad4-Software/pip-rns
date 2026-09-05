@@ -82,7 +82,7 @@ pip-rns browse --install
 
 ### Requirements
 
-- python 3.7 or higher
+- python 3.8 or higher
 
 ### Install
 

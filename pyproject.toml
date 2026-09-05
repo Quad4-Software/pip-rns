@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "pip-rns"
 dynamic = ["version"]
 description = "Install Python packages from Reticulum remotes and offline wheel bundles"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {text = "BSD-2-Clause"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -15,7 +15,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",

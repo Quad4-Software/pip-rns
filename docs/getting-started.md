@@ -4,7 +4,7 @@ pip-rns installs Python packages from Reticulum remotes you choose. opip packs a
 
 ## Requirements
 
-- Python 3.7 or newer (or a kit built with --with-runtime)
+- Python 3.8 or newer (or a kit built with --with-runtime)
 - For mesh install and discover: a working Reticulum stack and the rns package
 - For rngit remotes: rngit on your PATH
 - An install backend helps (pip, pipx, uv, or poetry) but is not required
