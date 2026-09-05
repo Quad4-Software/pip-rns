@@ -2,17 +2,27 @@
 
 ## 1.5.0 - 2026-09-05
 
-- Signed zipapps: opip.pyz and pip-rns.pyz (run without prior pip install)
-- self-install places opip/pip-rns on PATH via manual extract, uv, or ensurepip
-- opip kit create|verify builds USB/airgap kits with optional portable CPython
-- get-opip.py bootstraps zipapps from a browser-downloaded wheel or Tor URL (no pip)
-- opip kit create --as-app writes AppImage-style ./Run launchers
-- SOCKS5(h)/HTTP proxy support for create and kit downloads (--proxy, OPIP_PROXY)
-- Explicit --break-system-packages and --backend manual for no-pip installs
-- pip-rns local wheel install falls back to uv/manual when pip is missing
-- Doctor and help: opip help airgap, pip-rns help bootstrap
+### Zipapps, kits, and no-pip bootstrap
+
+- Signed zipapps (opip.pyz, pip-rns.pyz) run with only a Python interpreter
+- self-install places opip and pip-rns on PATH via manual extract, uv, or ensurepip
+- get-opip.py builds those zipapps from a browser-downloaded wheel or Tor URL
+- opip kit create / kit verify builds USB airgap kits with optional portable CPython
+- kit create --as-app writes AppImage-style ./Run launchers
+- HTTP(S) and SOCKS5(h) proxy for create and kit downloads (--proxy, OPIP_PROXY)
+- --break-system-packages and --backend manual for installs when pip is absent
+- pip-rns local wheel install falls back to uv or manual extract when pip is missing
+- Help topics: opip help airgap, pip-rns help bootstrap
+
+### Docs and repository hardening
+
+- Docsify docs site on GitHub Pages (pip-rns.quad4.io)
+- GitHub Actions supply-chain hardening (Harden Runner first, pinned workflows)
+- Scorecard and CodeQL fixes (TLS 1.2 floor, safer URL handling, dependency policy)
 
 ## 1.4.0 - 2026-09-04 [released]
+
+### pip-rns
 
 - Browse can listen, save, scan, and optionally install in one flow
 - Search across aliases, indexes, and discovered packages
@@ -23,22 +33,24 @@
 - Install hints and defaults use short package names
 - Trust prompt when a remote is unpinned
 - Branch installs hint when a release wheel already exists
-- opip prefers stable PyPI releases over prereleases (PEP 440 compare)
-- opip install prompts to recover from PEP 668 (venv, --user, or --target)
-- opip --user retries with --break-system-packages on Arch-style PEP 668
-- opip refuses or recreates a venv when its Python version mismatches the bundle
-- opip filters incompatible wheels and rejects unreadable venv interpreters
 - CI test matrix covers Ubuntu, Windows, and macOS
-- opip update reinstalls with replace (no uninstall-first), restores dest/venv, and can re-sign
-- opip create from private indexes, local find-links, or offline wheel dirs
-- opip create from uv.lock, poetry.lock, or pip-tools hashed locks
-- opip SBOM is CycloneDX 1.5
-- opip extract to a wheelhouse or PEP 503 simple index
-- opip install with pip or uv backend
-- opip json and quiet output for CI
-- opip trust uses the shared pip-rns trust store
-- opip update reuses unchanged wheels
-- opip delta and apply for thin update packs
+
+### opip
+
+- Prefers stable PyPI releases over prereleases (PEP 440)
+- Install recovers from PEP 668 (venv, --user, or --target)
+- --user retries with --break-system-packages on Arch-style PEP 668
+- Refuses or recreates a venv when its Python version mismatches the bundle
+- Filters incompatible wheels and rejects unreadable venv interpreters
+- Update reinstalls with replace, restores dest/venv, can re-sign, reuses unchanged wheels
+- Create from private indexes, find-links, offline wheel dirs, or lock files
+  (uv.lock, poetry.lock, pip-tools hashed locks)
+- SBOM is CycloneDX 1.5
+- Extract to a wheelhouse or PEP 503 simple index
+- Install backend choice: pip or uv
+- JSON and quiet output for CI
+- Trust uses the shared pip-rns trust store
+- Delta and apply for thin update packs
 
 ## 1.3.1 - 2026-07-23 [released]
 
