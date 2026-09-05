@@ -18,6 +18,13 @@ class ProxyError(Exception):
     pass
 
 
+def tls_context() -> ssl.SSLContext:
+    """Default TLS context that rejects TLS 1.0 and 1.1."""
+    ctx = ssl.create_default_context()
+    ctx.minimum_version = ssl.TLSVersion.TLS_1_2
+    return ctx
+
+
 def get_proxy(explicit: str | None = None) -> str | None:
     """Return active proxy URL from explicit arg, module state, or OPIP_PROXY."""
     if explicit is not None and str(explicit).strip():
@@ -178,7 +185,7 @@ class _SocksHTTPSHandler(urllib_request.HTTPSHandler):
                 if context:
                     self.sock = context.wrap_socket(sock, server_hostname=self.host)
                 else:
-                    self.sock = ssl.create_default_context().wrap_socket(
+                    self.sock = tls_context().wrap_socket(
                         sock,
                         server_hostname=self.host,
                     )
@@ -230,7 +237,7 @@ def build_opener(
     proxy_url = get_proxy(proxy)
     handlers: list[urllib_request.BaseHandler] = []
     if context is None:
-        context = ssl.create_default_context()
+        context = tls_context()
     handlers.append(urllib_request.HTTPSHandler(context=context))
     if not proxy_url:
         return urllib_request.build_opener(*handlers)

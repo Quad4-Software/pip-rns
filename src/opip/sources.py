@@ -4,6 +4,7 @@
 import os
 import shutil
 import tempfile
+from urllib.parse import urlparse
 
 from opip.fetch import FetchError, fetch_file, fetch_git
 from opip.manifest import BUNDLE_EXTENSION
@@ -21,12 +22,20 @@ def is_rns_source(source):
     return len(parts) >= 3 and all(parts)
 
 
+def _is_github_host(source):
+    url_part = source.split("#", 1)[0]
+    if "://" not in url_part:
+        url_part = "https://" + url_part
+    host = (urlparse(url_part).hostname or "").lower()
+    return host == "github.com" or host.endswith(".github.com")
+
+
 def is_git_source(source):
     return (
         source.startswith("git+")
         or source.startswith("git://")
         or source.endswith(".git")
-        or ("github.com" in source and "#" in source and BUNDLE_EXTENSION in source)
+        or ("#" in source and BUNDLE_EXTENSION in source and _is_github_host(source))
     )
 
 

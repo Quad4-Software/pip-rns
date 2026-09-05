@@ -4,7 +4,6 @@
 import ftplib
 import os
 import shutil
-import ssl
 import subprocess
 import tempfile
 import urllib.error
@@ -26,9 +25,9 @@ class FetchError(Exception):
 
 
 def _build_opener(proxy=None):
-    from opip.proxy import ProxyError, build_opener
+    from opip.proxy import ProxyError, build_opener, tls_context
 
-    ctx = ssl.create_default_context()
+    ctx = tls_context()
     try:
         return build_opener(proxy=proxy, context=ctx)
     except ProxyError as exc:
