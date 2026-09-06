@@ -101,6 +101,32 @@ def _print_status(
     print(f"  {dim('Signer:')} {signer or 'not requested'}")
 
 
+_UPDATE_WORDS = frozenset(
+    {"update", "upgrade", "reinstall", "--update", "--upgrade", "--force", "-f"},
+)
+
+
+def split_update_intent(
+    extra_args: list[str] | None,
+) -> tuple[bool, list[str] | None]:
+    """Pull update-intent words out of passthrough installer args.
+
+    Users frequently type `install <remote> update` or `--force`; those words
+    are not installer args (pipx treats them as package specs), so interpret
+    them as a request to update instead.
+    """
+    if not extra_args:
+        return False, None
+    update = False
+    kept: list[str] = []
+    for arg in extra_args:
+        if arg.lower() in _UPDATE_WORDS:
+            update = True
+            continue
+        kept.append(arg)
+    return update, kept or None
+
+
 def _dest_label(venv: str | None) -> str:
     if venv:
         return f"venv {venv}"
@@ -428,6 +454,7 @@ def install(
     forget_venv: bool = False,
     no_interactive: bool = False,
     config_dir: str | None = None,
+    force: bool = False,
 ) -> None:
     """Install a package from a remote (prefer release wheel when available)."""
     from .local_wheel import install_local_wheel, is_wheel_source
@@ -552,7 +579,7 @@ def install(
             print(f"  {dim(f'Cloning source (@{ref})')}")
         _run(
             resolved,
-            "install",
+            "update" if force else "install",
             installer=installer,
             editable=editable,
             extra_args=extra_args,
@@ -608,7 +635,7 @@ def install(
         print(f"  {dim('Offline: skipping release probe. using cache')}")
         _run(
             resolved,
-            "install",
+            "update" if force else "install",
             installer=installer,
             editable=editable,
             extra_args=extra_args,
@@ -654,7 +681,7 @@ def install(
         print(f"  {dim('No release wheel. cloning source')}")
         _run(
             resolved,
-            "install",
+            "update" if force else "install",
             installer=installer,
             editable=editable,
             extra_args=extra_args,
@@ -720,6 +747,7 @@ def update(
         forget_venv=forget_venv,
         no_interactive=no_interactive,
         config_dir=config_dir,
+        force=True,
     )
 
 

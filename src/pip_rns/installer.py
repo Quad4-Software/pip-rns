@@ -324,8 +324,20 @@ class PipxInstaller(BaseInstaller):
             args.extend(extra_args)
         try:
             run_installer_cmd(args)
-        except InstallerError:
+        except InstallerError as exc:
             pkg = self._pkg_name(package_path)
+            out = (exc.output or "").lower()
+            if "already" in out and "installed" in out:
+                print(
+                    f"  {pkg} is already installed. reinstalling "
+                    "(use 'pipx-rns update' next time)",
+                )
+                self.update(
+                    package_path,
+                    editable=editable,
+                    extra_args=extra_args,
+                )
+                return
             runpip_args = [
                 *self._cmd(),
                 "runpip",

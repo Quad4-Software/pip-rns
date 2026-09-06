@@ -145,6 +145,19 @@ def _add_common_install_args(p: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Forget any remembered venv for this remote",
     )
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Reinstall over an existing install (same as update)",
+    )
+    p.add_argument(
+        "--update",
+        "--upgrade",
+        dest="update",
+        action="store_true",
+        help="Update to the latest ref (same as the update command)",
+    )
 
 
 def _config(args) -> str | None:
@@ -1012,8 +1025,17 @@ def main(argv: list[str] | None = None) -> None:
             except RuntimeError as exc:
                 print(str(exc), file=sys.stderr)
                 raise SystemExit(2) from exc
+        intent, extra = split_update_intent(install_kwargs["extra_args"])
+        install_kwargs["extra_args"] = extra
+        if intent:
+            print(f"  {dim('treating extra args as update request')}")
+        fn = (
+            update_fn
+            if intent or getattr(args, "force", False) or getattr(args, "update", False)
+            else install
+        )
         try:
-            install(remote, **install_kwargs)
+            fn(remote, **install_kwargs)
         except UserCancelled as exc:
             print(str(exc) or "Cancelled.", file=sys.stderr)
             raise SystemExit(130) from exc

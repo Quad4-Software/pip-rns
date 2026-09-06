@@ -9,7 +9,13 @@ import sys
 
 from .aliases import init as alias_init
 from .completion_cmd import install_completions
-from .core import inject, install, list_packages, uninstall
+from .core import (
+    inject,
+    install,
+    list_packages,
+    split_update_intent,
+    uninstall,
+)
 from .core import update as update_fn
 from .doctor import print_doctor, run_doctor
 from .errors import UserCancelled
@@ -109,6 +115,19 @@ def main() -> None:
         "--require-release",
         action="store_true",
         help="Require a release wheel (no anonymous source tip)",
+    )
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Reinstall over an existing install (same as pipx-rns update)",
+    )
+    p.add_argument(
+        "--update",
+        "--upgrade",
+        dest="update",
+        action="store_true",
+        help="Update to the latest ref (same as pipx-rns update)",
     )
     p.add_argument("extra", nargs="*")
 
@@ -214,13 +233,26 @@ def main() -> None:
         print("Use either --from-release or --from-source, not both.", file=sys.stderr)
         raise SystemExit(2)
 
-    if args.command == "install":
+    if args.command in ("install", "update"):
+        wants_update = args.command == "update"
+        extra = getattr(args, "extra", None)
+        if args.command == "install":
+            intent, extra = split_update_intent(extra)
+            wants_update = (
+                wants_update
+                or intent
+                or getattr(args, "force", False)
+                or getattr(args, "update", False)
+            )
+            if intent:
+                print("  (treating extra args as update request)")
+        fn = update_fn if wants_update else install
         try:
-            install(
+            fn(
                 args.remote,
                 installer="pipx",
-                editable=args.editable,
-                extra_args=args.extra or None,
+                editable=getattr(args, "editable", False),
+                extra_args=extra or None,
                 ref=ref,
                 use_cache=use_cache,
                 from_release=from_release,
@@ -260,36 +292,6 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\nInterrupted.", file=sys.stderr)
             raise SystemExit(130)
-        except InstallerError as exc:
-            print(format_installer_error(exc), file=sys.stderr)
-            raise SystemExit(1) from exc
-    elif args.command == "update":
-        try:
-            update_fn(
-                args.remote,
-                installer="pipx",
-                extra_args=args.extra or None,
-                ref=ref,
-                use_cache=use_cache,
-                from_release=from_release,
-                from_source=from_source,
-                verify_identity=verify_identity,
-                insecure=insecure,
-                offline=offline,
-                assume_yes=assume_yes,
-                require_release=require_release,
-                no_interactive=no_interactive,
-                config_dir=cfg,
-            )
-        except UserCancelled as exc:
-            print(str(exc) or "Cancelled.", file=sys.stderr)
-            raise SystemExit(130) from exc
-        except KeyboardInterrupt:
-            print("\nInterrupted.", file=sys.stderr)
-            raise SystemExit(130)
-        except OfflineError as exc:
-            print(str(exc), file=sys.stderr)
-            raise SystemExit(1) from exc
         except InstallerError as exc:
             print(format_installer_error(exc), file=sys.stderr)
             raise SystemExit(1) from exc
