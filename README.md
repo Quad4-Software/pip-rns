@@ -181,8 +181,9 @@ PIP_RNS_NO_CACHE=1 pip-rns install rns://id/group/repo
 ```
 pipx-rns install <remote> [--ref TAG] [--editable] [--from-release|--from-source]
          [--require-release] [--offline] [--insecure] [--verify IDENTITY] [--yes]
+         [--force|--update]
 pipx-rns inject <venv> <remote>
-pipx-rns update <remote>
+pipx-rns update <remote>   # same as install --force
 pipx-rns list
 pipx-rns uninstall <package>
 pipx-rns doctor [--online]
@@ -299,7 +300,7 @@ Flags after -- are forwarded to the underlying tool:
 ```bash
 pip-rns install identity/group/repo -- --break-system-packages
 pip-rns install --poetry identity/group/repo -- --dev
-pipx-rns install identity/group/repo -- --force
+pipx-rns install identity/group/repo --force
 ```
 
 ### pip-rns Environment

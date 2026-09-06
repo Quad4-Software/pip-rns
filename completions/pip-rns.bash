@@ -4,7 +4,7 @@ _pip_rns() {
     _init_completion || return
 
     local commands="install update list uninstall alias index release bundle"
-    local install_opts="--pipx --uv --poetry --ref --editable --use-cache --venv --from-release --verify --no-color --config"
+    local install_opts="--pipx --uv --poetry --ref --editable --use-cache --venv --from-release --from-source --require-release --verify --insecure --offline --yes --force --update --upgrade --remember-venv --forget-venv --no-color --no-interactive --config"
     local alias_commands="add set rm ls"
     local index_commands="add rm ls sync list search"
     local release_commands="list view"
@@ -49,7 +49,7 @@ _pipx_rns() {
     _init_completion || return
 
     local commands="install inject update list uninstall"
-    local install_opts="--ref --editable --use-cache --from-release --verify --no-color --config"
+    local install_opts="--ref --editable --use-cache --from-release --from-source --require-release --verify --insecure --offline --yes --force --update --upgrade --no-color --no-interactive --config"
 
     if [[ $cword -eq 1 ]]; then
         COMPREPLY=($(compgen -W "$commands" -- "$cur"))

@@ -167,6 +167,15 @@ def main() -> None:
     p.add_argument("--offline", action="store_true")
     p.add_argument("--yes", "-y", action="store_true")
     p.add_argument("--require-release", action="store_true")
+    p.add_argument(
+        "--force",
+        "-f",
+        "--update",
+        "--upgrade",
+        dest="force",
+        action="store_true",
+        help="Accepted for symmetry; update always force-reinstalls",
+    )
     p.add_argument("extra", nargs="*")
 
     sub.add_parser("list", help="List pipx-installed packages")
@@ -235,17 +244,15 @@ def main() -> None:
 
     if args.command in ("install", "update"):
         wants_update = args.command == "update"
-        extra = getattr(args, "extra", None)
-        if args.command == "install":
-            intent, extra = split_update_intent(extra)
-            wants_update = (
-                wants_update
-                or intent
-                or getattr(args, "force", False)
-                or getattr(args, "update", False)
-            )
-            if intent:
-                print("  (treating extra args as update request)")
+        intent, extra = split_update_intent(getattr(args, "extra", None))
+        wants_update = (
+            wants_update
+            or intent
+            or getattr(args, "force", False)
+            or getattr(args, "update", False)
+        )
+        if intent:
+            print("  (treating extra args as update request)")
         fn = update_fn if wants_update else install
         try:
             fn(

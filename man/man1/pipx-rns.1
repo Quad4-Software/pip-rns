@@ -19,6 +19,7 @@ Install a package from a remote via pipx.
 .B pipx-rns install
 [\fB--ref\fR \fITAG\fR] [\fB--editable\fR] [\fB--use-cache\fR]
 [\fB--from-release\fR] [\fB--verify\fR \fIIDENTITY\fR]
+[\fB--force\fR|\fB--update\fR]
 \fIremote\fR
 .SS inject
 Inject a package into an existing pipx-managed venv.
@@ -26,6 +27,10 @@ Inject a package into an existing pipx-managed venv.
 \fIvenv\fR \fIremote\fR
 .SS update
 Force-reinstall a package from a remote via pipx.
+\fB--force\fR, \fB-f\fR, \fB--update\fR, and \fB--upgrade\fR on
+.B install
+do the same thing, and a stray "update"/"upgrade"/"reinstall" word in
+extra args is treated as an update request instead of being passed to pipx.
 .SS list
 List pipx-installed packages.
 .SS uninstall

@@ -22,7 +22,17 @@ _pip_rns() {
         '--editable[Install in editable mode]'
         '--use-cache[Cache clone locally]'
         '--from-release[Download .whl from release instead of cloning]'
+        '--from-source[Force clone/install from source]'
+        '--require-release[Require a release wheel]'
         '--verify[Require release signed by identity]:identity'
+        '--insecure[Allow install when verification is not confirmed]'
+        '--offline[Use local cache / paths only]'
+        '--yes[Skip expensive-clone confirmation prompts]'
+        '--force[Reinstall over an existing install]'
+        '--update[Update to the latest ref]'
+        '--upgrade[Update to the latest ref]'
+        '--remember-venv[Remember --venv for this remote]'
+        '--forget-venv[Forget remembered venv for this remote]'
         '--venv[Install into a virtualenv at PATH]:path:_directories'
         '--no-color[Disable colored output]'
         '--config[Config directory]:dir:_directories'
@@ -86,7 +96,15 @@ _pipx_rns() {
                         '--editable[Install in editable mode]' \
                         '--use-cache[Cache clone locally]' \
                         '--from-release[Download .whl from release]' \
-                        '--verify[Require release signed by identity]:identity'
+                        '--from-source[Force clone/install from source]' \
+                        '--require-release[Require a release wheel]' \
+                        '--verify[Require release signed by identity]:identity' \
+                        '--insecure[Allow install when verification is not confirmed]' \
+                        '--offline[Use local cache / paths only]' \
+                        '--yes[Skip expensive-clone confirmation prompts]' \
+                        '--force[Reinstall over an existing install]' \
+                        '--update[Update to the latest ref]' \
+                        '--upgrade[Update to the latest ref]'
                     ;;
                 inject)
                     _arguments \

@@ -20,9 +20,13 @@ Install a package from a remote.
 [\fB--pipx\fR] [\fB--uv\fR] [\fB--poetry\fR] [\fB--ref\fR \fITAG\fR]
 [\fB--editable\fR] [\fB--use-cache\fR] [\fB--venv\fR \fIPATH\fR]
 [\fB--from-release\fR] [\fB--verify\fR \fIIDENTITY\fR]
+[\fB--force\fR|\fB--update\fR]
 \fIremote\fR [\fB--\fR \fItool-flags\fR]
 .SS update
 Reinstall a package from a remote, forcing a fresh install.
+\fB--force\fR, \fB-f\fR, \fB--update\fR, and \fB--upgrade\fR on
+.B install
+do the same thing.
 .SS list
 List installed packages (uses pip by default; add --pipx, --uv, or --poetry).
 .SS uninstall

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.2 - 2026-09-06
+
+- install accepts --force/-f and --update/--upgrade (same as the update
+  command), and stray update/upgrade/reinstall words in passthrough args now
+  trigger an update instead of being forwarded to the installer
+- update now actually force-reinstalls (pipx runpip --force-reinstall /
+  pipx install --force / pip install --force-reinstall) instead of running a
+  plain install that could no-op
+- pipx installs that hit "already installed" recover cleanly through the
+  update path instead of dumping the raw pipx error
+- completions (bash, zsh, fish) and man pages cover the new flags
+
 ## 1.5.1 - 2026-09-05
 
 - Fix pip-rns install swallowing the remote as rns://install when using
