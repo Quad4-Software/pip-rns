@@ -159,20 +159,103 @@ def ensure_pyz_artifacts(dist_dir: Path | None = None) -> tuple[Path, Path]:
     return _build_pyz_from_installed(Path(default_data_dir()) / "pyz")
 
 
+def _runtime_member_path(dest_root: str, name: str) -> str:
+    """Resolve a tar member name under dest_root or raise KitError."""
+    normalized = name.replace("\\", "/")
+    if "\x00" in normalized:
+        raise KitError(f"NUL in runtime tarball member: {name!r}")
+    if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
+        raise KitError(f"Absolute runtime tarball member rejected: {name}")
+    parts = [p for p in normalized.split("/") if p not in ("", ".")]
+    if not parts or any(p == ".." for p in parts):
+        raise KitError(f"Path traversal in runtime tarball member: {name}")
+    target = os.path.abspath(os.path.join(dest_root, *parts))
+    try:
+        common = os.path.commonpath([dest_root, target])
+    except ValueError:
+        raise KitError(f"Runtime member escapes destination: {name}")
+    if common != dest_root:
+        raise KitError(f"Runtime member escapes destination: {name}")
+    return target
+
+
+def _runtime_link_dest(dest_root: str, member_path: str, linkname: str) -> str:
+    """Resolve a relative symlink target and keep it inside dest_root."""
+    if not linkname or "\x00" in linkname:
+        raise KitError("Invalid link target in runtime tarball")
+    normalized = linkname.replace("\\", "/")
+    if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
+        raise KitError(f"Absolute link target rejected: {linkname}")
+    resolved = os.path.abspath(os.path.join(os.path.dirname(member_path), linkname))
+    try:
+        common = os.path.commonpath([dest_root, resolved])
+    except ValueError:
+        raise KitError(f"Link target escapes destination: {linkname}")
+    if common != dest_root:
+        raise KitError(f"Link target escapes destination: {linkname}")
+    return resolved
+
+
 def _extract_runtime_tarball(tarball: Path, dest: Path) -> None:
+    """Extract a portable CPython tarball with traversal and type checks.
+
+    Members are validated and written manually instead of tf.extract so the
+    archive cannot escape dest, create device nodes, or keep setuid bits on
+    any supported Python version.
+    """
     dest.mkdir(parents=True, exist_ok=True)
+    dest_root = os.path.abspath(dest)
+    hardlinks: list[tuple[tarfile.TarInfo, str]] = []
     with tarfile.open(tarball, "r:gz") as tf:
         # install_only archives contain a top-level python/ directory
-        members = tf.getmembers()
-        for member in members:
+        for member in tf.getmembers():
             name = member.name
             # Strip leading python/ if present
             parts = Path(name).parts
             if parts and parts[0] == "python":
-                member.name = str(Path(*parts[1:])) if len(parts) > 1 else ""
-            if not member.name or member.name == ".":
+                name = str(Path(*parts[1:])) if len(parts) > 1 else ""
+            if not name or name == ".":
                 continue
-            tf.extract(member, path=dest)
+            target = _runtime_member_path(dest_root, name)
+            if member.isdir():
+                os.makedirs(target, exist_ok=True)
+            elif member.isreg():
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                src = tf.extractfile(member)
+                if src is None:
+                    raise KitError(f"Cannot read runtime member: {name}")
+                with open(target, "wb") as out:
+                    shutil.copyfileobj(src, out)
+                os.chmod(target, (member.mode & 0o777) or 0o644)
+            elif member.issym():
+                _runtime_link_dest(dest_root, target, member.linkname)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                if os.path.lexists(target):
+                    os.remove(target)
+                try:
+                    os.symlink(member.linkname, target)
+                except OSError as exc:
+                    raise KitError(f"Cannot create symlink {name}: {exc}")
+            elif member.islnk():
+                hardlinks.append((member, target))
+            elif member.type in (
+                tarfile.XHDTYPE,
+                tarfile.XGLTYPE,
+                tarfile.GNUTYPE_LONGNAME,
+                tarfile.GNUTYPE_LONGLINK,
+            ):
+                # Archive metadata extensions carry no payload to write.
+                continue
+            else:
+                raise KitError(f"Unsupported member type in runtime tarball: {name}")
+        for member, target in hardlinks:
+            link_target = _runtime_member_path(dest_root, member.linkname)
+            if not os.path.isfile(link_target):
+                raise KitError(
+                    f"Hardlink target missing in runtime tarball: {member.linkname}"
+                )
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            os.link(link_target, target)
 
 
 def fetch_portable_runtime(
