@@ -472,8 +472,14 @@ def test_extract_runtime_tarball_roundtrip():
         assert tool.is_file()
         assert tool.stat().st_mode & 0o111
         link = dest / "bin" / "tool"
-        assert link.is_symlink()
-        assert os.readlink(link) == "tool.run"
+        if link.is_symlink():
+            assert os.readlink(link) == "tool.run"
+        elif os.name == "nt":
+            # Windows falls back to copying the payload (no symlink privilege).
+            assert link.is_file()
+            assert link.read_bytes() == b"#!/bin/sh\n"
+        else:
+            raise AssertionError("expected symlink or Windows copy fallback")
 
 
 def test_copy_packages_from_zip_rejects_traversal():
