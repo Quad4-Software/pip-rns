@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Security issue
+      url: https://github.com/Quad4-Software/pip-rns/blob/master/SECURITY.md
+      about: Report vulnerabilities privately. Do not open a public issue for unfixed security bugs.
+
+    - name: Documentation
+      url: https://pip-rns.quad4.io/
+      about: Suggest a docs change or report an error in the guides.

@@ -1,0 +1,105 @@
+name: Bug Report
+description: Report a broken install, fetch, or bundle flow.
+title: "[Bug]: "
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the report. Fill in the fields below so we can reproduce the issue.
+
+    - type: input
+      id: version
+      attributes:
+          label: pip-rns version
+          description: Output of `pip-rns --version` or `opip --version`.
+          placeholder: "x.y.z"
+      validations:
+          required: true
+
+    - type: dropdown
+      id: tool
+      attributes:
+          label: Tool
+          description: Which command is affected?
+          options:
+              - pip-rns
+              - pipx-rns
+              - opip
+              - get-opip.py bootstrap
+              - Other
+      validations:
+          required: true
+
+    - type: dropdown
+      id: os
+      attributes:
+          label: Operating system
+          description: Which OS were you using?
+          options:
+              - Linux
+              - macOS
+              - Windows
+              - Other
+      validations:
+          required: true
+
+    - type: dropdown
+      id: install-method
+      attributes:
+          label: How did you install it?
+          options:
+              - pip / uv from PyPI
+              - pipx
+              - Zipapp (opip.pyz / pip-rns.pyz)
+              - self-install
+              - USB kit
+              - From source
+              - Other
+      validations:
+          required: true
+
+    - type: textarea
+      id: command
+      attributes:
+          label: Command you ran
+          description: The exact command line, for example `pip-rns install rns://... --venv .venv`.
+          render: shell
+      validations:
+          required: true
+
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: Describe the actual behavior, including the part of the flow (resolve, fetch, verify, install).
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: What did you expect?
+          description: Describe what you expected instead.
+      validations:
+          required: true
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Output or logs
+          description: Paste the full error output. `pip-rns doctor` output helps too.
+          render: shell
+
+    - type: checkboxes
+      id: terms
+      attributes:
+          label: Checklist
+          options:
+              - label: I searched existing issues to avoid duplicates
+                required: true
+              - label: I included the command, version, and operating system
+                required: true
+              - label: I can reproduce the issue with the steps above
+                required: false

@@ -1,0 +1,50 @@
+name: Feature Request
+description: Suggest an improvement or a new capability.
+title: "[Feature]: "
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Describe the problem first, then the shape of the solution you want.
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: What problem does this solve?
+          description: What are you trying to do that is hard or impossible today?
+          placeholder: I need to install bundles on machines that only have Python 3.10 and no pip.
+      validations:
+          required: true
+
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed solution
+          description: The command line, flag, or behavior you would like to see.
+          placeholder: opip install --target DIR should also drop console shims in DIR/bin.
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Workarounds or other tools you tried.
+      validations:
+          required: false
+
+    - type: dropdown
+      id: tool
+      attributes:
+          label: Area
+          options:
+              - pip-rns
+              - pipx-rns
+              - opip
+              - Zipapps / kits
+              - Docs
+              - Other
+      validations:
+          required: true
