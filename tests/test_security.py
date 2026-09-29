@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 import zipfile
+from pathlib import Path
 
 from opip.bundle import BundleError, extract_bundle, verify_bundle
 from opip.integrity import (
@@ -344,3 +345,243 @@ def test_install_wheel_manual_rejects_zip_slip():
         except InstallError:
             pass
         assert not os.path.isfile(os.path.join(tmp, "escape.txt"))
+
+
+def _write_tar_gz(path, members):
+    """Write a .tar.gz. members maps name -> (kind, payload_or_linkname)."""
+    import io
+    import tarfile
+
+    with tarfile.open(path, "w:gz") as tf:
+        for name, (kind, payload) in members.items():
+            info = tarfile.TarInfo(name)
+            if kind == "dir":
+                info.type = tarfile.DIRTYPE
+                tf.addfile(info)
+            elif kind == "sym":
+                info.type = tarfile.SYMTYPE
+                info.linkname = payload
+                tf.addfile(info)
+            elif kind == "chr":
+                info.type = tarfile.CHRTYPE
+                tf.addfile(info)
+            else:
+                data = payload if isinstance(payload, bytes) else payload.encode()
+                info.size = len(data)
+                info.mode = 0o755 if name.endswith(".run") else 0o644
+                tf.addfile(info, io.BytesIO(data))
+
+
+def test_extract_runtime_tarball_rejects_traversal():
+    from opip.kit import KitError, _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(tar, {"../evil.txt": ("file", b"x")})
+        dest = os.path.join(tmp, "dest")
+        try:
+            _extract_runtime_tarball(Path(tar), Path(dest))
+            raise AssertionError("expected KitError")
+        except KitError:
+            pass
+        assert not os.path.isfile(os.path.join(tmp, "evil.txt"))
+
+
+def test_extract_runtime_tarball_rejects_python_prefix_escape():
+    from pathlib import Path
+
+    from opip.kit import KitError, _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(tar, {"python/../../evil.txt": ("file", b"x")})
+        try:
+            _extract_runtime_tarball(Path(tar), Path(os.path.join(tmp, "dest")))
+            raise AssertionError("expected KitError")
+        except KitError:
+            pass
+        assert not os.path.isfile(os.path.join(tmp, "evil.txt"))
+
+
+def test_extract_runtime_tarball_rejects_absolute():
+    from pathlib import Path
+
+    from opip.kit import KitError, _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(tar, {"/abs.txt": ("file", b"x")})
+        try:
+            _extract_runtime_tarball(Path(tar), Path(os.path.join(tmp, "dest")))
+            raise AssertionError("expected KitError")
+        except KitError:
+            pass
+
+
+def test_extract_runtime_tarball_rejects_symlink_escape():
+    from pathlib import Path
+
+    from opip.kit import KitError, _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(
+            tar,
+            {"python/bin/evil": ("sym", "../../../../etc/passwd")},
+        )
+        try:
+            _extract_runtime_tarball(Path(tar), Path(os.path.join(tmp, "dest")))
+            raise AssertionError("expected KitError")
+        except KitError:
+            pass
+
+
+def test_extract_runtime_tarball_rejects_device():
+    from pathlib import Path
+
+    from opip.kit import KitError, _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(tar, {"python/dev/null0": ("chr", b"")})
+        try:
+            _extract_runtime_tarball(Path(tar), Path(os.path.join(tmp, "dest")))
+            raise AssertionError("expected KitError")
+        except KitError:
+            pass
+
+
+def test_extract_runtime_tarball_roundtrip():
+    from pathlib import Path
+
+    from opip.kit import _extract_runtime_tarball
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tar = os.path.join(tmp, "rt.tar.gz")
+        _write_tar_gz(
+            tar,
+            {
+                "python/bin/": ("dir", b""),
+                "python/bin/tool.run": ("file", b"#!/bin/sh\n"),
+                "python/bin/tool": ("sym", "tool.run"),
+            },
+        )
+        dest = Path(tmp) / "dest"
+        _extract_runtime_tarball(Path(tar), dest)
+        tool = dest / "bin" / "tool.run"
+        assert tool.is_file()
+        assert tool.stat().st_mode & 0o111
+        link = dest / "bin" / "tool"
+        assert link.is_symlink()
+        assert os.readlink(link) == "tool.run"
+
+
+def test_copy_packages_from_zip_rejects_traversal():
+    from opip.self_install import _copy_packages_from_zip
+
+    with tempfile.TemporaryDirectory() as tmp:
+        pyz = os.path.join(tmp, "app.pyz")
+        _write_zip(
+            pyz,
+            {
+                "opip/ok.py": b"x = 1\n",
+                "opip/../../evil.py": b"x = 1\n",
+            },
+        )
+        site_dir = os.path.join(tmp, "site")
+        try:
+            _copy_packages_from_zip(Path(pyz), Path(site_dir))
+            raise AssertionError("expected traversal rejection")
+        except Exception:
+            pass
+        assert not os.path.isfile(os.path.join(tmp, "evil.py"))
+
+
+def test_reject_option_value():
+    from opip.safe_zip import reject_option_value
+
+    for bad in ("-x", "--upload-pack=evil", "-rf", "--", "a\x00b", ""):
+        try:
+            reject_option_value(bad, "arg")
+            raise AssertionError(f"expected ValueError for {bad!r}")
+        except ValueError:
+            pass
+    assert reject_option_value("rns://abc/repo") == "rns://abc/repo"
+    assert reject_option_value("v1.2.3") == "v1.2.3"
+
+
+def test_git_resolver_clone_rejects_option_url():
+    from unittest import mock
+
+    from pip_rns.resolver import GitResolver
+
+    with tempfile.TemporaryDirectory() as tmp:
+        with mock.patch("pip_rns.resolver.subprocess.run") as run:
+            try:
+                GitResolver().clone("--upload-pack=touch /tmp/pwn", Path(tmp) / "d")
+                raise AssertionError("expected ValueError")
+            except ValueError:
+                pass
+            assert not run.called
+
+
+def test_git_resolver_update_rejects_option_ref():
+    from unittest import mock
+
+    from pip_rns.resolver import GitResolver
+
+    with tempfile.TemporaryDirectory() as tmp:
+        with mock.patch("pip_rns.resolver.subprocess.run") as run:
+            try:
+                GitResolver().update(
+                    "rns://x", Path(tmp), ref="--upload-pack=touch /tmp/pwn"
+                )
+                raise AssertionError("expected ValueError")
+            except ValueError:
+                pass
+            assert not run.called
+
+
+def test_index_clone_rejects_option_url():
+    from unittest import mock
+
+    from pip_rns.indexes import IndexManager
+
+    mgr = object.__new__(IndexManager)
+    with tempfile.TemporaryDirectory() as tmp:
+        with mock.patch("pip_rns.indexes.subprocess.run") as run:
+            try:
+                mgr._clone("--upload-pack=touch /tmp/pwn", Path(tmp))
+                raise AssertionError("expected ValueError")
+            except ValueError:
+                pass
+            assert not run.called
+
+
+def test_rns_fetch_clone_rejects_option_remote():
+    from unittest import mock
+
+    from opip.fetch import FetchError
+    from opip.rns_fetch import _clone_repo
+
+    with tempfile.TemporaryDirectory() as tmp:
+        with mock.patch("opip.rns_fetch._check_rns_available"):
+            try:
+                _clone_repo("--upload-pack=touch /tmp/pwn", tmp)
+                raise AssertionError("expected FetchError")
+            except FetchError:
+                pass
+
+
+def test_release_info_rejects_option_tag():
+    from unittest import mock
+
+    from pip_rns.releases import release_info
+
+    with mock.patch("pip_rns.releases.subprocess.run") as run:
+        try:
+            release_info("rns://abc/repo", "--all")
+            raise AssertionError("expected ValueError")
+        except ValueError:
+            pass
+        assert not run.called
