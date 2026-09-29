@@ -47,8 +47,13 @@ release-rns: sign
 		[ -f "$$f.rsg" ] && cp "$$f.rsg" $(RELEASE_DIR)/; \
 	done
 	@test -n "$$(ls -A $(RELEASE_DIR) 2>/dev/null)" || (echo "No artifacts in dist/"; exit 1)
-	RELEASE_TAG=$(TAG) EDITOR="$(PWD)/scripts/release-notes.sh" \
-		rngit release -i $(RNID_KEY) $(RNS_REMOTE) create $(TAG):./$(RELEASE_DIR)
+	@cfg_dir=$$(mktemp -d); \
+		printf '[client]\neditor = %s\n' "$(PWD)/scripts/release-notes.sh" \
+			> "$$cfg_dir/client_config"; \
+		RELEASE_TAG=$(TAG) RNGIT_CONFIG="$$cfg_dir" \
+			rngit release -i $(RNID_KEY) $(RNS_REMOTE) \
+				create $(TAG):./$(RELEASE_DIR); \
+		rc=$$?; rm -rf "$$cfg_dir"; exit $$rc
 
 tag:
 	@if git rev-parse -q --verify "refs/tags/$(TAG)" >/dev/null 2>&1; then \
