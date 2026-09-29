@@ -65,16 +65,23 @@ def venv_python(venv: Path) -> Path:
 
 
 def venv_cmd(venv: Path, name: str) -> Path:
-    return venv / BIN / (name + (".cmd" if IS_WIN else EXE))
+    """Locate an installed console script (.exe on Windows, plain otherwise)."""
+    if IS_WIN:
+        for suffix in (".exe", ".cmd"):
+            candidate = venv / BIN / (name + suffix)
+            if candidate.is_file():
+                return candidate
+        return venv / BIN / (name + ".exe")
+    return venv / BIN / name
 
 
-def run_cli(venv: Path, name: str, *args: str):
+def run_cli(venv: Path, name: str, *args: str, check: bool = True):
     """Run an installed console script (or .cmd shim on Windows)."""
     script = venv_cmd(venv, name)
     expect(script.is_file(), f"{name} console script exists at {script}")
     if IS_WIN and script.suffix == ".cmd":
-        return run(["cmd", "/c", str(script), *args])
-    return run([str(script), *args])
+        return run(["cmd", "/c", str(script), *args], check=check)
+    return run([str(script), *args], check=check)
 
 
 def build_artifacts() -> Path:
@@ -99,8 +106,10 @@ def step_wheel_install(wheel: Path, work: Path) -> Path:
     for tool in ("pip-rns", "pipx-rns", "opip"):
         out = run_cli(venv, tool, "--version")
         expect(out.returncode == 0, f"{tool} --version exits 0")
-    out = run_cli(venv, "pip-rns", "doctor")
-    expect("doctor" in out.stdout.lower() or out.returncode == 0, "pip-rns doctor runs")
+    # doctor exits nonzero when tools like rngit are absent; the check is
+    # that it produced a report, not that every tool exists.
+    out = run_cli(venv, "pip-rns", "doctor", check=False)
+    expect("doctor" in out.stdout.lower(), "pip-rns doctor prints a report")
     return venv
 
 
@@ -153,8 +162,18 @@ def step_self_install(work: Path) -> None:
     expect((site_pkg / "opip").is_dir(), "opip package copied to target")
     bin_dir = target / BIN
     for tool in ("pip-rns", "opip"):
-        shim = bin_dir / (tool + (".cmd" if IS_WIN else ""))
-        expect(shim.is_file(), f"{tool} shim written to {bin_dir}")
+        names = (
+            [bin_dir / tool]
+            if not IS_WIN
+            else [
+                bin_dir / (tool + ".exe"),
+                bin_dir / (tool + ".cmd"),
+            ]
+        )
+        expect(
+            any(s.is_file() for s in names),
+            f"{tool} shim written to {bin_dir}",
+        )
     # Importable without installing: PYTHONPATH into the target site dir.
     env = dict(os.environ, PYTHONPATH=str(site_pkg))
     out = run([sys.executable, "-c", "import pip_rns, opip; print('ok')"], env=env)
