@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import shutil
 import site
+import stat
 import sys
 import zipfile
 from pathlib import Path
@@ -17,6 +18,7 @@ from opip.install import (
     ensure_venv,
     install_wheel_manual,
 )
+from opip.safe_zip import UnsafeZipError, contain_path
 
 SHIMS = (
     ("opip", "opip.cli", "main"),
@@ -140,10 +142,12 @@ def _copy_packages_from_zip(pyz: Path, site_dir: Path) -> None:
                     continue
                 if info.is_dir():
                     continue
+                if stat.S_ISLNK((info.external_attr >> 16) & 0xFFFF):
+                    raise UnsafeZipError(f"Symlink member rejected: {info.filename}")
                 rel = info.filename[len(prefix) :]
                 if not rel or "__pycache__" in rel or rel.endswith((".pyc", ".pyo")):
                     continue
-                out = dest / rel
+                out = Path(contain_path(str(dest), rel))
                 out.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(info, "r") as src, open(out, "wb") as dst:
                     shutil.copyfileobj(src, dst)
