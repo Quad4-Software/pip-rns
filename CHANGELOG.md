@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.6.0 - 2026-09-29
+
+### Packaging and platform support
+
+- Requires Python 3.10 or newer (3.8 and 3.9 dropped)
+- Linux installs now pull landlockpy and seccompy, Quad4's Landlock LSM
+  and seccomp-BPF bindings, for downstream sandboxing
+- Dev tooling refreshed (ruff, mypy, hypothesis) and workflow action
+  pins updated
+
+### Security fixes
+
+- opip kit runtime tarballs extract member-by-member: path traversal,
+  escaping links, device nodes, and setuid bits are rejected; symlinks
+  become payload copies on Windows where os.symlink needs a privilege
+- get-opip.py and self-install reject zip members that escape the
+  destination (zip-slip)
+- Remote-controlled values (URLs, refs, release tags) can no longer be
+  smuggled through as git or rngit options; -- separators and explicit
+  validation cover clone, fetch, and release paths
+- pip-rns install WHEEL --venv creates the venv before picking the
+  backend instead of failing on a missing interpreter
+
+### Docs
+
+- Docs moved from Docsify to Zensical at pip-rns.quad4.io: dark-first
+  void/paper theme that follows the browser preference, and a version
+  selector backed by mike (dev on master, latest on releases)
+
+### Testing and repository
+
+- scripts/e2e.py runs a real end-to-end smoke (wheel, venv install,
+  zipapps, self-install, offline bundle roundtrip) on Linux, macOS,
+  and Windows in CI
+- New adversarial tests cover tar and zip traversal plus CLI option
+  injection
+- Issue templates, maintainer slash commands (/fixed, /needs-info),
+  and stale issue cleanup
+- Zizmor findings fixed across all workflows; every grant is scoped
+  and documented
+
 ## 1.5.2 - 2026-09-06
 
 - install accepts --force/-f and --update/--upgrade (same as the update
