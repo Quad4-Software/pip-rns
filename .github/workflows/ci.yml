@@ -140,6 +140,42 @@ jobs:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: utf-8
 
+  e2e:
+    name: E2E (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.13"]
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv project
+        uses: $/.github/actions/setup-uv-project
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-suffix: e2e-${{ matrix.os }}
+
+      - name: Run end-to-end smoke
+        run: uv run python scripts/e2e.py
+        shell: bash
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: utf-8
+          PIP_RNS_NO_INTERACTIVE: "1"
+
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'
@@ -162,7 +198,7 @@ jobs:
 
   gate:
     name: CI gate
-    needs: [changes, quality, test, dependency-review]
+    needs: [changes, quality, test, e2e, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
@@ -177,6 +213,7 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           QUALITY: ${{ needs.quality.result }}
           TEST: ${{ needs.test.result }}
+          E2E: ${{ needs.e2e.result }}
           DEP_REVIEW: ${{ needs.dependency-review.result }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
@@ -198,7 +235,7 @@ jobs:
           fi
 
           if [ "$CODE" = "true" ]; then
-            for name_result in "quality:${QUALITY}" "test:${TEST}"; do
+            for name_result in "quality:${QUALITY}" "test:${TEST}" "e2e:${E2E}"; do
               name="${name_result%%:*}"
               result="${name_result#*:}"
               if [ "$result" != "success" ]; then

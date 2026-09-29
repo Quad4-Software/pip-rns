@@ -25,3 +25,5 @@ __pypackages__/
 .coverage
 htmlcov/
 .DS_Store
+site/
+.gh-pages-wt/
