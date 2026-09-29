@@ -104,6 +104,11 @@ def install_local_wheel(
         print(f"  {dim('unsigned wheel')}")
 
     inst_name = installer
+    if venv:
+        # Backend resolution probes the venv, so create it first.
+        from .core import _ensure_venv
+
+        venv = _ensure_venv(venv)
     if installer == "pip":
         from .installer import resolve_installer_name
 
