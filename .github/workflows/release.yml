@@ -35,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
-      attestations: write
+      id-token: write # OIDC token for build provenance attestation
+      attestations: write # publish build provenance attestations
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
@@ -77,7 +77,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup uv project (no cache restore on release)
-        uses: ./.github/actions/setup-uv-project
+        uses: $/.github/actions/setup-uv-project
         with:
           python-version: "3.12"
           enable-cache: "false"
@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      contents: write
+      contents: write # create the GitHub Release
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -230,7 +230,7 @@ jobs:
     environment: pypi
     permissions:
       contents: read
-      id-token: write
+      id-token: write # OIDC token for PyPI Trusted Publishing
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1

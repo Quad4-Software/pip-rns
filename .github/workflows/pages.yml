@@ -24,8 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
+      pages: write # deploy the docs site
+      id-token: write # OIDC token for Pages deployment
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -67,8 +67,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
+      pages: write # deploy the docs site
+      id-token: write # OIDC token for Pages deployment
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

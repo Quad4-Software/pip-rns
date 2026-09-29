@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: read # list changed files on PRs
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
@@ -90,7 +90,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup uv project
-        uses: ./.github/actions/setup-uv-project
+        uses: $/.github/actions/setup-uv-project
         with:
           python-version: "3.12"
           cache-suffix: quality
@@ -128,7 +128,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup uv project
-        uses: ./.github/actions/setup-uv-project
+        uses: $/.github/actions/setup-uv-project
         with:
           python-version: ${{ matrix.python-version }}
           cache-suffix: test-${{ matrix.os }}
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: read # inspect the PR dependency diff
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
