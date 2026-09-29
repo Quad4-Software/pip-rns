@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from opip.safe_zip import reject_option_value
+
 from .retry import retry
 
 PERSISTENT_DIR = Path.home() / ".local" / "share" / "pip-rns" / "checkouts"
@@ -124,17 +126,29 @@ class GitResolver(BaseResolver):
 
     scheme = ""
 
-    @retry(max_attempts=3, delay=1.0, backoff=2.0)
+    @retry(
+        max_attempts=3,
+        delay=1.0,
+        backoff=2.0,
+        exceptions=(OSError, subprocess.SubprocessError),
+    )
     def clone(self, url: str, dest: Path, ref: str | None = None) -> None:
+        reject_option_value(url, "remote URL")
         args = ["git", "clone"]
         if ref:
             args.extend(["--branch", ref, "--depth", "1"])
-        args.extend([url, str(dest)])
+        args.extend(["--", url, str(dest)])
         subprocess.run(args, check=True)
 
-    @retry(max_attempts=3, delay=1.0, backoff=2.0)
+    @retry(
+        max_attempts=3,
+        delay=1.0,
+        backoff=2.0,
+        exceptions=(OSError, subprocess.SubprocessError),
+    )
     def update(self, url: str, dest: Path, ref: str | None = None) -> None:
         if ref:
+            reject_option_value(ref, "ref")
             subprocess.run(
                 ["git", "-C", str(dest), "fetch", "--depth", "1", "origin", ref],
                 check=True,

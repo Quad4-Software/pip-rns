@@ -152,6 +152,23 @@ def safe_artifact_name(filename):
     return base
 
 
+def reject_option_value(value, what="value"):
+    """Reject a CLI argument that a subprocess could parse as an option flag.
+
+    git, rngit, and friends treat positional arguments starting with '-' as
+    options, so remote-controlled values (remotes, refs, tags) must not begin
+    with a dash.
+    """
+    text = str(value)
+    if not text:
+        raise ValueError(f"Empty {what}")
+    if "\x00" in text:
+        raise ValueError(f"NUL in {what}")
+    if text.startswith("-"):
+        raise ValueError(f"{what} must not look like an option: {value!r}")
+    return text
+
+
 def contain_path(root_dir, rel_path):
     """Join rel_path under root_dir and ensure the result stays inside root_dir.
 

@@ -8,6 +8,7 @@ import subprocess
 
 from opip.fetch import FetchError
 from opip.remote_resolve import resolve_remote_source
+from opip.safe_zip import reject_option_value
 from opip.sidecar import copy_sidecar_from_dir
 from pip_rns.releases import (
     _normalize_remote,
@@ -43,10 +44,16 @@ def _check_rns_available():
 
 def _clone_repo(remote, dest_dir, ref=None):
     _check_rns_available()
+    try:
+        reject_option_value(remote, "remote")
+        if ref:
+            reject_option_value(ref, "ref")
+    except ValueError as exc:
+        raise FetchError(str(exc)) from exc
     args = ["git", "clone"]
     if ref:
         args.extend(["--branch", ref, "--depth", "1"])
-    args.extend([remote, dest_dir])
+    args.extend(["--", remote, dest_dir])
     try:
         subprocess.run(args, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as exc:

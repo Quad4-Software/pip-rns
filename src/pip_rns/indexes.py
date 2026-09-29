@@ -18,6 +18,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from opip.safe_zip import reject_option_value
+
 from .retry import retry
 
 _manager: IndexManager | None = None
@@ -113,9 +115,18 @@ class IndexManager:
     def packages(self) -> dict[str, str]:
         return dict(self._packages)
 
-    @retry(max_attempts=3, delay=1.0, backoff=2.0)
+    @retry(
+        max_attempts=3,
+        delay=1.0,
+        backoff=2.0,
+        exceptions=(OSError, subprocess.SubprocessError),
+    )
     def _clone(self, url: str, dest: Path) -> None:
-        subprocess.run(["git", "clone", "--depth", "1", url, str(dest)], check=True)
+        reject_option_value(url, "index URL")
+        subprocess.run(
+            ["git", "clone", "--depth", "1", "--", url, str(dest)],
+            check=True,
+        )
 
     def search(self, query: str) -> dict[str, str]:
         query = query.lower()

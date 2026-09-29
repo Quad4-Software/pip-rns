@@ -13,6 +13,8 @@ import tempfile
 from pathlib import Path
 from typing import NamedTuple
 
+from opip.safe_zip import reject_option_value
+
 SIGNED_BY_RE = re.compile(
     r"signed by\s+<?([0-9a-fA-F]{32})>?",
     re.IGNORECASE,
@@ -59,6 +61,7 @@ def release_info(remote: str, tag: str) -> dict:
     from .progress import RnsWait
 
     remote = _normalize_remote(remote)
+    reject_option_value(tag, "tag")
     cmd = ["rngit", "release", remote, "view", tag]
     with RnsWait("Waiting on Reticulum (release view)"):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -258,6 +261,7 @@ def fetch_release_artifact(
     present. Pass verify_identity to pin the expected signer hash (-s).
     """
     remote = _normalize_remote(remote)
+    reject_option_value(tag, "tag")
     pattern = _fetch_pattern(artifact)
     target = f"{tag}:{pattern}"
 
