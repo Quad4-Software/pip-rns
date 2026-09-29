@@ -61,14 +61,19 @@ def test_install_clones_when_probe_misses():
 
 def test_from_source_skips_probe():
     with mock.patch.object(core, "_probe_release_wheel") as probe:
-        with mock.patch.object(core, "_run") as run, mock.patch.object(
-            core,
-            "_resolve_remote_label",
-            return_value="rns://id/g/repo",
-        ), mock.patch(
-            "pip_rns.releases._normalize_remote",
-            return_value="rns://id/g/repo",
-        ), _prefs_ctx():
+        with (
+            mock.patch.object(core, "_run") as run,
+            mock.patch.object(
+                core,
+                "_resolve_remote_label",
+                return_value="rns://id/g/repo",
+            ),
+            mock.patch(
+                "pip_rns.releases._normalize_remote",
+                return_value="rns://id/g/repo",
+            ),
+            _prefs_ctx(),
+        ):
             core.install("repo", from_source=True, no_interactive=True)
         assert run.called
         assert not probe.called
@@ -76,14 +81,19 @@ def test_from_source_skips_probe():
 
 def test_branch_at_ref_skips_release_probe():
     with mock.patch.object(core, "_probe_release_wheel") as probe:
-        with mock.patch.object(core, "_run") as run, mock.patch.object(
-            core,
-            "_resolve_remote_label",
-            return_value="rns://id/g/repo",
-        ), mock.patch(
-            "pip_rns.releases._normalize_remote",
-            return_value="rns://id/g/repo",
-        ), _prefs_ctx():
+        with (
+            mock.patch.object(core, "_run") as run,
+            mock.patch.object(
+                core,
+                "_resolve_remote_label",
+                return_value="rns://id/g/repo",
+            ),
+            mock.patch(
+                "pip_rns.releases._normalize_remote",
+                return_value="rns://id/g/repo",
+            ),
+            _prefs_ctx(),
+        ):
             core.install(
                 "rns://id/g/repo@master",
                 no_interactive=True,
@@ -131,14 +141,18 @@ def test_ref_implies_source_helpers():
 
 
 def test_from_release_requires_wheel():
-    with mock.patch.object(
-        core,
-        "_resolve_remote_label",
-        return_value="rns://id/g/repo",
-    ), mock.patch(
-        "pip_rns.releases._normalize_remote",
-        return_value="rns://id/g/repo",
-    ), _prefs_ctx():
+    with (
+        mock.patch.object(
+            core,
+            "_resolve_remote_label",
+            return_value="rns://id/g/repo",
+        ),
+        mock.patch(
+            "pip_rns.releases._normalize_remote",
+            return_value="rns://id/g/repo",
+        ),
+        _prefs_ctx(),
+    ):
         with mock.patch.object(core, "install_from_release") as release:
             core.install("repo", from_release=True, no_interactive=True)
         assert release.called

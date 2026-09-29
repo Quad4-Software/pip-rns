@@ -34,15 +34,19 @@ def test_all_entries_priority():
         amgr.set("lxmfy", "rns://bb/public/LXMFy")
         alias_init(tmp)
 
-        with mock.patch(
-            "pip_rns.catalog.get_index_mgr",
-            return_value=None,
-        ), mock.patch(
-            "pip_rns.catalog.DiscoverStore",
-            return_value=store,
-        ), mock.patch(
-            "pip_rns.catalog.get_alias_mgr",
-            return_value=amgr,
+        with (
+            mock.patch(
+                "pip_rns.catalog.get_index_mgr",
+                return_value=None,
+            ),
+            mock.patch(
+                "pip_rns.catalog.DiscoverStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "pip_rns.catalog.get_alias_mgr",
+                return_value=amgr,
+            ),
         ):
             entries = all_entries(tmp)
 
@@ -69,12 +73,16 @@ def test_offer_package_picker_by_number():
     entries = [
         CatalogEntry("lxmfy", "rns://a", "discover", has_wheel=True, latest_tag="v1"),
     ]
-    with mock.patch("pip_rns.catalog.all_entries", return_value=entries), mock.patch(
-        "pip_rns.catalog._read_line",
-        return_value="1",
-    ), mock.patch(
-        "pip_rns.catalog.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch("pip_rns.catalog.all_entries", return_value=entries),
+        mock.patch(
+            "pip_rns.catalog._read_line",
+            return_value="1",
+        ),
+        mock.patch(
+            "pip_rns.catalog.is_noninteractive",
+            return_value=False,
+        ),
     ):
         name = offer_package_picker()
     assert name == "lxmfy"
@@ -93,9 +101,12 @@ def test_offer_package_picker_noninteractive():
 
 
 def test_offer_package_picker_abort():
-    with mock.patch("pip_rns.catalog.all_entries", return_value=[]), mock.patch(
-        "pip_rns.catalog.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch("pip_rns.catalog.all_entries", return_value=[]),
+        mock.patch(
+            "pip_rns.catalog.is_noninteractive",
+            return_value=False,
+        ),
     ):
         try:
             offer_package_picker()
@@ -104,12 +115,16 @@ def test_offer_package_picker_abort():
             pass
 
     entries = [CatalogEntry("a", "rns://x", "discover")]
-    with mock.patch("pip_rns.catalog.all_entries", return_value=entries), mock.patch(
-        "pip_rns.catalog._read_line",
-        return_value="q",
-    ), mock.patch(
-        "pip_rns.catalog.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch("pip_rns.catalog.all_entries", return_value=entries),
+        mock.patch(
+            "pip_rns.catalog._read_line",
+            return_value="q",
+        ),
+        mock.patch(
+            "pip_rns.catalog.is_noninteractive",
+            return_value=False,
+        ),
     ):
         try:
             offer_package_picker()

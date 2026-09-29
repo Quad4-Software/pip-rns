@@ -10,9 +10,10 @@ import subprocess
 import tempfile
 import time
 import urllib.parse
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .discover import DiscoveredNode, _import_rns
 from .indexes import _parse_plain

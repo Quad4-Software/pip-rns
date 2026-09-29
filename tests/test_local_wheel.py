@@ -33,12 +33,15 @@ def test_install_local_wheel_unsigned():
         whl = Path(tmp) / "pkg-1.0-py3-none-any.whl"
         whl.write_bytes(b"x")
         inst = mock.MagicMock()
-        with mock.patch(
-            "pip_rns.local_wheel.get_installer",
-            return_value=inst,
-        ), mock.patch(
-            "pip_rns.local_wheel.has_signature",
-            return_value=False,
+        with (
+            mock.patch(
+                "pip_rns.local_wheel.get_installer",
+                return_value=inst,
+            ),
+            mock.patch(
+                "pip_rns.local_wheel.has_signature",
+                return_value=False,
+            ),
         ):
             install_local_wheel(str(whl), no_interactive=True)
         inst.install.assert_called_once()
@@ -48,12 +51,15 @@ def test_install_local_wheel_signed_fail_closed():
     with tempfile.TemporaryDirectory() as tmp:
         whl = Path(tmp) / "pkg-1.0-py3-none-any.whl"
         whl.write_bytes(b"x")
-        with mock.patch(
-            "pip_rns.local_wheel.has_signature",
-            return_value=True,
-        ), mock.patch(
-            "pip_rns.local_wheel.verify_bundle_signature_info",
-            return_value=(["bad sig"], None),
+        with (
+            mock.patch(
+                "pip_rns.local_wheel.has_signature",
+                return_value=True,
+            ),
+            mock.patch(
+                "pip_rns.local_wheel.verify_bundle_signature_info",
+                return_value=(["bad sig"], None),
+            ),
         ):
             try:
                 install_local_wheel(str(whl), no_interactive=True)
@@ -66,12 +72,15 @@ def test_core_install_dispatches_local_wheel():
     with tempfile.TemporaryDirectory() as tmp:
         whl = Path(tmp) / "pkg.whl"
         whl.write_bytes(b"x")
-        with mock.patch(
-            "pip_rns.local_wheel.is_wheel_source",
-            return_value=True,
-        ), mock.patch(
-            "pip_rns.local_wheel.install_local_wheel",
-        ) as local:
+        with (
+            mock.patch(
+                "pip_rns.local_wheel.is_wheel_source",
+                return_value=True,
+            ),
+            mock.patch(
+                "pip_rns.local_wheel.install_local_wheel",
+            ) as local,
+        ):
             from pip_rns.core import install
 
             install(str(whl), no_interactive=True)

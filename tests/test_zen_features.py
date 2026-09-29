@@ -59,12 +59,15 @@ def test_export_writes_wheel_and_rsg():
             shutil.copy2(src, dest)
             return ArtifactFetch(path=str(dest), signer="aa" * 16, verified=True)
 
-        with mock.patch(
-            "pip_rns.export_cmd.release_info",
-            return_value={"tag": "v1", "artifacts": artifacts},
-        ), mock.patch(
-            "pip_rns.export_cmd.fetch_release_artifact",
-            side_effect=fake_fetch,
+        with (
+            mock.patch(
+                "pip_rns.export_cmd.release_info",
+                return_value={"tag": "v1", "artifacts": artifacts},
+            ),
+            mock.patch(
+                "pip_rns.export_cmd.fetch_release_artifact",
+                side_effect=fake_fetch,
+            ),
         ):
             written = export_release(
                 "rns://aabbccddeeff00112233445566778899/g/repo",

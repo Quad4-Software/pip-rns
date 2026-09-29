@@ -16,12 +16,15 @@ def test_interactive_help_quits():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("install")
-    with mock.patch(
-        "pip_rns.help_pages.is_noninteractive",
-        return_value=False,
-    ), mock.patch(
-        "builtins.input",
-        return_value="q",
+    with (
+        mock.patch(
+            "pip_rns.help_pages.is_noninteractive",
+            return_value=False,
+        ),
+        mock.patch(
+            "builtins.input",
+            return_value="q",
+        ),
     ):
         code = interactive_help(parser)
     assert code == 0

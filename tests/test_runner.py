@@ -12,8 +12,8 @@ import importlib
 import sys
 import time
 import traceback
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 ROOT = Path(__file__).parent.parent
 SRC = ROOT / "src"

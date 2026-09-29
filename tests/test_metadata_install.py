@@ -49,23 +49,30 @@ def test_install_uses_discovered_release_tag():
             ],
         )
 
-        with mock.patch(
-            "pip_rns.discover.DiscoverStore",
-            return_value=store,
-        ), mock.patch(
-            "pip_rns.core._resolve_remote_label",
-            return_value="rns://aa/public/LXMFy",
-        ), mock.patch(
-            "pip_rns.core.install_from_release",
-            return_value=None,
-        ) as rel, mock.patch(
-            "pip_rns.install_prompt.offer_install_options",
-            side_effect=AssertionError("menu should be skipped"),
-        ), mock.patch(
-            "pip_rns.core._probe_release_wheel",
-            return_value=("v1.2.0", "pkg.whl"),
-        ), mock.patch(
-            "pip_rns.venv_prefs.maybe_remember_venv",
+        with (
+            mock.patch(
+                "pip_rns.discover.DiscoverStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "pip_rns.core._resolve_remote_label",
+                return_value="rns://aa/public/LXMFy",
+            ),
+            mock.patch(
+                "pip_rns.core.install_from_release",
+                return_value=None,
+            ) as rel,
+            mock.patch(
+                "pip_rns.install_prompt.offer_install_options",
+                side_effect=AssertionError("menu should be skipped"),
+            ),
+            mock.patch(
+                "pip_rns.core._probe_release_wheel",
+                return_value=("v1.2.0", "pkg.whl"),
+            ),
+            mock.patch(
+                "pip_rns.venv_prefs.maybe_remember_venv",
+            ),
         ):
             from pip_rns.core import install
 
@@ -81,18 +88,23 @@ def test_install_uses_discovered_release_tag():
 
 
 def test_install_skips_menu_for_bare_remote():
-    with mock.patch(
-        "pip_rns.install_prompt.offer_install_options",
-        return_value=None,
-    ) as menu, mock.patch(
-        "pip_rns.core._resolve_remote_label",
-        return_value="rns://aa/public/LXMFy",
-    ), mock.patch(
-        "pip_rns.core._probe_release_wheel",
-        return_value=("v1.0.0", "pkg.whl"),
-    ), mock.patch(
-        "pip_rns.core.install_from_release",
-        return_value=None,
+    with (
+        mock.patch(
+            "pip_rns.install_prompt.offer_install_options",
+            return_value=None,
+        ) as menu,
+        mock.patch(
+            "pip_rns.core._resolve_remote_label",
+            return_value="rns://aa/public/LXMFy",
+        ),
+        mock.patch(
+            "pip_rns.core._probe_release_wheel",
+            return_value=("v1.0.0", "pkg.whl"),
+        ),
+        mock.patch(
+            "pip_rns.core.install_from_release",
+            return_value=None,
+        ),
     ):
         from pip_rns.core import install
 

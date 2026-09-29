@@ -86,10 +86,13 @@ def test_rns_source_defaults_to_cache_and_updates():
     url = "rns://aabb/g/repo"
     dest = CACHE_DIR / repo_hash(f"{url}@master")
     fake = mock.Mock()
-    with mock.patch("pip_rns.resolver.get_resolver", return_value=fake), mock.patch(
-        "pip_rns.resolver._ensure_clone",
-        return_value="updated",
-    ) as ensure:
+    with (
+        mock.patch("pip_rns.resolver.get_resolver", return_value=fake),
+        mock.patch(
+            "pip_rns.resolver._ensure_clone",
+            return_value="updated",
+        ) as ensure,
+    ):
         path = Resolver().resolve(url, ref="master")
     assert path == dest
     assert ensure.called

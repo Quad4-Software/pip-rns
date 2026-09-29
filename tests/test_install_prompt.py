@@ -39,12 +39,15 @@ def test_offer_install_options_noninteractive():
 
 
 def test_offer_install_options_master():
-    with mock.patch(
-        "pip_rns.install_prompt._read_line",
-        side_effect=["2"],
-    ), mock.patch(
-        "pip_rns.install_prompt.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch(
+            "pip_rns.install_prompt._read_line",
+            side_effect=["2"],
+        ),
+        mock.patch(
+            "pip_rns.install_prompt.is_noninteractive",
+            return_value=False,
+        ),
     ):
         choice = offer_install_options("rns://id/g/repo")
     assert choice == InstallChoice(from_source=True, ref="master")
@@ -53,12 +56,15 @@ def test_offer_install_options_master():
 def test_offer_install_options_abort():
     from pip_rns.errors import UserCancelled
 
-    with mock.patch(
-        "pip_rns.install_prompt._read_line",
-        side_effect=["6"],
-    ), mock.patch(
-        "pip_rns.install_prompt.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch(
+            "pip_rns.install_prompt._read_line",
+            side_effect=["6"],
+        ),
+        mock.patch(
+            "pip_rns.install_prompt.is_noninteractive",
+            return_value=False,
+        ),
     ):
         try:
             offer_install_options("rns://id/g/repo")
@@ -70,12 +76,15 @@ def test_offer_install_options_abort():
 def test_offer_install_options_eof_cancels():
     from pip_rns.errors import UserCancelled
 
-    with mock.patch(
-        "pip_rns.install_prompt._read_line",
-        side_effect=UserCancelled("Cancelled."),
-    ), mock.patch(
-        "pip_rns.install_prompt.is_noninteractive",
-        return_value=False,
+    with (
+        mock.patch(
+            "pip_rns.install_prompt._read_line",
+            side_effect=UserCancelled("Cancelled."),
+        ),
+        mock.patch(
+            "pip_rns.install_prompt.is_noninteractive",
+            return_value=False,
+        ),
     ):
         try:
             offer_install_options("rns://id/g/repo")

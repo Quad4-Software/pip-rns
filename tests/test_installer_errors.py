@@ -127,11 +127,14 @@ def test_install_package_retries_with_venv():
     )
     retry = mock.Mock(spec=PipInstaller)
 
-    with mock.patch.object(
-        core,
-        "_offer_managed_env_recovery",
-        return_value=("pip", "/tmp/venv"),
-    ), mock.patch.object(core, "get_installer", return_value=retry):
+    with (
+        mock.patch.object(
+            core,
+            "_offer_managed_env_recovery",
+            return_value=("pip", "/tmp/venv"),
+        ),
+        mock.patch.object(core, "get_installer", return_value=retry),
+    ):
         inst, venv = core._install_package(
             first,
             pkg,
@@ -154,11 +157,14 @@ def test_install_package_switches_to_uv_when_venv_lacks_pip():
     first.install.side_effect = InstallerError("no pip", kind="missing_pip")
     retry = mock.Mock()
 
-    with mock.patch.object(
-        core,
-        "_offer_managed_env_recovery",
-        return_value=("uv", "/tmp/venv"),
-    ) as offer, mock.patch.object(core, "get_installer", return_value=retry):
+    with (
+        mock.patch.object(
+            core,
+            "_offer_managed_env_recovery",
+            return_value=("uv", "/tmp/venv"),
+        ) as offer,
+        mock.patch.object(core, "get_installer", return_value=retry),
+    ):
         _inst, venv = core._install_package(
             first,
             pkg,

@@ -153,13 +153,16 @@ def test_ensure_venv_recreates_when_confirmed():
                                     return mock.Mock(returncode=0)
 
                                 run.side_effect = fake_run
-                                with mock.patch(
-                                    "opip.install.os.path.isfile",
-                                    side_effect=isfile,
-                                ), mock.patch(
-                                    "opip.install.shutil.rmtree",
-                                    side_effect=lambda *_a, **_k: states.update(
-                                        exists=False,
+                                with (
+                                    mock.patch(
+                                        "opip.install.os.path.isfile",
+                                        side_effect=isfile,
+                                    ),
+                                    mock.patch(
+                                        "opip.install.shutil.rmtree",
+                                        side_effect=lambda *_a, **_k: states.update(
+                                            exists=False,
+                                        ),
                                     ),
                                 ):
                                     out = ensure_venv(

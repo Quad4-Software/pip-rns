@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import os
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from .installer import BaseInstaller, InstallerError, get_installer
 from .resolver import (

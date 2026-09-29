@@ -51,10 +51,13 @@ def test_fail_closed_signed_unverified():
     whl.write_bytes(b"wheel")
     fetched = ArtifactFetch(path=str(whl), signer=None, verified=False)
 
-    with mock.patch(
-        "pip_rns.releases.release_info",
-        return_value={"tag": "v1", "artifacts": artifacts},
-    ), mock.patch("pip_rns.releases.fetch_release_artifact", return_value=fetched):
+    with (
+        mock.patch(
+            "pip_rns.releases.release_info",
+            return_value={"tag": "v1", "artifacts": artifacts},
+        ),
+        mock.patch("pip_rns.releases.fetch_release_artifact", return_value=fetched),
+    ):
         try:
             install_from_release(
                 "rns://aabbccddeeff00112233445566778899/g/repo",
@@ -80,15 +83,20 @@ def test_insecure_allows_unverified_signed():
         def install(self, *a, **k):
             return None
 
-    with mock.patch(
-        "pip_rns.releases.release_info",
-        return_value={"tag": "v1", "artifacts": artifacts},
-    ), mock.patch(
-        "pip_rns.releases.fetch_release_artifact",
-        return_value=fetched,
-    ), mock.patch("pip_rns.core.get_installer", return_value=FakeInst()), mock.patch(
-        "pip_rns.core._install_package",
-        return_value=(FakeInst(), None),
+    with (
+        mock.patch(
+            "pip_rns.releases.release_info",
+            return_value={"tag": "v1", "artifacts": artifacts},
+        ),
+        mock.patch(
+            "pip_rns.releases.fetch_release_artifact",
+            return_value=fetched,
+        ),
+        mock.patch("pip_rns.core.get_installer", return_value=FakeInst()),
+        mock.patch(
+            "pip_rns.core._install_package",
+            return_value=(FakeInst(), None),
+        ),
     ):
         install_from_release(
             "rns://aabbccddeeff00112233445566778899/g/repo",

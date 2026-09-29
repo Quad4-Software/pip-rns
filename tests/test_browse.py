@@ -38,18 +38,23 @@ def test_browse_no_listen_scan_only():
             ],
         )
 
-        with mock.patch(
-            "pip_rns.browse.DiscoverStore",
-            return_value=store,
-        ), mock.patch(
-            "pip_rns.browse.scan_nodes",
-            return_value=[_sample_pkg()],
-        ), mock.patch(
-            "pip_rns.browse.get_alias_mgr",
-            return_value=None,
-        ), mock.patch(
-            "pip_rns.browse._prompt_install",
-            return_value=False,
+        with (
+            mock.patch(
+                "pip_rns.browse.DiscoverStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "pip_rns.browse.scan_nodes",
+                return_value=[_sample_pkg()],
+            ),
+            mock.patch(
+                "pip_rns.browse.get_alias_mgr",
+                return_value=None,
+            ),
+            mock.patch(
+                "pip_rns.browse._prompt_install",
+                return_value=False,
+            ),
         ):
             pkgs = run_browse(
                 config_dir=tmp,
@@ -61,9 +66,12 @@ def test_browse_no_listen_scan_only():
 
 
 def test_browse_noninteractive_no_nodes():
-    with tempfile.TemporaryDirectory() as tmp, mock.patch(
-        "pip_rns.browse.DiscoverStore",
-    ) as store_cls:
+    with (
+        tempfile.TemporaryDirectory() as tmp,
+        mock.patch(
+            "pip_rns.browse.DiscoverStore",
+        ) as store_cls,
+    ):
         store = store_cls.return_value
         store.list_nodes.return_value = []
         try:
@@ -82,18 +90,23 @@ def test_browse_auto_alias():
         store = DiscoverStore(tmp)
         store.merge([DiscoveredNode(destination_hash="aa" * 16, heard_at=1.0)])
 
-        with mock.patch(
-            "pip_rns.browse.DiscoverStore",
-            return_value=store,
-        ), mock.patch(
-            "pip_rns.browse.scan_nodes",
-            return_value=[_sample_pkg()],
-        ), mock.patch(
-            "pip_rns.browse.get_alias_mgr",
-            return_value=amgr,
-        ), mock.patch(
-            "pip_rns.browse._prompt_install",
-            return_value=False,
+        with (
+            mock.patch(
+                "pip_rns.browse.DiscoverStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "pip_rns.browse.scan_nodes",
+                return_value=[_sample_pkg()],
+            ),
+            mock.patch(
+                "pip_rns.browse.get_alias_mgr",
+                return_value=amgr,
+            ),
+            mock.patch(
+                "pip_rns.browse._prompt_install",
+                return_value=False,
+            ),
         ):
             run_browse(
                 config_dir=tmp,
@@ -111,21 +124,27 @@ def test_browse_install_flow():
         store = DiscoverStore(tmp)
         store.merge_packages([_sample_pkg().as_dict()])
 
-        with mock.patch(
-            "pip_rns.browse.DiscoverStore",
-            return_value=store,
-        ), mock.patch(
-            "pip_rns.browse.scan_nodes",
-            return_value=[],
-        ), mock.patch(
-            "pip_rns.browse.get_alias_mgr",
-            return_value=None,
-        ), mock.patch(
-            "pip_rns.browse.offer_package_picker",
-            return_value="lxmfy",
-        ), mock.patch(
-            "pip_rns.core.install",
-        ) as inst:
+        with (
+            mock.patch(
+                "pip_rns.browse.DiscoverStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "pip_rns.browse.scan_nodes",
+                return_value=[],
+            ),
+            mock.patch(
+                "pip_rns.browse.get_alias_mgr",
+                return_value=None,
+            ),
+            mock.patch(
+                "pip_rns.browse.offer_package_picker",
+                return_value="lxmfy",
+            ),
+            mock.patch(
+                "pip_rns.core.install",
+            ) as inst,
+        ):
             run_browse(
                 config_dir=tmp,
                 no_listen=True,
