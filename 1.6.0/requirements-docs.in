@@ -1,0 +1,9 @@
+# Source for docs/requirements-docs.txt. Docs tooling only: zensical
+# builds the site, mike manages versioned gh-pages deploys.
+# The mike entry at the bottom of the txt is appended manually:
+# PyPI mike lacks zensical support, so we pin the upstream commit.
+# jinja2, pyparsing, and verspec are mike's PyPI deps.
+zensical==0.0.65
+jinja2
+pyparsing>=3.0
+verspec
