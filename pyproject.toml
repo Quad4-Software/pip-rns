@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "pip-rns"
 dynamic = ["version"]
 description = "Install Python packages from Reticulum remotes and offline wheel bundles"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "BSD-2-Clause"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -15,8 +15,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -24,6 +22,12 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Build Tools",
     "Topic :: System :: Archiving :: Packaging",
+]
+
+dependencies = [
+    # Linux kernel sandbox bindings (Landlock LSM and seccomp-BPF).
+    "landlockpy>=0.2.0,<0.3; sys_platform == 'linux'",
+    "seccompy==0.2.0; sys_platform == 'linux'",
 ]
 
 [project.scripts]
@@ -42,9 +46,9 @@ packages = ["src/pip_rns", "src/opip", "scripts"]
 
 [dependency-groups]
 dev = [
-    "hypothesis>=6.79.4",
-    "mypy>=1.4.1",
-    "ruff>=0.9.0",
+    "hypothesis>=6.168.1",
+    "mypy>=2.3.1",
+    "ruff>=0.16.9",
 ]
 
 [tool.mypy]
@@ -60,7 +64,7 @@ module = "RNS"
 ignore_missing_imports = true
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py310"
 line-length = 88
 src = ["src", "tests"]
 
