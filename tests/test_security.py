@@ -470,7 +470,9 @@ def test_extract_runtime_tarball_roundtrip():
         _extract_runtime_tarball(Path(tar), dest)
         tool = dest / "bin" / "tool.run"
         assert tool.is_file()
-        assert tool.stat().st_mode & 0o111
+        if os.name != "nt":
+            # Windows chmod does not track POSIX exec bits.
+            assert tool.stat().st_mode & 0o111
         link = dest / "bin" / "tool"
         if link.is_symlink():
             assert os.readlink(link) == "tool.run"
