@@ -206,6 +206,7 @@ def _extract_runtime_tarball(tarball: Path, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
     dest_root = os.path.abspath(dest)
     hardlinks: list[tuple[tarfile.TarInfo, str]] = []
+    symlinks: list[tuple[tarfile.TarInfo, str]] = []
     with tarfile.open(tarball, "r:gz") as tf:
         # install_only archives contain a top-level python/ directory
         for member in tf.getmembers():
@@ -230,12 +231,7 @@ def _extract_runtime_tarball(tarball: Path, dest: Path) -> None:
             elif member.issym():
                 _runtime_link_dest(dest_root, target, member.linkname)
                 os.makedirs(os.path.dirname(target), exist_ok=True)
-                if os.path.lexists(target):
-                    os.remove(target)
-                try:
-                    os.symlink(member.linkname, target)
-                except OSError as exc:
-                    raise KitError(f"Cannot create symlink {name}: {exc}")
+                symlinks.append((member, target))
             elif member.islnk():
                 hardlinks.append((member, target))
             elif member.type in (
@@ -256,6 +252,29 @@ def _extract_runtime_tarball(tarball: Path, dest: Path) -> None:
                 )
             os.makedirs(os.path.dirname(target), exist_ok=True)
             os.link(link_target, target)
+        # Links run last so Windows can fall back to copying a payload
+        # that was extracted earlier in the archive.
+        for member, target in symlinks:
+            if os.path.lexists(target):
+                os.remove(target)
+            try:
+                os.symlink(member.linkname, target)
+            except OSError as exc:
+                if os.name != "nt":
+                    raise KitError(
+                        f"Cannot create symlink {member.name}: {exc}"
+                    ) from exc
+                # Windows needs a privilege for symlinks. Copy the linked
+                # payload instead so kits still extract there.
+                link_src = _runtime_link_dest(dest_root, target, member.linkname)
+                if os.path.isdir(link_src):
+                    shutil.copytree(link_src, target)
+                elif os.path.isfile(link_src):
+                    shutil.copyfile(link_src, target)
+                else:
+                    raise KitError(
+                        f"Cannot create symlink {member.name}: {exc}"
+                    ) from exc
 
 
 def fetch_portable_runtime(
