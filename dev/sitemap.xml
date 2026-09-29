@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/getting-started/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/pip-rns/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/opip/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/trust/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/discovery/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/sneakernet/</loc>
+      </url>
+      <url>
+        <loc>https://pip-rns.quad4.io/dev/troubleshooting/</loc>
+      </url>
+</urlset>
