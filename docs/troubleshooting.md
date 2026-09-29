@@ -141,7 +141,7 @@ pip-rns help -i
 opip help -i
 ```
 
-- Root [README](../README.md) for the compact command list
+- Root [README](https://github.com/Quad4-Software/pip-rns/blob/master/README.md) for the compact command list
 
 ## Still stuck
 

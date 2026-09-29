@@ -1,0 +1,52 @@
+[project]
+site_name = "pip-rns"
+site_url = "https://pip-rns.quad4.io"
+site_description = "Install Python packages from Reticulum remotes and offline wheel bundles"
+repo_url = "https://github.com/Quad4-Software/pip-rns"
+edit_uri = "edit/master/docs/"
+docs_dir = "docs"
+extra_css = [
+  "stylesheets/void.css",
+]
+nav = [
+  { "Home" = "index.md" },
+  { "Getting started" = "getting-started.md" },
+  { "pip-rns" = "pip-rns.md" },
+  { "opip" = "opip.md" },
+  { "Trust and signing" = "trust.md" },
+  { "Discovery" = "discovery.md" },
+  { "Sneakernet" = "sneakernet.md" },
+  { "Troubleshooting" = "troubleshooting.md" },
+]
+
+[project.theme]
+custom_dir = "overrides"
+features = [
+  "navigation.sections",
+  "navigation.footer",
+  "navigation.top",
+  "toc.integrate",
+  "content.action.edit",
+  "search.highlight",
+]
+font.text = "Space Grotesk"
+font.code = "Space Mono"
+
+# Dark "void" first so the no-JS default matches quad4.io; the media
+# queries then let the browser preference override it.
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "void"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "paper"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[project.extra]
+[project.extra.version]
+provider = "mike"
+alias = true
