@@ -171,14 +171,41 @@ def download(url: str, dest: Path, *, proxy: str | None, expected: str | None) -
     return dest
 
 
+def _safe_wheel_extract(wheel: Path, work: Path) -> None:
+    """Extract wheel members under work, rejecting traversal and links."""
+    root = os.path.abspath(work)
+    with zipfile.ZipFile(wheel, "r") as zf:
+        for info in zf.infolist():
+            if info.is_dir() or info.filename.endswith("/"):
+                continue
+            mode = (info.external_attr >> 16) & 0xFFFF
+            if mode and (mode & 0o170000) == 0o120000:
+                raise BootstrapError(f"Symlink wheel member rejected: {info.filename}")
+            name = info.filename.replace("\\", "/")
+            if (
+                "\x00" in name
+                or name.startswith("/")
+                or (len(name) > 1 and name[1] == ":")
+            ):
+                raise BootstrapError(f"Unsafe wheel member: {info.filename!r}")
+            parts = [p for p in name.split("/") if p not in ("", ".")]
+            if not parts or any(p == ".." for p in parts):
+                raise BootstrapError(f"Unsafe wheel member: {info.filename!r}")
+            dest = os.path.abspath(os.path.join(root, *parts))
+            if os.path.commonpath([root, dest]) != root:
+                raise BootstrapError(f"Unsafe wheel member: {info.filename!r}")
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with zf.open(info, "r") as src, open(dest, "wb") as out:
+                shutil.copyfileobj(src, out)
+
+
 def build_from_wheel(wheel: Path, out_dir: Path) -> tuple[Path, Path]:
     """Extract pip-rns wheel and build both zipapps."""
     if not wheel.is_file():
         raise BootstrapError(f"Wheel not found: {wheel}")
     work = Path(tempfile.mkdtemp(prefix="get-opip-"))
     try:
-        with zipfile.ZipFile(wheel, "r") as zf:
-            zf.extractall(work)
+        _safe_wheel_extract(wheel, work)
         # Wheel may place packages at top level
         opip_pkg = work / "opip"
         pip_pkg = work / "pip_rns"
