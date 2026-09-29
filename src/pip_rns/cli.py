@@ -16,7 +16,7 @@ from .bundle_cmd import register_parsers as register_bundle_parsers
 from .catalog import offer_package_picker
 from .catalog import search as catalog_search
 from .completion_cmd import install_completions
-from .core import install, list_packages, uninstall
+from .core import install, list_packages, split_update_intent, uninstall
 from .core import update as update_fn
 from .discover import (
     DiscoverStore,
