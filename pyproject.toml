@@ -26,7 +26,7 @@ classifiers = [
 
 dependencies = [
     # Linux kernel sandbox bindings (Landlock LSM and seccomp-BPF).
-    "landlockpy>=0.2.0,<0.3; sys_platform == 'linux'",
+    "landlockpy>=0.2.1,<0.3; sys_platform == 'linux'",
     "seccompy==0.2.0; sys_platform == 'linux'",
 ]
 
@@ -46,9 +46,9 @@ packages = ["src/pip_rns", "src/opip", "scripts"]
 
 [dependency-groups]
 dev = [
-    "hypothesis>=6.168.1",
-    "mypy>=2.3.1",
-    "ruff>=0.16.9",
+    "hypothesis>=6.168.5",
+    "mypy>=2.4.1",
+    "ruff>=0.17.4",
 ]
 
 [tool.mypy]
